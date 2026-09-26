@@ -47,7 +47,7 @@ export type BradleyTerryOptions = {
    * roughly an order of magnitude. `tests/bradleyterry.test.ts` pins the claim that a
    * warm start and a cold one agree.
    */
-  /* warm start supported in next revision */
+  start?: ReadonlyMap<ProjectId, number>;
 };
 
 export type Strength = {
@@ -165,7 +165,8 @@ export function fitBradleyTerry(
   const numer = new Float64Array(items.length);
   for (let i = 0; i < items.length; i++) {
     const p = items[i] as ProjectId;
-    strength[i] = 1;
+    const hint = opt.start?.get(p);
+    strength[i] = typeof hint === "number" && Number.isFinite(hint) && hint > 0 ? hint : 1;
     numer[i] = (winTotal.get(p) ?? 0) + opt.prior / 2;
   }
   let converged = false;
