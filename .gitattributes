@@ -1,0 +1,17 @@
+# Manak ships a byte-identical export proof and a committed statistical proof
+# report, both of which compare file contents. A checkout that rewrote line
+# endings would break them for reasons that have nothing to do with the code, so
+# the working tree is LF everywhere, on every platform.
+* text=auto eol=lf
+
+# Nothing here is binary, and saying so keeps diffs reviewable.
+*.ts text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.md text eol=lf
+*.csv text eol=lf
+*.sql text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.yml text eol=lf

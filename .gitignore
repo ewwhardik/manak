@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.env
+*.key
+*.pub
+.DS_Store
+
+# The SQLite database and its write-ahead log are per-deployment state, not
+# source. `npm run seed:demo` rebuilds a browsable event from a seed, so nothing
+# of value is lost by leaving them out.
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# docs/proof/*.csv is deliberately NOT ignored. The committed CSV is the
+# reference `npm run prove:normalization -- --check` compares against, and
+# tests/proof.test.ts reads it, so a clone without it fails its own test suite.

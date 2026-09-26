@@ -1,0 +1,36 @@
+{
+  "name": "manak",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A self-hostable hackathon submission and judging portal.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^7.0.2"
+  },
+  "scripts": {
+    "start": "node --experimental-strip-types bin/manak.ts",
+    "test": "node --experimental-strip-types --test \"tests/*.test.ts\"",
+    "test:watch": "node --experimental-strip-types --test --watch \"tests/*.test.ts\"",
+    "seed:demo": "node --experimental-strip-types tools/seed-demo.ts",
+    "archive:export": "node --experimental-strip-types tools/archive.ts export",
+    "archive:import": "node --experimental-strip-types tools/archive.ts import",
+    "archive:preview": "node --experimental-strip-types tools/archive.ts preview",
+    "prove:normalization": "node --experimental-strip-types tools/prove-normalization.ts",
+    "prove:convergence": "node --experimental-strip-types tools/prove-convergence.ts",
+    "prove:fixtures": "node --experimental-strip-types tools/prove-fixtures.ts",
+    "prove:isolation": "node --experimental-strip-types tools/prove-isolation.ts",
+    "prove:roundtrip": "node --experimental-strip-types tools/prove-roundtrip.ts",
+    "import:devpost": "node --experimental-strip-types tools/import-devpost.ts",
+    "webhook:status": "node --experimental-strip-types tools/webhook-status.ts",
+    "certs:issue": "node --experimental-strip-types tools/issue-certs.ts",
+    "typecheck": "tsc --noEmit",
+    "verify:workflow": "node --experimental-strip-types tools/verify-workflow.ts",
+    "start:demo": "node --experimental-strip-types tools/start-demo.ts",
+    "docs:generate": "node --experimental-strip-types tools/refresh-evidence.ts"
+  }
+}
