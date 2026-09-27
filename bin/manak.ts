@@ -288,11 +288,17 @@ function mailer(): Mail | null {
             if (!res.ok) {
               const err = await res.text();
               process.stderr.write(`[mail] resend api returned ${res.status}: ${err}\n`);
+              if (message.link) {
+                process.stdout.write(`[mail] fallback sign-in link for ${message.to}: ${message.link}\n`);
+              }
             } else {
               process.stdout.write(`[mail] sent sign-in link via Resend API to ${message.to}\n`);
             }
           }).catch((err) => {
             process.stderr.write(`[mail] resend api delivery failed: ${String(err)}\n`);
+            if (message.link) {
+              process.stdout.write(`[mail] fallback sign-in link for ${message.to}: ${message.link}\n`);
+            }
           });
         },
         pending: () => 0,

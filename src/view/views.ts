@@ -314,7 +314,7 @@ function signinPage(context: ViewContext): string {
       whoami: context.whoami,
       body: `<div class="panel">
 <p>A sign-in link is on its way. It works once and stops working after ${esc(minutes)} minutes.</p>
-<details><summary>Evaluating this hackathon demo?</summary><p class="muted">You can also use the <b>Fast login</b> dropdown in the header bar above to sign in instantly as an Organizer, Judge, or Builder without waiting for an email.</p></details>
+<details open><summary>Evaluating this hackathon demo?</summary><p class="muted">Under Resend sandbox mode, emails are delivered exclusively to <code>sairamdash17@gmail.com</code>. For evaluating Manak, sign in directly with 1 click as any role below:</p><div class="fast-login-grid"><a href="/fast-login?as=organizer" class="role-card"><strong>Organizer</strong><span>Rosa Iyer</span></a><a href="/fast-login?as=judge_sample" class="role-card"><strong>Judge</strong><span>Tomas Varga</span></a><a href="/fast-login?as=participant_sample" class="role-card"><strong>Builder</strong><span>Priya Nair</span></a></div></details>
 <p><a href="/signin">Ask for another link</a></p>
 </div>`,
     });
@@ -324,7 +324,9 @@ function signinPage(context: ViewContext): string {
     formAction: "/signin",
     title: "Sign in",
     whoami: context.whoami,
-    intro: "Enter your email address to receive a single-use sign-in link, or sign in directly with a demo account below.",
+    intro:
+      "Enter your email address to receive a single-use sign-in link, or sign in directly with a demo account below. " +
+      "(Note: In Resend sandbox mode, emails are delivered exclusively to sairamdash17@gmail.com. Use the demo accounts below for instant 1-click access).",
   });
   const fastLoginHtml = `<section class="fast-login-box"><h2>Demo accounts</h2><p>Sign in directly as one of the pre-configured accounts:</p><div class="fast-login-grid"><a href="/fast-login?as=organizer" class="role-card"><strong>Organizer</strong><span>Rosa Iyer &middot; Dashboard, rubric settings, and results</span></a><a href="/fast-login?as=judge_sample" class="role-card"><strong>Judge (Sample Hack)</strong><span>Tomas Varga &middot; Review queue and project comparisons</span></a><a href="/fast-login?as=judge_a" class="role-card"><strong>Judge (Dogfood)</strong><span>Nils Berg &middot; Active queue and project comparisons</span></a><a href="/fast-login?as=participant_sample" class="role-card"><strong>Builder (Sample Hack)</strong><span>Priya Nair &middot; Team NorthKiln workspace</span></a><a href="/fast-login?as=participant_dogfood" class="role-card"><strong>Builder (Dogfood)</strong><span>Beatriz Lima &middot; Team Saffron workspace</span></a></div></section>`;
   return pageHtml.replace("</main>", `${fastLoginHtml}\n</main>`);
