@@ -58,6 +58,7 @@ import { dirname } from "node:path";
 
 import { ALL_COMMANDS } from "../src/api/commands/index.ts";
 import { makeRegistry } from "../src/api/index.ts";
+import type { Delivery } from "../src/api/index.ts";
 import {
   checkIntegrity,
   headHash,
@@ -227,8 +228,9 @@ Webhooks. Optional HTTPS receiver; signed event notifications replay from the au
   MANAK_WEBHOOK_SECRET  shared signing secret, at least 32 characters
   MANAK_WEBHOOK_CHECKPOINT durable cursor path, defaults beside database
 
-Mail. Set MANAK_SMTP_HOST and sign-in links are sent instead of printed; leave it unset and
-nothing in this list is read.
+Mail. Set MANAK_SMTP_HOST (or MANAK_RESEND_API_KEY) and sign-in links are sent instead of printed;
+leave it unset and nothing in this list is read.
+  MANAK_RESEND_API_KEY  deliver via Resend HTTPS REST API (for cloud hosts blocking SMTP)
   MANAK_SMTP_HOST     the relay to submit through            (none: links go to stdout)
   MANAK_SMTP_FROM     the sender, "Name <a@b>" or an address required once HOST is set
   MANAK_SMTP_PORT     port on the relay                      465 with tls, else 587
@@ -262,6 +264,44 @@ type Mail = { readonly outbox: Outbox; readonly banner: string };
  * to the stream this product otherwise keeps empty.
  */
 function mailer(): Mail | null {
+  const resendApiKey = text("MANAK_RESEND_API_KEY") ?? text("RESEND_API_KEY");
+  if (resendApiKey !== undefined) {
+    const from = text("MANAK_SMTP_FROM") ?? "onboarding@resend.dev";
+    return {
+      outbox: {
+        deliver: (message: Delivery): void => {
+          const bodyText = message.link === undefined ? message.body : `${message.body}\n\n${message.link}\n`;
+          void fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${resendApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from,
+              to: message.to,
+              subject: message.subject,
+              text: bodyText,
+            }),
+          }).then(async (res) => {
+            if (!res.ok) {
+              const err = await res.text();
+              process.stderr.write(`[mail] resend api returned ${res.status}: ${err}\n`);
+            } else {
+              process.stdout.write(`[mail] sent sign-in link via Resend API to ${message.to}\n`);
+            }
+          }).catch((err) => {
+            process.stderr.write(`[mail] resend api delivery failed: ${String(err)}\n`);
+          });
+        },
+        pending: () => 0,
+        idle: async () => {},
+        close: async () => {},
+      },
+      banner: `[boot] sending mail via Resend REST API as ${from}`,
+    };
+  }
+
   const host = text("MANAK_SMTP_HOST");
   if (host === undefined) return null;
 

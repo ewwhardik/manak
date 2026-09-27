@@ -64,7 +64,7 @@ export function guidePage(props: GuideProps): string {
 </div>
 <span class="tag">Dual-Mode Judging</span>
 </div>
-<p>Manak removes evaluation friction. Reviewers need no passwords or registration forms: sign in via magic link or use <b>Fast login</b> in the top navigation bar to assume an invited judge persona instantly.</p>
+<p>Manak removes evaluation friction. Reviewers need no passwords or registration forms: sign in via magic link or use <b>Fast login</b> in the top navigation bar to assume an invited judge persona instantly. In the deployed web application, Resend is used for transactional links; the open repository uses terminal emailing and Fast Login by default.</p>
 
 <div class="guide-grid">
 <div class="guide-card">

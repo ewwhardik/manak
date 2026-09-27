@@ -4,7 +4,7 @@
 
 `npm run start:demo` runs without package installation on Node 22.18+; local validation used Node 24. Defaults: `data/demo.db`, founder `rosa@example.com`, seed once. Set `MANAK_DEMO=false` to disable seeding, or use `npm start` for an empty production deployment.
 
-Set `MANAK_DATABASE`, `MANAK_FOUNDERS`, `MANAK_PUBLIC_ORIGIN`, and optionally `MANAK_PORT`. SMTP uses `MANAK_SMTP_HOST`, `MANAK_SMTP_FROM`, encryption/port and credentials. Without SMTP, sign-in links are printed to stdout; log readers can use them. Enable proxy trust only behind your controlled proxy and use HTTPS in production. `npm start -- --help` lists settings.
+Set `MANAK_DATABASE`, `MANAK_FOUNDERS`, `MANAK_PUBLIC_ORIGIN`, and optionally `MANAK_PORT`. SMTP uses `MANAK_SMTP_HOST`, `MANAK_SMTP_FROM`, encryption/port and credentials. Without SMTP, sign-in links are printed to stdout; log readers can use them. In deployed cloud environments (like Railway) where outbound SMTP ports are blocked, `MANAK_RESEND_API_KEY` enables HTTPS REST API mail delivery. Resend is used only in the deployed application; the repository operates with local terminal emailing and Fast Login by default. Enable proxy trust only behind your controlled proxy and use HTTPS in production. `npm start -- --help` lists settings.
 
 ## Backup
 

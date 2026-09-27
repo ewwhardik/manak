@@ -12,7 +12,9 @@ Use Node 22.18 or newer. Node 24 was used for local validation.
 npm run start:demo
 ```
 
-Open <http://localhost:8080>. The demo creates `data/demo.db` on first run and keeps existing data on later runs. Sign in as `rosa@example.com` for organizer tools. Use `nils@example.com`, `amara@example.com`, or `kenji@example.com` for judge tools. If SMTP is not configured, the sign-in link appears in the server terminal. A person who can read that terminal can use the link, so this mode is for local demos only.
+Open <http://localhost:8080>. The demo creates `data/demo.db` on first run and keeps existing data on later runs. Sign in as `rosa@example.com` for organizer tools. Use `nils@example.com`, `amara@example.com`, or `kenji@example.com` for judge tools.
+- **Local / Repository Mode:** Without a configured relay, sign-in links are printed directly to the server terminal, and the header's **Fast login** menu provides instant 1-click access to all roles.
+- **Deployed Application (Railway):** Resend HTTPS REST API delivery (`MANAK_RESEND_API_KEY`) is used exclusively in the deployed application because cloud container hosts block outbound SMTP ports (25, 465, 587). Under Resend sandbox mode (`onboarding@resend.dev`), emails are restricted to the owner (`sairamdash17@gmail.com`), while Fast login provides instant access for all evaluators without requiring email receipt.
 
 To run the container, use `docker compose up --build` from this repository root. Docker startup has not been checked on the development host. Build the image before an offline demonstration.
 
