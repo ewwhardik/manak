@@ -1105,3 +1105,23 @@ test("fast-login grants an instant session without email delivery", async () => 
     r.close();
   }
 });
+
+test("the guide page renders the evaluation map and platform sitemap", async () => {
+  const r = rig();
+  try {
+    const res = await r.get("/guide", { wants: "html" });
+    assert.equal(res.status, 200);
+    const html = await res.text();
+    assert.match(html, /Platform Guide &amp; Evaluation Sitemap/);
+    assert.match(html, /Judges' Evaluation Hub/);
+    assert.match(html, /Organizers' Control Room/);
+    assert.match(html, /Complete Platform Sitemap/);
+
+    const jsonRes = await r.get("/api/guide");
+    assert.equal(jsonRes.status, 200);
+    const body = (await jsonRes.json()) as Record<string, unknown>;
+    assert.equal(body.title, "Manak Evaluation Guide & Platform Sitemap");
+  } finally {
+    r.close();
+  }
+});

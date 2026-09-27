@@ -134,7 +134,7 @@ ${
 <a class="skip" href="#main">Skip to content</a>
 <header class="bar">
 <a class="mark" href="/" aria-label="Manak home"><span class="brand-symbol" aria-hidden="true">m</span>manak<span class="brand-period">.</span></a>
-<nav class="primary-nav" aria-label="Main navigation"><a href="/events"${options.layout === "home" ? ' aria-current="page"' : ""}>Explore events</a>${options.whoami == null ? "" : '<a href="/mine">My workspace</a>'}<a href="/about">The method</a></nav>
+<nav class="primary-nav" aria-label="Main navigation"><a href="/events"${options.layout === "home" ? ' aria-current="page"' : ""}>Explore events</a>${options.whoami == null ? "" : '<a href="/mine">My workspace</a>'}<a href="/guide">Evaluation guide</a><a href="/about">The method</a></nav>
 <nav class="who" aria-label="Account">${
     options.whoami == null
       ? '<a href="/signin">Sign in</a>'
@@ -146,6 +146,7 @@ ${
 <div class="fast-login-header">
 <span class="role-badge">Judge evaluation mode</span>
 <p>Quick sign-in for testing Sample Hack 2026 &amp; Dogfood.</p>
+<a href="/guide" class="fast-login-guide-link">Platform guide &amp; sitemap &rarr;</a>
 </div>
 <div class="fast-login-list">
 <a href="/fast-login?as=organizer" class="fast-login-item"><strong>Sign in as Organizer</strong> <span>Rosa Iyer &middot; Admin on Sample Hack &amp; Dogfood</span></a>
@@ -177,6 +178,8 @@ ${options.body}
 <span class="footer-brand">manak. <span>A fairer finish.</span></span>
 <a class="footer-credit" href="https://nastik.me" target="_blank" rel="noopener noreferrer">Dev: <strong>Sai Ram Dash</strong></a>
 <div class="footer-links">
+<a href="/guide">Guide &amp; sitemap</a>
+<a href="/verify">Certificate verifier</a>
 <a href="/docs">API reference</a>
 <a href="/api/openapi.json">OpenAPI</a>
 <a href="/about">About</a>

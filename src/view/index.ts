@@ -63,6 +63,7 @@ export { assignmentPreviewPage, duelPage, queuePage } from "./judge.ts";
 export { dashboardPage, resultsPage, rubricPage } from "./results.ts";
 export { aboutPage } from "./about.ts";
 export { verifyPage } from "./verify.ts";
+export { guidePage } from "./guide.ts";
 
 export { VIEWS } from "./views.ts";
 

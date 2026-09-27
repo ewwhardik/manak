@@ -92,7 +92,7 @@ import {
   upsertAccount,
 } from "../db/index.ts";
 import type { View, ViewContext, Views } from "../view/index.ts";
-import { formPage, genericPage, prefillFromRaw, STYLESHEET, STYLESHEET_PATH, verifyPage } from "../view/index.ts";
+import { formPage, genericPage, guidePage, prefillFromRaw, STYLESHEET, STYLESHEET_PATH, verifyPage } from "../view/index.ts";
 import type { Extra, StreamEvent } from "./respond.ts";
 import {
   clearedCookie,
@@ -295,6 +295,50 @@ export function makeApp(options: AppOptions): Serve {
             "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
         },
       });
+    }
+
+    if (target.pathname === "/guide" || target.pathname === "/api/guide") {
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        throw methodNotAllowed(request.method, ["GET"]);
+      }
+      trace.command = "system.guide";
+      trace.path = target.pathname;
+      const presented = credentialFrom(request, SESSION_COOKIE);
+      const found = presented === null ? undefined : resolveSession(db, presented, now);
+      const whoami = found?.account.display_name ?? null;
+
+      if (target.wants === "json" || target.pathname === "/api/guide") {
+        return json({
+          title: "Manak Evaluation Guide & Platform Sitemap",
+          overview: "Comprehensive evaluation guide and platform sitemap for hackathon judges, organizers, and participants.",
+          features: {
+            judging: {
+              duel: "Pairwise head-to-head project comparisons with active learning (/events/:slug/duel)",
+              queue: "Assigned rubric evaluation queue with private draft saves (/events/:slug/judging)",
+              gallery: "Public project gallery and submission details (/events/:slug/projects)",
+              voting: "Community choice quadratic voting (/events/:slug/voting)",
+            },
+            organizer: {
+              dashboard: "Real-time review coverage, judge calibration, and bottleneck diagnostics (/events/:slug/dashboard)",
+              results: "Normalized standings with 95% Bayesian confidence intervals (/events/:slug/results)",
+              confidence: "Judge residual analysis and outlier diagnostics (/events/:slug/results/confidence)",
+              rubric: "Rubric criteria weighting and scoring anchors (/events/:slug/rubric)",
+              judges: "Judge roster management and single-use magic invitations (/events/:slug/judges)",
+              auditLedger: "Tamper-evident CSV audit ledger (/api/events/:slug/results/audit.csv)",
+            },
+            verification: {
+              verifier: "Offline Ed25519 certificate verifier (/verify)",
+              publicKey: "Server Ed25519 public key (/.well-known/manak-key.pub)",
+              ledgerStatus: "Hash-chained ledger status and head hash (/api/healthz)",
+            },
+          },
+        }, 200);
+      }
+
+      const activeEvents = db.all<{ slug: string; name: string }>(
+        "select slug, name from event where archived_at is null order by created_at asc",
+      );
+      return html(guidePage({ whoami, events: activeEvents }), 200);
     }
 
     if (target.pathname === "/fast-login") {
