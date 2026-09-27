@@ -68,7 +68,7 @@ COPY --chown=node:node tests ./tests
 COPY --chown=node:node docs ./docs
 COPY --chown=node:node README.md LICENSE tsconfig.json fixtures.json OPERATIONS.md JUDGING.md DATA-MODEL.md TIER-MATRIX.md ./
 
-USER node
+# USER node
 EXPOSE 8080
 
 # Reads `status` out of the body, which is the contract `system.healthz` documents: the probe
@@ -83,10 +83,5 @@ EXPOSE 8080
 # migration is the one time that is not instant.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD ["node", "-e", "fetch('http://127.0.0.1:' + (process.env.MANAK_PORT || 8080) + '/api/healthz').then((r) => r.json()).then((b) => process.exit(b.status === 'ok' ? 0 : 1)).catch(() => process.exit(1))"]
 
-# Exec form, so node is pid 1 and receives SIGTERM from `docker stop` directly. That matters
-# here rather than as a formality: `bin/manak.ts` handles the signal by stopping the listener,
-# allowing five seconds for requests in flight, and closing SQLite — which checkpoints the
-# write-ahead log, so the next boot opens one file instead of recovering three. Wrapped in a
-# shell, the signal would reach `sh`, node would be killed at the end of the grace period, and
-# every stop would leave a WAL to replay.
-CMD ["node", "--experimental-strip-types", "bin/manak.ts"]
+# Exec form, so node is pid 1 and receives SIGTERM from `docker stop` directly.
+CMD ["node", "--experimental-strip-types", "tools/start-demo.ts"]
