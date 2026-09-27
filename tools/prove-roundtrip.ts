@@ -593,6 +593,13 @@ function plant(path: string): Planted {
       values(?,?,?,?,?,?,?,?,?,?,?)`, ["award-sentinel", main.id, 1, "Grand prize",
       hostile.id, "placement", 1, "Archive fixture public award record",
       "Archive fixture private award rationale", organizer.id, AT]);
+    db.run(`insert into appeal(id,event_id,project_id,opened_by,publication_revision,
+      private_message,public_summary,state,opened_at,deadline_at,resolved_at,
+      internal_reason,resolved_by,correction_revision) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ["appeal-sentinel", main.id, hostile.id, organizer.id, 1,
+      "Archive fixture private appeal message", "The appeal was reviewed.",
+      "rejected", AT, AT + 604800000, AT + 1000,
+      "Archive fixture private resolution", organizer.id, null]);
     db.run(`insert into certificate_correction(id,event_id,serial,action,replacement_serial,
       replacement_certificate,publication_revision,publication_digest,reason,issued_at,
       issuer_key_id,public_key_pem,signature) values(?,?,?,?,?,?,?,?,?,?,?,?,?)`,

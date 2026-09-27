@@ -54,7 +54,7 @@
  */
 
 import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 
 import { ALL_COMMANDS } from "../src/api/commands/index.ts";
 import { makeRegistry } from "../src/api/index.ts";
@@ -75,7 +75,7 @@ import {
 import type { Db } from "../src/db/index.ts";
 import { listen } from "../src/http/index.ts";
 import type { LogRecord } from "../src/http/index.ts";
-import { mailbox, makeOutbox } from "../src/mail/index.ts";
+import { mailbox, makeOutbox, makeResendOutbox } from "../src/mail/index.ts";
 import type { Encryption, Outbox } from "../src/mail/index.ts";
 import { VIEWS } from "../src/view/index.ts";
 
@@ -228,8 +228,9 @@ Webhooks. Optional HTTPS receiver; signed event notifications replay from the au
   MANAK_WEBHOOK_SECRET  shared signing secret, at least 32 characters
   MANAK_WEBHOOK_CHECKPOINT durable cursor path, defaults beside database
 
-Mail. Set MANAK_SMTP_HOST and sign-in links are sent instead of printed;
+Mail. Set MANAK_RESEND_API_KEY or MANAK_SMTP_HOST to send sign-in links;
 leave it unset and nothing in this list is read.
+  MANAK_RESEND_API_KEY  deployment-only HTTPS delivery, durable queue beside database
   MANAK_SMTP_HOST     the relay to submit through            (none: links go to stdout)
   MANAK_SMTP_FROM     the sender, "Name <a@b>" or an address required once HOST is set
   MANAK_SMTP_PORT     port on the relay                      465 with tls, else 587
@@ -263,6 +264,17 @@ type Mail = { readonly outbox: Outbox; readonly banner: string };
  * to the stream this product otherwise keeps empty.
  */
 function mailer(): Mail | null {
+  const resendKey = text("MANAK_RESEND_API_KEY") ?? text("RESEND_API_KEY");
+  if (resendKey !== undefined) {
+    const from = text("MANAK_SMTP_FROM");
+    if (from === undefined) throw new Error("MANAK_SMTP_FROM is required for hosted mail delivery");
+    mailbox(from, "MANAK_SMTP_FROM");
+    const databasePath = text("MANAK_DATABASE") ?? DEFAULT_DATABASE;
+    if (databasePath === ":memory:") throw new Error("Hosted mail needs a persistent database directory");
+    const outboxPath = join(dirname(databasePath), "resend-outbox.json");
+    return { outbox: makeResendOutbox(resendKey, from, outboxPath, systemClock),
+      banner: `[boot] hosted mail outbox: ${outboxPath}` };
+  }
   const host = text("MANAK_SMTP_HOST");
   if (host === undefined) return null;
 

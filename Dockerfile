@@ -53,6 +53,7 @@ ENV MANAK_DATABASE=/data/manak.db \
     MANAK_HOST=0.0.0.0 \
     MANAK_PORT=8080
 RUN mkdir -p /data && chown node:node /data
+RUN apk add --no-cache su-exec
 # Volumes are declared in compose.yaml and cloud orchestrators rather than the image layer
 
 # Owned by `node`, and the process runs as `node`. The uid exists in the official image, so
@@ -66,7 +67,7 @@ COPY --chown=node:node tests ./tests
 COPY --chown=node:node docs ./docs
 COPY --chown=node:node README.md LICENSE tsconfig.json fixtures.json OPERATIONS.md JUDGING.md DATA-MODEL.md TIER-MATRIX.md ./
 
-USER node
+USER root
 EXPOSE 8080
 
 # Reads `status` out of the body, which is the contract `system.healthz` documents: the probe
@@ -82,4 +83,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD ["node", "-e", "fetch('http://127.0.0.1:' + (process.env.MANAK_PORT || 8080) + '/api/healthz').then((r) => r.json()).then((b) => process.exit(b.status === 'ok' ? 0 : 1)).catch(() => process.exit(1))"]
 
 # Exec form, so node is pid 1 and receives SIGTERM from `docker stop` directly.
-CMD ["node", "--experimental-strip-types", "tools/start-demo.ts"]
+CMD ["sh", "-c", "chown -R node:node /data && exec su-exec node node --experimental-strip-types tools/start-demo.ts"]

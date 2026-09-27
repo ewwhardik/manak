@@ -46,3 +46,5 @@ export type { Outbox, OutboxOptions } from "./outbox.ts";
 
 export { DEFAULT_TIMEOUT, openSession, SmtpError } from "./smtp.ts";
 export type { Encryption, Reply, Session, SmtpConfig } from "./smtp.ts";
+
+export { makeResendOutbox } from "./resend.ts";

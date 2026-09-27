@@ -162,6 +162,57 @@ test("targeted review requests assign eligible capacity and keep private reasons
   } finally { h.w.close(); }
 });
 
+test("an appeal keeps the message private and an accepted correction creates a new revision", async () => {
+  const rig = judged();
+  try {
+    const participant = rig.principals.find(p => p.label === "participant")!;
+    const organizer = rig.principals.find(p => p.label === "organizer")!;
+    const base = `/api/events/${rig.world.event.slug}/appeals`;
+    const post = (path: string, token: string, body: Record<string, unknown>) => rig.serve(new Request(`https://portal.test${path}`, {
+      method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }));
+    const sentinel = "PRIVATE_APPEAL_SENTINEL_94c1";
+    const opened = await post(base, participant.token!, {
+      project: rig.world.projects[0]!.id, privateMessage: sentinel,
+    });
+    assert.equal(opened.status, 200, await opened.clone().text());
+    const appeal = await opened.json() as { id: string };
+    assert.deepEqual((await rig.json(base)).appeals, []);
+    assert.match(JSON.stringify(await rig.json(base, participant)), /PRIVATE_APPEAL_SENTINEL_94c1/);
+    const resolved = await post(`${base}/${appeal.id}/resolve`, organizer.token!, {
+      decision: "accepted", republish: true, expectedRevision: 1,
+      publicSummary: "The organizer corrected the published evidence after review.",
+      internalReason: "The appeal identified a verified evidence correction.",
+    });
+    assert.equal(resolved.status, 200, await resolved.clone().text());
+    assert.equal((await resolved.json() as { correctionRevision: number }).correctionRevision, 2);
+    const publicList = await rig.json(base);
+    assert.equal((publicList.appeals as unknown[]).length, 1);
+    assert.doesNotMatch(JSON.stringify(publicList), /PRIVATE_APPEAL_SENTINEL_94c1/);
+    assert.equal((await rig.json(`/api/events/${rig.world.event.slug}/results`)).revision, 2);
+  } finally { rig.close(); }
+});
+
+test("custom route methods and access match the documented transport inventory", async () => {
+  const h = harness();
+  try {
+    for (const path of ["/guide", "/api/guide", "/verify", "/widget.js"]) {
+      assert.equal((await h.get(path)).status, 200, path);
+      const wrong = await h.serve(new Request(`https://portal.test${path}`, { method: "POST" }));
+      assert.equal(wrong.status, 405, path);
+    }
+    const guide = await (await h.get("/api/guide")).json() as any;
+    assert.doesNotMatch(JSON.stringify(guide), /Bayesian confidence intervals/);
+    const standby = await (await h.get(`/api/events/${h.w.event.slug}/live`)).json() as any;
+    assert.equal(standby.state, "standby");
+    assert.equal(standby.projects, undefined);
+    assert.equal((await h.get(`/api/events/${h.w.event.slug}/tie-breaker`)).status, 401);
+    assert.equal((await h.get(`/api/events/${h.w.event.slug}/tie-breaker`, true)).status, 200);
+    assert.equal((await h.get("/fast-login")).status, 404);
+  } finally { h.w.close(); }
+});
+
 test("production fast-login and clock warp cannot grant roles or change time", async () => {
   const h = harness();
   try {

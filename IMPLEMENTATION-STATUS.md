@@ -14,15 +14,16 @@ This tracks the September 27 audit in the parent workspace. It distinguishes imp
 | Private deliberation (R04) | Publication stores a private reason and separate public summary. Public history, results and evidence packet omit the private sentinel. `tests/audit-regressions.test.ts`. |
 | Publication preflight and packet (A) | Organizer preflight checks readiness and model warnings; a public packet identifies the exact frozen revision, method, digest and aggregate counts. |
 | Targeted extra review (B) | An organizer can request an additional eligible judge through the capacity planner, inspect completion and cancel before a ballot starts. The private reason stays organizer-only. `tests/audit-regressions.test.ts`. |
-| Reproducible records (R08) | Generated OpenAPI and counts, 76-operation isolation proof, 30-table archive round trip and a green full local suite. `docs/proof/` and `npm test`. |
+| Formal appeals (C) | Private appeals by team participants on published results, with deadline enforcement, organizer review, audit logging, and optional republication to a new revision. `tests/audit-regressions.test.ts`. |
+| Reproducible records (R08) | Generated OpenAPI and counts, 79-operation isolation proof, 31-table archive round trip and a green full local suite. `docs/proof/` and `npm test`. |
 
 ## Boundaries and remaining work
 
-- R01: custom guide, live ceremony, tie-breaker, verifier, widget and demo routes have explicit access checks and focused regressions, but are not all declared in the command registry. The route inventory and a complete custom-route isolation matrix remain to be built.
+- R01: custom guide, live ceremony, tie-breaker, verifier, widget and demo routes have explicit access checks, focused regressions, and a [route inventory](docs/ROUTES.md), but are not all declared in the command registry. A complete custom-route isolation matrix remains to be built.
 - R05: this repository uses terminal sign-in links by default and supports optional SMTP. A deployment-specific mail adapter and its delivery lifecycle must be verified in the deployed environment.
 - R06: the Docker image has a pinned Node manifest digest and runs as `node`. Docker was unavailable on the development host, so clean build, volume ownership, offline startup, restart persistence and recovery are not certified here.
 - R07: model work is bounded and immutable published reports are read from stored snapshots; representative p50/p95 and event-loop delay measurements remain to be recorded before a scalability claim.
-- C, E, F, G, H: formal appeals, isolated training, a local notification center, safe event templates and staged import previews remain product roadmap items. Existing publication corrections, rubric guidance, terminal mail and archive preview cover parts of those workflows but do not constitute those features.
+- E, F, G, H: isolated training, a local notification center, safe event templates and staged import previews remain product roadmap items. Existing publication corrections, rubric guidance, terminal mail and archive preview cover parts of those workflows but do not constitute those features.
 - The five-minute video, two-origin widget test, real webhook receiver, external mail test, official acceptance checker, narrow-screen/keyboard walkthrough, and network-isolated Docker drill need independent evidence. The supplied checker covers T1/T2 only.
 
 ## Reproduce local evidence

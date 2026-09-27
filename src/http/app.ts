@@ -337,7 +337,7 @@ export function makeApp(options: AppOptions): Serve {
             },
             organizer: {
               dashboard: "Real-time review coverage, judge calibration, and bottleneck diagnostics (/events/:slug/dashboard)",
-              results: "Normalized standings with 95% Bayesian confidence intervals (/events/:slug/results)",
+              results: "Normalized standings with evidence and uncertainty caveats (/events/:slug/results)",
               confidence: "Judge residual analysis and outlier diagnostics (/events/:slug/results/confidence)",
               rubric: "Rubric criteria weighting and scoring anchors (/events/:slug/rubric)",
               judges: "Judge roster management and single-use magic invitations (/events/:slug/judges)",

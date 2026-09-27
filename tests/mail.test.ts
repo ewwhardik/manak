@@ -25,6 +25,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:net";
 import type { Server, Socket } from "node:net";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import {
   addressOf,
@@ -35,6 +38,7 @@ import {
   encodeHeaderValue,
   mailbox,
   makeOutbox,
+  makeResendOutbox,
   messageDate,
   newMessageId,
   openSession,
@@ -884,4 +888,35 @@ test("an outbox that was never used closes without a word", async () => {
   await box.close();
   assert.deepEqual(lines, []);
   assert.equal(fake.opened(), 0);
+});
+
+test("makeResendOutbox queues, sends with idempotency key, and closes cleanly", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "manak-resend-test-"));
+  const path = join(dir, "outbox.json");
+  let calls = 0;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, options: any) => {
+    calls += 1;
+    assert.match(options.headers["Idempotency-Key"], /^[0-9a-f-]{36}$/);
+    if (calls === 1) return new Response("", { status: 503 });
+    return new Response(JSON.stringify({ id: "resend-msg-1" }), { status: 200 });
+  };
+  try {
+    let now = 1_000_000;
+    const clock = { now: () => { now += 5_000; return now; } };
+    const box = makeResendOutbox("test-key", "demo@example.test", path, clock);
+    box.deliver({ to: "person@example.test", subject: "Login", body: "Use this link", link: "https://example.test/token", reason: "signin" });
+    assert.equal(box.pending(), 1);
+    await box.idle();
+    assert.equal(calls, 2);
+    assert.equal(box.pending(), 0);
+    const records = JSON.parse(readFileSync(path, "utf8"));
+    assert.equal(records[0].state, "delivered");
+    assert.equal(records[0].message, undefined);
+    await box.close();
+    assert.equal(makeResendOutbox("test-key", "demo@example.test", path, clock).pending(), 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

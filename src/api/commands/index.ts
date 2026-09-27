@@ -32,6 +32,7 @@ import { SYSTEM_COMMANDS } from "./system.ts";
 import { VOTING_COMMANDS } from "./voting.ts";
 import { EXPORT_COMMANDS } from "./exports.ts";
 import { AWARD_COMMANDS } from "./awards.ts";
+import { APPEAL_COMMANDS } from "./appeals.ts";
 
 export { AUTH_COMMANDS } from "./auth.ts";
 export { EVENT_COMMANDS, EVENT_REF, EVENT_SUMMARY, eventSummary } from "./events.ts";
@@ -49,6 +50,7 @@ export { JUDGING_COMMANDS } from "./judging.ts";
 export { RESULTS_COMMANDS, liveShow } from "./results.ts";
 export { VOTING_COMMANDS } from "./voting.ts";
 export { AWARD_COMMANDS } from "./awards.ts";
+export { APPEAL_COMMANDS } from "./appeals.ts";
 
 export const ALL_COMMANDS: readonly Command[] = [
   ...SYSTEM_COMMANDS,
@@ -59,6 +61,7 @@ export const ALL_COMMANDS: readonly Command[] = [
   ...JUDGING_COMMANDS,
   ...RESULTS_COMMANDS,
   ...AWARD_COMMANDS,
+  ...APPEAL_COMMANDS,
   ...VOTING_COMMANDS,
   ...EXPORT_COMMANDS,
 ];

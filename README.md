@@ -47,7 +47,7 @@ The [judging guide](JUDGING.md) describes the models and limits. [Proof reports]
 
 ## Architecture and access
 
-Manak has **76 operations** in the command registry. The same declarations drive API dispatch, access checks, browser forms, and OpenAPI generation. A few transport routes, including the guide, ceremony, verifier, widget, and demo shortcut, are separately covered by tests and documented as exceptions. JSON API routes live under `/api`; most browser pages use the corresponding path without that prefix. See [the architecture](docs/ARCHITECTURE.md), [threat model](docs/THREAT-MODEL.md), and `/api/openapi.json`.
+Manak has **79 operations** in the command registry. The same declarations drive API dispatch, access checks, browser forms, and OpenAPI generation. A few transport routes, including the guide, ceremony, verifier, widget, and demo shortcut, are separately covered by tests in the [route inventory](docs/ROUTES.md). JSON API routes live under `/api`; most browser pages use the corresponding path without that prefix. See [the architecture](docs/ARCHITECTURE.md), [threat model](docs/THREAT-MODEL.md), and `/api/openapi.json`.
 
 | Layer | Responsibility |
 | --- | --- |
@@ -63,7 +63,7 @@ Roles are event scoped. A role in one event does not grant access to another. Pu
 
 ```sh
 npm ci
-npm test # 581 tests
+npm test # 584 tests
 npm run typecheck
 npm run prove:normalization -- --check
 npm run prove:convergence -- --check
@@ -75,7 +75,7 @@ npm run verify:workflow
 
 `npm ci` installs development types and TypeScript for `typecheck`; `npm start` does not install packages. The tests include role isolation, assignment capacity and retained work, private publication notes, certificates, archive restore, and demo login refusal when disabled. The supplied challenge checker exercises only part of the tier matrix. One process-signal test is skipped on Windows; see the final test output for the exact count.
 
-The registry currently declares **76 operations**. Generated [OpenAPI](openapi.json) and the [browser API reference](https://manak.up.railway.app/docs) expose their current contracts. Run `npm run docs:generate` after adding commands or changing measured source counts.
+The registry currently declares **79 operations**. Generated [OpenAPI](openapi.json) and the [browser API reference](https://manak.up.railway.app/docs) expose their current contracts. Run `npm run docs:generate` after adding commands or changing measured source counts.
 
 ## Deployment and limits
 

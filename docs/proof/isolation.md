@@ -12,12 +12,12 @@ derived from the declarations.
 
 | Measured                                     | Count |
 | -------------------------------------------- | ----- |
-| Operations declared                          | 76    |
+| Operations declared                          | 79    |
 | Witnesses impersonated                       | 6     |
 | Renderings per operation                     | 2     |
-| Requests sent over a socket                  | 912   |
-| Answers that were a refusal                  | 478   |
-| Refusals of an operation that writes         | 334   |
+| Requests sent over a socket                  | 948   |
+| Answers that were a refusal                  | 498   |
+| Refusals of an operation that writes         | 354   |
 | Ledger entries appended by a refused request | 0     |
 | Sign-in and invitation messages delivered    | 14    |
 | Breaks in the ledger's hash chain afterwards | 0     |
@@ -125,6 +125,9 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 | results.evidence_packet    | `GET /api/events/:event/results/evidence`                 | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | awards.list                | `GET /api/events/:event/awards`                           | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | awards.decide              | `POST /api/events/:event/awards`                          | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| appeals.list               | `GET /api/events/:event/appeals`                          | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| appeals.open               | `POST /api/events/:event/appeals`                         | participant                             | 401       | 404      | 404     | yes         | 403   | 403       |
+| appeals.resolve            | `POST /api/events/:event/appeals/:appeal/resolve`         | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 | votes.start                | `POST /api/events/:event/votes/start`                     | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | votes.cast                 | `POST /api/events/:event/votes`                           | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | votes.results              | `GET /api/events/:event/votes`                            | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
@@ -303,6 +306,14 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 | awards.decide          | stranger | html      |,               | 200         |
 | awards.decide          | founder  | json      | `event.missing` | 200         |
 | awards.decide          | founder  | html      |,               | 200         |
+| appeals.open           | stranger | json      | `event.missing` | 200         |
+| appeals.open           | stranger | html      |,               | 200         |
+| appeals.open           | founder  | json      | `event.missing` | 200         |
+| appeals.open           | founder  | html      |,               | 200         |
+| appeals.resolve        | stranger | json      | `event.missing` | 200         |
+| appeals.resolve        | stranger | html      |,               | 200         |
+| appeals.resolve        | founder  | json      | `event.missing` | 200         |
+| appeals.resolve        | founder  | html      |,               | 200         |
 | votes.abuse            | stranger | json      | `event.missing` | 200         |
 | votes.abuse            | stranger | html      |,               | 200         |
 | votes.abuse            | founder  | json      | `event.missing` | 200         |
@@ -328,12 +339,12 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 
 | Status | Code                     | Media type                 | Answers |
 | ------ | ------------------------ | -------------------------- | ------- |
-| 401    |,                        | `text/html`                | 51      |
-| 401    | `access.unauthenticated` | `application/problem+json` | 51      |
-| 403    |,                        | `text/html`                | 96      |
-| 403    | `access.forbidden`       | `application/problem+json` | 96      |
-| 404    |,                        | `text/html`                | 92      |
-| 404    | `event.missing`          | `application/problem+json` | 92      |
+| 401    |,                        | `text/html`                | 53      |
+| 401    | `access.unauthenticated` | `application/problem+json` | 53      |
+| 403    |,                        | `text/html`                | 100     |
+| 403    | `access.forbidden`       | `application/problem+json` | 100     |
+| 404    |,                        | `text/html`                | 96      |
+| 404    | `event.missing`          | `application/problem+json` | 96      |
 
 ## What this does not prove
 

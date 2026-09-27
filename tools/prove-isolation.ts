@@ -433,6 +433,13 @@ function valuesFor(
         internalReason: "An additional review is needed for coverage.", priority: 2 };
     case "reviews.cancel":
       return { event: SCOPED, request: planted.left };
+    case "appeals.open":
+      return { event: SCOPED, project: planted.left,
+        privateMessage: "A private appeal for the isolation proof." };
+    case "appeals.resolve":
+      return { event: SCOPED, appeal: planted.left, decision: "rejected",
+        expectedRevision: 1, publicSummary: "The appeal was reviewed without a result change.",
+        internalReason: "No evidence required a ranking correction." };
     case "votes.configure_abuse":
       return { event: SCOPED, patternPercent: 95, sharedOriginPercent: 80, highRisk: 70 };
     case "votes.review_abuse":
@@ -536,6 +543,7 @@ function valuesFor(
     case "results.preflight":
     case "results.evidence_packet":
     case "awards.list":
+    case "appeals.list":
     case "judges.roster":
     case "reviews.requests":
     case "results.confidence":

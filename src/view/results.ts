@@ -1000,7 +1000,16 @@ ${actionForm(context, "results.publish", { event: slug })}`;
         : ""
     }<details><summary>Revoke or replace a certificate</summary><p>Corrections are signed and append-only. A replacement needs the corrected recipient and detail fields; download the private response and share that single record with its recipient.</p>
 ${actionForm(context, "results.correct_cert", { event: slug })}</details>`;
-  const decisionLinks = !mayPublish ? "" : `<p><a href="/api/events/${encodeURIComponent(slug)}/results/preflight">Publication preflight (JSON)</a>${published ? ` · <a href="/api/events/${encodeURIComponent(slug)}/results/evidence">Public evidence packet (JSON)</a> · <a href="/api/events/${encodeURIComponent(slug)}/awards">Award decisions (JSON)</a>` : ""}</p>${published ? `<details><summary>Record an explicit award</summary><p>Award decisions bind to the current publication revision. Use one key for a shared award and provide a public explanation separate from private deliberation.</p>${actionForm(context, "awards.decide", { event: slug })}</details>` : ""}`;
+  const appealsBlock = !published
+    ? ""
+    : `<h2>Appeals</h2>
+<p class="muted">Teams may file a private appeal within 7 days of publication. Only organizers and the appealing team can inspect an open appeal message.</p>
+<p><a href="/api/events/${encodeURIComponent(slug)}/appeals">Appeals list (JSON)</a></p>
+<details><summary>File a private appeal</summary>
+<p>Submit a private appeal for your team's submitted project. Organizers will review the evidence and may publish a corrected result revision.</p>
+${actionForm(context, "appeals.open", { event: slug })}
+</details>`;
+  const decisionLinks = !mayPublish ? "" : `<p><a href="/api/events/${encodeURIComponent(slug)}/results/preflight">Publication preflight (JSON)</a>${published ? ` · <a href="/api/events/${encodeURIComponent(slug)}/results/evidence">Public evidence packet (JSON)</a> · <a href="/api/events/${encodeURIComponent(slug)}/awards">Award decisions (JSON)</a> · <a href="/api/events/${encodeURIComponent(slug)}/appeals">Appeals (JSON)</a>` : ""}</p>${published ? `<details><summary>Record an explicit award</summary><p>Award decisions bind to the current publication revision. Use one key for a shared award and provide a public explanation separate from private deliberation.</p>${actionForm(context, "awards.decide", { event: slug })}</details><details><summary>Resolve an appeal</summary><p>Organizers can accept or reject an open appeal, with an optional republication to a new revision.</p>${actionForm(context, "appeals.resolve", { event: slug })}</details>` : ""}`;
   return page({
     title: `${context.event === null ? "Event" : context.event.name}`,
     trail: eventTrail(context, { label: "Results" }),
@@ -1057,7 +1066,7 @@ ${warningList(warnings, "The fit reported nothing worth qualifying.")}
 these caveats are published, and an appraisal of a volunteer is not something this portal
 publishes. The organizer's dashboard names them, because that is where the person who can act
 on it reads.</p>
-${pairwiseBlock}${certificatesBlock}${switchForm}
+${pairwiseBlock}${certificatesBlock}${appealsBlock}${switchForm}
 <p class="muted">The same figures as JSON: <a href="${esc(
       routeFor(commandNamed(context.registry, "results.show"), { event: slug }).replace(
         "/events/",
