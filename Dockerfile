@@ -55,7 +55,7 @@ ENV MANAK_DATABASE=/data/manak.db \
     MANAK_HOST=0.0.0.0 \
     MANAK_PORT=8080
 RUN mkdir -p /data && chown node:node /data
-VOLUME ["/data"]
+# Volumes are declared in compose.yaml and cloud orchestrators rather than the image layer
 
 # Owned by `node`, and the process runs as `node`. The uid exists in the official image, so
 # this costs one flag and removes the class of problem where a template injection becomes a
