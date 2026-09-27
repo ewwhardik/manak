@@ -1,0 +1,19 @@
+# One command starts a seeded local demo. Existing databases are never reseeded.
+services:
+  manak:
+    build: .
+    image: manak:local
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - manak-data:/data
+    environment:
+      MANAK_DEMO: ${MANAK_DEMO:-true}
+      MANAK_FOUNDERS: ${MANAK_FOUNDERS:-rosa@example.com}
+    command: ["node", "--experimental-strip-types", "tools/start-demo.ts"]
+    restart: unless-stopped
+    stop_grace_period: 10s
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+volumes:
+  manak-data:

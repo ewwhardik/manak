@@ -1,0 +1,23 @@
+# The database is per-deployment state and belongs on a volume, not in a layer. Copying a
+# development database into an image would ship somebody's addresses to a registry.
+data/
+*.db
+*.db-wal
+*.db-shm
+
+.git/
+.gitattributes
+.gitignore
+.github/
+node_modules/
+.DS_Store
+.env
+*.key
+*.pub
+Dockerfile
+.dockerignore
+compose.yaml
+
+# docs/proof is deliberately NOT ignored. The committed proofs are what `npm run
+# prove:isolation -- --check` compares against inside the image, and an image that cannot
+# re-check its own claims is the image this product exists to argue against.
