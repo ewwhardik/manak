@@ -25,9 +25,6 @@ import type { Ctx } from "./context.ts";
 import type { Db } from "./open.ts";
 import { RuleError } from "./context.ts";
 import { assertVotingClosed, findEventBySlug } from "./repo/events.ts";
-import { loadJudgingInput } from "./repo/judging.ts";
-import { publishedVersion } from "./repo/rubrics.ts";
-import { normalizeScores } from "../judging/index.ts";
 import { latestPublication } from "./publication.ts";
 
 export type CertificateCategory = "participation" | "judge" | "placement";
@@ -328,12 +325,15 @@ export function mintEventCertificates(
   let judgesCount = 0;
   let winnersCount = 0;
 
-  // 1. Participant certificates
+  // Participation is earned by membership on a team with a submitted project.
   const participants = db.all<{ accountId: string; email: string; name: string }>(
     `select a.id as accountId, a.email, a.display_name as name
        from membership m
        join account a on a.id = m.account_id
       where m.event_id = :event and m.role = 'participant'
+        and exists (select 1 from team_member tm join project p
+          on p.event_id = tm.event_id and p.team_id = tm.team_id
+          where tm.event_id = :event and tm.account_id = a.id and p.status = 'submitted')
       order by a.email`,
     { event: event.id },
   );
@@ -355,14 +355,18 @@ export function mintEventCertificates(
     participantsCount += 1;
   }
 
-  // 2. Judge certificates
+  // A judge must have evidence and no unfinished assigned rubric reviews.
   const judges = db.all<{ accountId: string; email: string; name: string }>(
     `select a.id as accountId, a.email, a.display_name as name
        from membership m
        join account a on a.id = m.account_id
       where m.event_id = :event and m.role = 'judge'
+        and m.evidence_excluded_at is null
         and (exists (select 1 from ballot b where b.event_id = :event and b.judge_id = a.id and b.submitted_at is not null)
-          or exists (select 1 from comparison c where c.event_id = :event and c.judge_id = a.id))
+          or exists (select 1 from comparison c where c.event_id = :event and c.judge_id = a.id and c.outcome <> 'skip'))
+        and not exists (select 1 from assignment x where x.event_id = :event and x.judge_id = a.id
+          and not exists (select 1 from ballot b where b.event_id = x.event_id
+            and b.judge_id = x.judge_id and b.project_id = x.project_id and b.submitted_at is not null))
       order by a.email`,
     { event: event.id },
   );
@@ -384,55 +388,34 @@ export function mintEventCertificates(
     judgesCount += 1;
   }
 
-  // 3. Published rubric-only placements
+  // Awards are decisions on the exact frozen revision, across judging modes.
   if (event.results_public) assertVotingClosed(event, now);
-  const projectRows = db.all<{ id: string; title: string; teamId: string }>(
-    `select id, title, team_id as teamId from project where event_id = :event and status = 'submitted'`,
-    { event: event.id },
-  );
-
-  const pubVer = publishedVersion(db, event.id);
-  if (event.results_public && event.pairwise_enabled === 0 && pubVer !== undefined && projectRows.length > 0) {
-    const publication = latestPublication(db, event.id);
-    const frozen = publication ? JSON.parse(publication.report) as { projects?: { project: string; rank: number }[] } : null;
-    const sorted = frozen ? (frozen.projects ?? []).map((p) => ({ project: p.project, rankAdjusted: p.rank }))
-      : (() => { const input = loadJudgingInput(db, event.id, pubVer);
-        return input.ballots.length ? normalizeScores(input.rubric, input.ballots).projects : []; })();
-    if (sorted.length > 0) {
-      const projectMap = new Map(projectRows.map((p) => [p.id, p]));
-      const placements = ["1st Place", "2nd Place", "3rd Place"];
-
-      for (let i = 0; i < Math.min(3, sorted.length); i++) {
-        const ranked = sorted[i];
-        if (!ranked) continue;
-        const proj = projectMap.get(ranked.project);
-        if (!proj) continue;
-
-        const members = db.all<{ id: string; email: string; name: string }>(
-          `select a.id, a.email, a.display_name as name
-             from team_member tm
-             join account a on a.id = tm.account_id
-            where tm.team_id = :t`,
-          { t: proj.teamId },
-        );
-
-        for (const m of members) {
-          const payload: CertificatePayload = {
-            serial: `CERT-W-${event.id}-${proj.id}-${m.id}-${i + 1}`,
-            eventId: event.id,
-            eventName: event.name,
-            recipientName: m.name,
-            recipientEmail: m.email,
-            category: "placement",
-            detail: `${placements[i]} - ${proj.title}`,
-            issuedAt: now,
-            issuerOrigin: origin.origin,
-            ...binding,
-          };
-          certificates.push(issueCertificate(payload, privateKey));
-          winnersCount += 1;
-        }
-      }
+  const awards = boundPublication ? db.all<{ id: string; award_key: string; place: number | null;
+      decision_type: string; project_id: string; title: string; team_id: string }>(
+    `select a.id, a.award_key, a.place, a.decision_type, a.project_id, p.title, p.team_id
+       from award_decision a join project p on p.event_id = a.event_id and p.id = a.project_id
+      where a.event_id = :event and a.publication_revision = :revision
+      order by a.place is null, a.place, a.award_key, a.id`,
+    { event: event.id, revision: boundPublication.revision }) : [];
+  for (const award of awards) {
+    const members = db.all<{ id: string; email: string; name: string }>(
+      `select a.id, a.email, a.display_name as name from team_member tm
+       join account a on a.id = tm.account_id
+       where tm.event_id = :event and tm.team_id = :team order by a.email`,
+      { event: event.id, team: award.team_id });
+    for (const member of members) {
+      const payload: CertificatePayload = {
+        serial: `CERT-W-${event.id}-${award.id}-${member.id}`,
+        eventId: event.id, eventName: event.name,
+        recipientName: member.name, recipientEmail: member.email,
+        category: "placement",
+        detail: award.decision_type === "placement"
+          ? `Place ${award.place}: ${award.award_key} — ${award.title}`
+          : `${award.award_key} — ${award.title}`,
+        issuedAt: now, issuerOrigin: origin.origin, ...binding,
+      };
+      certificates.push(issueCertificate(payload, privateKey));
+      winnersCount++;
     }
   }
 

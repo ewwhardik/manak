@@ -4,7 +4,7 @@
 
 `npm run start:demo` runs without package installation on Node 22.18+; local validation used Node 24. Defaults: `data/demo.db`, founder `rosa@example.com`, seed once. Set `MANAK_DEMO=false` to disable seeding, or use `npm start` for an empty production deployment.
 
-Set `MANAK_DATABASE`, `MANAK_FOUNDERS`, `MANAK_PUBLIC_ORIGIN`, and optionally `MANAK_PORT`. SMTP uses `MANAK_SMTP_HOST`, `MANAK_SMTP_FROM`, encryption/port and credentials. Without SMTP, sign-in links are printed to stdout; log readers can use them. In deployed cloud environments (like Railway) where outbound SMTP ports are blocked, `MANAK_RESEND_API_KEY` enables HTTPS REST API mail delivery. Resend is used only in the deployed application; the repository operates with local terminal emailing and Fast Login by default. Enable proxy trust only behind your controlled proxy and use HTTPS in production. `npm start -- --help` lists settings.
+Set `MANAK_DATABASE`, `MANAK_FOUNDERS`, `MANAK_PUBLIC_ORIGIN`, and optionally `MANAK_PORT`. By default, sign-in links are printed to stdout; log readers can use them. Optional SMTP uses `MANAK_SMTP_HOST`, `MANAK_SMTP_FROM`, encryption/port and credentials. A hosted deployment may supply a separate mail adapter. Enable proxy trust only behind your controlled proxy and use HTTPS in production. `npm start -- --help` lists settings.
 
 ## Backup
 
@@ -35,7 +35,7 @@ Ed25519 keys are created/loaded on boot. `MANAK_KEY_DIR` defaults beside the dat
 npm run certs:issue -- dogfood --db ./data/demo.db --keyDir ./data --origin http://localhost:8080 --out ./data/certificates.json
 ```
 
-Use the server's key directory and origin. Participant records cover enrollment. Judge records require a submitted ballot or recorded comparison. Serials include full event and recipient IDs. Published rubric-only events may issue top-three placements; hybrid/pairwise events require an explicit award policy and do not infer placements. An active voting window prevents issuance based on published results. Output is signed JSON, not a PDF batch or email campaign.
+Use the server's key directory and origin. Participant records require membership in a team with a submitted project. Judge records require submitted evidence and no unfinished assigned ballot; excluded judge evidence does not earn a record. Placement records require an explicit award decision bound to the current frozen publication, in rubric and hybrid events alike. Shared keys represent declared ties; special awards have no place number. An active voting window prevents issuance based on published results. Output is signed JSON, not a PDF batch or email campaign.
 
 An organizer can revoke or supersede an issued record with `results.correct_cert`, supplying a reason and, for supersession, the replacement recipient details. `results.certificate_status` publishes signed status records without the private replacement certificate; an organizer can retrieve the replacement privately. Give verifiers a current correction bundle and its trusted correction key. An empty bundle cannot establish that no correction has ever been issued. Do not remove an old private key until its issued records and corrections are backed up; rotate by installing a consistent new pair in the persisted key directory, distributing its fingerprint independently, and retaining old public keys. Restore a matching private key from a secure backup if one half is lost; the server refuses a mismatched pair.
 

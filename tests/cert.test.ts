@@ -92,11 +92,10 @@ test("issueAllCertificates mints and cryptographically verifies certificates for
 
     const report = issueAllCertificates(dbPath, event.slug, tmp);
     assert.equal(report.event, "Cert Hackathon");
-    assert.equal(report.participants, 2);
+    assert.equal(report.participants, 0, "Enrollment without a submitted team project is not earned participation");
     assert.equal(report.judges, 0, "Enrollment alone does not establish judge participation");
-    assert.equal(report.totalIssued, 2);
-    assert.ok(report.certificates.length === 2);
-    assert.equal(new Set(report.certificates.map((c) => c.serial)).size, 2);
+    assert.equal(report.totalIssued, 0);
+    assert.equal(report.certificates.length, 0);
   } finally {
     rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   }

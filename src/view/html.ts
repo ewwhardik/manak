@@ -8,9 +8,8 @@
  * with every page built from them. A missing `esc` is then visible as a missing call
  * rather than hidden in a template dialect nobody audits.
  *
- * There is no client-side JavaScript anywhere in this product, and the Content Security
- * Policy in `src/http/respond.ts` forbids it. Every page works with scripting switched
- * off, which is not asceticism: a judge's console that needs a bundle to render is a
+ * Core forms and pages work with scripting switched off. The optional embed and verifier
+ * use small scripts with their own response policies. A judge's console that needs a bundle is a
  * console that fails on the venue's guest network, and a form that posts is a form the
  * API can accept unchanged.
  *
@@ -54,6 +53,11 @@ export function attrs(values: Readonly<Record<string, string | number | boolean 
   return parts.length === 0 ? "" : ` ${parts.join(" ")}`;
 }
 
+/** A visible, POST-only shortcut into disposable demo data. */
+export function demoLoginForm(as: string, label: string, detail: string, className: string, event?: string): string {
+  return `<form method="post" action="/fast-login">${event === undefined ? "" : `<input type="hidden" name="event" value="${esc(event)}">`}<button type="submit" name="as" value="${esc(as)}" class="${esc(className)}"><strong>${esc(label)}</strong><span>${esc(detail)}</span></button></form>`;
+}
+
 export type Breadcrumb = { readonly label: string; readonly href?: string };
 
 export type PageOptions = {
@@ -62,6 +66,8 @@ export type PageOptions = {
   readonly trail?: readonly Breadcrumb[];
   /** The signed-in account's display name, or null for a visitor. */
   readonly whoami?: string | null;
+  /** Exposes disposable personas only when MANAK_DEMO is explicitly enabled. */
+  readonly demoMode?: boolean;
   /** A one-line note across the top, such as "Submissions close in 40 minutes". */
   readonly notice?: string;
   /**
@@ -140,7 +146,7 @@ ${
       ? '<a href="/signin">Sign in</a>'
       : `<span>${esc(options.whoami)}</span> <form method="post" action="/signout" class="inline">` +
         '<button class="quiet" type="submit">Sign out</button></form>'
-  }<details class="fast-login">
+  }${options.demoMode === true ? `<details class="fast-login">
 <summary class="fast-login-btn">Fast login</summary>
 <div class="fast-login-menu">
 <div class="fast-login-header">
@@ -149,14 +155,14 @@ ${
 <a href="/guide" class="fast-login-guide-link">Platform guide &amp; sitemap &rarr;</a>
 </div>
 <div class="fast-login-list">
-<a href="/fast-login?as=organizer" class="fast-login-item"><strong>Organizer</strong> <span>Rosa Iyer &middot; Admin on Sample Hack &amp; Dogfood</span></a>
-<a href="/fast-login?as=judge_sample" class="fast-login-item"><strong>Judge (Sample Hack)</strong> <span>Tomas Varga &middot; Review queue &amp; duels</span></a>
-<a href="/fast-login?as=judge_a" class="fast-login-item"><strong>Judge (Dogfood)</strong> <span>Nils Berg &middot; Active queue &amp; duels</span></a>
-<a href="/fast-login?as=participant_sample" class="fast-login-item"><strong>Builder (Sample Hack)</strong> <span>Priya Nair &middot; Team NorthKiln workspace</span></a>
-<a href="/fast-login?as=participant_dogfood" class="fast-login-item"><strong>Builder (Dogfood)</strong> <span>Beatriz Lima &middot; Team Saffron workspace</span></a>
+<form method="post" action="/fast-login"><button name="as" value="organizer" class="fast-login-item"><strong>Organizer</strong> <span>Rosa Iyer &middot; Demo admin</span></button></form>
+<form method="post" action="/fast-login"><button name="as" value="judge_sample" class="fast-login-item"><strong>Judge (Sample Hack)</strong> <span>Tomas Varga &middot; Review queue &amp; duels</span></button></form>
+<form method="post" action="/fast-login"><button name="as" value="judge_a" class="fast-login-item"><strong>Judge (Dogfood)</strong> <span>Nils Berg &middot; Active queue &amp; duels</span></button></form>
+<form method="post" action="/fast-login"><button name="as" value="participant_sample" class="fast-login-item"><strong>Builder (Sample Hack)</strong> <span>Priya Nair &middot; Team NorthKiln workspace</span></button></form>
+<form method="post" action="/fast-login"><button name="as" value="participant_dogfood" class="fast-login-item"><strong>Builder (Dogfood)</strong> <span>Beatriz Lima &middot; Team Saffron workspace</span></button></form>
 </div>
 </div>
-</details></nav>
+</details>` : ""}</nav>
 </header>
 ${
     options.notice === undefined ? "" : `<p class="notice">${esc(options.notice)}</p>\n`

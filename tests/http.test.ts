@@ -1077,10 +1077,10 @@ test("explicit demo fast-login grants a session only for seeded events", async (
   const r = rig({ demoMode: true });
   createEvent(r.world.system, { slug: "dogfood", name: "Demo", timezone: "UTC", submissionsOpenAt: 1, submissionsCloseAt: 2, judgingOpenAt: 3, judgingCloseAt: 4, reviewsPerProject: 2, pairwiseEnabled: false });
   try {
-    const postRefusal = await r.post("/fast-login", {});
-    assert.equal(postRefusal.status, 405);
+    const getRefusal = await r.get("/fast-login?as=organizer");
+    assert.equal(getRefusal.status, 405);
 
-    const orgRes = await r.get("/fast-login?as=organizer");
+    const orgRes = await r.post("/fast-login", { as: "organizer" });
     assert.equal(orgRes.status, 303);
     const orgCookie = orgRes.headers.get("set-cookie");
     assert.ok(orgCookie !== null && orgCookie.includes("manak_session="));
@@ -1093,7 +1093,7 @@ test("explicit demo fast-login grants a session only for seeded events", async (
     })).text();
     assert.match(orgPage, /Rosa Iyer/);
 
-    const judgeRes = await r.get("/fast-login?as=judge_a");
+    const judgeRes = await r.post("/fast-login", { as: "judge_a" });
     assert.equal(judgeRes.status, 303);
     const judgeCookie = judgeRes.headers.get("set-cookie");
     const judgeTokenMatch = /manak_session=([^;]+)/.exec(judgeCookie ?? "");

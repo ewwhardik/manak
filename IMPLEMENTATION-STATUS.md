@@ -1,27 +1,30 @@
 # Audit implementation status
 
-The September 27 engineering audit in the parent workspace was used as a task list. This file travels with the standalone Manak repository; it records what the repository now implements and which claims still need external evidence. It is not an official judge decision.
+This tracks the September 27 audit in the parent workspace. It distinguishes implemented behavior from external evidence. It is an engineering record, not an official hackathon verdict.
 
-## Implemented in this repository
+## Implemented and locally verified
 
-| Audit finding | Implementation and local evidence |
+| Audit area | Repository evidence |
 | --- | --- |
-| Mutable public results | `result_publication` stores versioned reports, model options, evidence digest and ledger head. Public results and CSV read frozen revisions; corrections require a reason and retain history. `tests/publication.test.ts`. |
-| Revoked judge evidence | Inactive membership removes access while retaining assignments, ballots and comparisons. An explicit reasoned exclusion changes a later publication. `tests/roster.test.ts` and `tests/publication.test.ts`. |
-| Numerical convergence | Bounded defaults and finite fallback, fixture/synthetic schedule comparison, held-out RMSE and planted-truth recovery. `docs/proof/convergence.md`, `docs/proof/fixtures.md`, and `tests/normalize.test.ts`. |
-| Judge roster | Per-event track eligibility, capacity and recusal are persisted, previewed and enforced for assignment and ballot writes. `tests/roster.test.ts`. |
-| Certificate correction | Stable key IDs, publication binding and signed revoke/supersede records; the offline verifier requires a trusted key and can check a correction bundle. `tests/certificate-records.test.ts`. |
-| Abuse review | Event thresholds, explicit review states and audited discounts preserve raw votes. Benign shared-network fixture prevents treating similarity as a verdict. `tests/abuse-review.test.ts`. |
-| Operator recovery | Archive preview, 28-table round-trip proof and read-only webhook status. `docs/proof/roundtrip.md`, `tests/archive.test.ts` and `tests/evidence-lab.test.ts`. |
-| Workflow and accessibility polish | Gallery, submission, invite, judging, voting, organizer and result copy/interaction improvements; visible skip-link focus and responsive layout. Browser checks cover narrow pages and accessibility-tree labels; a full screen-reader pass remains external. |
-| Maintainability | Report builders extracted from the results command module, redundant style tokens removed, generated OpenAPI and documentation inventories refreshed. |
+| Demo login and clock safety (F01, F02) | Fast login is a same-origin POST available only with `MANAK_DEMO=true`, limited to seeded demo events. Production refuses the shortcut and clock warp. `tests/audit-regressions.test.ts`. |
+| Honest finalist and ceremony evidence (F03, F04) | Organizer-only close-call view uses real model evidence and names unavailable probabilities. Ceremony reads the frozen publication revision. `tests/audit-regressions.test.ts`. |
+| Widget and webhook claims (F05, F06) | Embed escapes project fields; payload preview does not claim network delivery. `tests/audit-regressions.test.ts`. |
+| Assignment reconciliation (R02) | Preview reserves reviewed work and assignments outside the selected track, reports shortfalls, binds apply to a ledger revision, and applies atomically. `tests/assign.test.ts`, `tests/workflow-improvements.test.ts`. |
+| Earned records and explicit awards (R03, D) | Participation requires a submitted team project; judging requires submitted evidence and no unfinished assigned ballot; awards are organizer decisions bound to a frozen revision. Signed corrections remain available. `tests/cert.test.ts`, `tests/audit-regressions.test.ts`. |
+| Private deliberation (R04) | Publication stores a private reason and separate public summary. Public history, results and evidence packet omit the private sentinel. `tests/audit-regressions.test.ts`. |
+| Publication preflight and packet (A) | Organizer preflight checks readiness and model warnings; a public packet identifies the exact frozen revision, method, digest and aggregate counts. |
+| Targeted extra review (B) | An organizer can request an additional eligible judge through the capacity planner, inspect completion and cancel before a ballot starts. The private reason stays organizer-only. `tests/audit-regressions.test.ts`. |
+| Reproducible records (R08) | Generated OpenAPI and counts, 76-operation isolation proof, 30-table archive round trip and a green full local suite. `docs/proof/` and `npm test`. |
 
-## Evidence still needed outside this workspace
+## Boundaries and remaining work
 
-- Build and run Docker on a Docker-enabled host without network access, restart the host and container, and record persistence, key identity, archive recovery and failure drills. The development host had no Docker.
-- Confirm the bundled fixture checksum with the organizer's official download. The local fixture digest alone establishes only byte identity among bundled copies.
-- Supply a public Git repository URL and evidence that the submitted code was written during the authorized event window. This workspace has no Git metadata.
-- Record and link the required five-minute lifecycle video. The repository includes a script, not a completed video.
-- Exercise SMTP and webhook delivery with controlled external receivers and complete a manual keyboard and screen-reader pass across all roles.
+- R01: custom guide, live ceremony, tie-breaker, verifier, widget and demo routes have explicit access checks and focused regressions, but are not all declared in the command registry. The route inventory and a complete custom-route isolation matrix remain to be built.
+- R05: this repository uses terminal sign-in links by default and supports optional SMTP. A deployment-specific mail adapter and its delivery lifecycle must be verified in the deployed environment.
+- R06: the Docker image has a pinned Node manifest digest and runs as `node`. Docker was unavailable on the development host, so clean build, volume ownership, offline startup, restart persistence and recovery are not certified here.
+- R07: model work is bounded and immutable published reports are read from stored snapshots; representative p50/p95 and event-loop delay measurements remain to be recorded before a scalability claim.
+- C, E, F, G, H: formal appeals, isolated training, a local notification center, safe event templates and staged import previews remain product roadmap items. Existing publication corrections, rubric guidance, terminal mail and archive preview cover parts of those workflows but do not constitute those features.
+- The five-minute video, two-origin widget test, real webhook receiver, external mail test, official acceptance checker, narrow-screen/keyboard walkthrough, and network-isolated Docker drill need independent evidence. The supplied checker covers T1/T2 only.
 
-The supplied checker verifies T1/T2 only. The local proof and test suite support the broader implementation claims but do not replace official acceptance.
+## Reproduce local evidence
+
+From this repository root run `npm ci`, `npm test`, `npm run typecheck`, `npm run prove:isolation -- --check`, `npm run prove:roundtrip -- --check`, and `npm run verify:workflow`. The proof reports state precisely what was exercised. Demo mode and Fast login are for disposable data only.

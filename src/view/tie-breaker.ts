@@ -7,7 +7,7 @@ export type TieBreakerFinalist = {
   readonly adjusted: number; readonly low?: number; readonly high?: number; readonly ballots: number;
 };
 export type TieBreakerProps = {
-  readonly slug: string; readonly eventName: string; readonly whoami?: string | null;
+  readonly slug: string; readonly eventName: string; readonly whoami?: string | null; readonly demoMode?: boolean;
   readonly isOrganizer: boolean; readonly finalists: readonly TieBreakerFinalist[];
   readonly assessment: CloseCall;
 };
@@ -18,7 +18,7 @@ export function tieBreakerPage(props: TieBreakerProps): string {
   const status = { insufficient: "More scored projects needed", overlap: "Reported intervals overlap",
     separated: "Reported intervals are separated", "uncertainty-unavailable": "Uncertainty unavailable" }[evidence.state];
   const probability = evidence.winProbabilityA;
-  return page({ title: `Finalist Tie-Breaker Assistant — ${props.eventName}`, whoami: props.whoami,
+  return page({ title: `Finalist Tie-Breaker Assistant — ${props.eventName}`, whoami: props.whoami, demoMode: props.demoMode,
     trail: [{ label: props.eventName, href: base }, { label: "Finalist decision support" }],
     lead: "Inspect the evidence before deciding how to resolve a close result.",
     body: `<div class="tie-banner"><div class="live-ticker"><span class="live-badge live-preview">${esc(status)}</span>

@@ -571,6 +571,10 @@ function plant(path: string): Planted {
       [main.id, judgeA.id, 3, AT]);
     db.run("insert into judge_recusal(event_id,judge_id,project_id,reason,created_at) values(?,?,?,?,?)",
       [main.id, judgeB.id, plain.id, "Declared conflict in archive fixture", AT]);
+    db.run(`insert into review_request(id,event_id,project_id,judge_id,reason_code,
+      internal_reason,priority,due_at,state,created_at,cancelled_at)
+      values(?,?,?,?,?,?,?,?,?,?,?)`, ["review-sentinel", main.id, hostile.id, judgeA.id,
+      "coverage", "Archive fixture additional review", 2, null, "open", AT, null]);
     db.run(`insert into abuse_policy(event_id,pattern_cosine,shared_origin_cosine,
       high_risk_threshold,updated_at) values(?,?,?,?,?)`, [main.id, 0.91, 0.82, 70, AT]);
     db.run(`insert into abuse_review(event_id,signal_key,state,reason,actor_id,updated_at)
@@ -584,6 +588,11 @@ function plant(path: string): Planted {
       values(?,?,?,?,?,?,?,?,?,?,?)`, [main.id, 1, AT, second.version,
       "fixture-sentinel", "{}", "b".repeat(64), headHash(db), "{}",
       "Archive format sentinel", null]);
+    db.run(`insert into award_decision(id,event_id,publication_revision,award_key,
+      project_id,decision_type,place,public_summary,internal_reason,actor_id,decided_at)
+      values(?,?,?,?,?,?,?,?,?,?,?)`, ["award-sentinel", main.id, 1, "Grand prize",
+      hostile.id, "placement", 1, "Archive fixture public award record",
+      "Archive fixture private award rationale", organizer.id, AT]);
     db.run(`insert into certificate_correction(id,event_id,serial,action,replacement_serial,
       replacement_certificate,publication_revision,publication_digest,reason,issued_at,
       issuer_key_id,public_key_pem,signature) values(?,?,?,?,?,?,?,?,?,?,?,?,?)`,

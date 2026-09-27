@@ -32,7 +32,7 @@ import { arenaArt, eventJourney, phaseLabel } from "./arena.ts";
 import { bodyFields } from "../api/index.ts";
 import { aboutPage } from "./about.ts";
 import { votingPage } from "./voting.ts";
-import { definitions, esc, form, page, scroller, table } from "./html.ts";
+import { definitions, demoLoginForm, esc, form, page, scroller, table } from "./html.ts";
 import { assignmentPreviewPage, duelPage, queuePage } from "./judge.ts";
 import {
   at,
@@ -114,11 +114,11 @@ function eventsPage(context: ViewContext, title: string): string {
     headingArt: arenaArt(),
     eyebrow: "The open hackathon workspace",
     lead: "Run your hackathon from first submission to final results. Bring teams, independent judges, and every decision into one shared workspace.",
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     headingActions: `<div class="hero-actions"><a class="button" href="#events">Explore the events <span aria-hidden="true">↗</span></a><a class="text-link" href="${context.whoami ? "/mine" : "/signin"}">${context.whoami ? "Open my workspace" : "Enter your workspace"} <span aria-hidden="true">→</span></a></div>`,
     body: `<div class="principles"><span><b>01</b> Built in the open</span><span><b>02</b> Judged with context</span><span><b>03</b> Every decision, traceable</span></div>
 <section id="events"><div class="section-heading"><div><p class="eyebrow">Discover what’s happening</p><h2>The event collection<span class="count-label">${rows(context.result, "events").length}</span></h2></div><a href="/events">All events <span aria-hidden="true">↗</span></a></div>${eventList(rows(context.result, "events"))}</section>
-<section class="start-here" id="start-here"><div><p class="eyebrow">Find your starting point</p><h2>Different roles.<br>A clear next step.</h2><p>Choose an event first. Your workspace shows the tools available to you.</p></div><div class="role-routes"><a href="/fast-login?as=participant_sample"><span class="route-number">01 / BUILDERS</span><h3>Bring your idea to the arena <span aria-hidden="true">↗</span></h3><p>Sign in as builder. Form your team, and submit your project before the deadline.</p></a><a href="/fast-login?as=judge_sample"><span class="route-number">02 / JUDGES</span><h3>Give great work a fair review <span aria-hidden="true">↗</span></h3><p>Sign in as judge. Open your scoring queue, save drafts, or compare duels.</p></a><a href="/fast-login?as=organizer"><span class="route-number">03 / ORGANIZERS</span><h3>See what needs your attention <span aria-hidden="true">↗</span></h3><p>Sign in as organizer. Track live review coverage, and publish signed Ed25519 certificates.</p></a><a href="/guide"><span class="route-number">04 / SITEMAP</span><h3>Evaluation Guide &amp; Full Sitemap <span aria-hidden="true">↗</span></h3><p>Explore the complete platform guide, access controls, and direct-jump sitemap directory.</p></a></div></section>
+<section class="start-here" id="start-here"><div><p class="eyebrow">Find your starting point</p><h2>Different roles.<br>A clear next step.</h2><p>Choose an event first. Your workspace shows the tools available to you.</p></div><div class="role-routes"><a href="/signin"><span class="route-number">01 / BUILDERS</span><h3>Bring your idea to the arena <span aria-hidden="true">↗</span></h3><p>Sign in as builder. Form your team, and submit your project before the deadline.</p></a><a href="/signin"><span class="route-number">02 / JUDGES</span><h3>Give great work a fair review <span aria-hidden="true">↗</span></h3><p>Sign in as judge. Open your scoring queue, save drafts, or compare duels.</p></a><a href="/signin"><span class="route-number">03 / ORGANIZERS</span><h3>See what needs your attention <span aria-hidden="true">↗</span></h3><p>Sign in as organizer. Track live review coverage, and publish signed Ed25519 certificates.</p></a><a href="/guide"><span class="route-number">04 / SITEMAP</span><h3>Evaluation Guide &amp; Full Sitemap <span aria-hidden="true">↗</span></h3><p>Explore the complete platform guide, access controls, and direct-jump sitemap directory.</p></a></div></section>
 ${createForm(context)}
 <section class="method-strip"><div><p class="eyebrow">Behind every result</p><h2>Fairness is a process.<br>Make yours visible.</h2></div><div><p>Weighted rubrics. Independent reviews. Judge-effect normalization. A record of what changed, and why.</p><a class="text-link" href="/about">Explore the judging method <span aria-hidden="true">→</span></a><details class="motion-film"><summary>Watch the 3D motion study</summary><p class="detail">An original geometric study of connected perspectives. Decorative artwork, not event data.</p><video controls loop muted playsinline preload="none" poster="/assets/judging-orbit.webp" aria-label="Rotating three-dimensional knot"><source src="/assets/judging-orbit.webm" type="video/webm">Your browser does not support this video. <a href="/assets/judging-orbit.gif">View the animated study</a>.</video></details></div></section>`,
   });
@@ -173,13 +173,17 @@ function eventPage(context: ViewContext): string {
       : roles.includes("participant")
         ? ["Build with your team", "Open your team to create or edit your submission. Drafts stay editable until the submission deadline.", "Open my team", "teams"]
         : ["Discover what people are building", "Explore the projects and event dates. Sign in to find your team or access an invitation.", "Explore the projects", "projects"];
+  const demoEvent = String(at(event, "slug") ?? "");
+  const demoSwitcher = context.demoMode === true && ["sample-hack-2026", "dogfood"].includes(demoEvent)
+    ? `<div class="role-switcher-bar"><span class="role-switcher-label">Demo role:</span>${demoLoginForm("organizer", "Organizer", "", "role-switch-btn", demoEvent)}${demoLoginForm(demoEvent === "dogfood" ? "judge_a" : "judge_sample", "Judge", "", "role-switch-btn", demoEvent)}${demoLoginForm(demoEvent === "dogfood" ? "participant_dogfood" : "participant_sample", "Builder", "", "role-switch-btn", demoEvent)}</div>`
+    : "";
   return page({
     title: name,
     trail: [{ label: "Events", href: "/" }, { label: name }],
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     notice: gatesNotice(context.gates),
     lead: "Everything your event needs, from the first idea to the final results.",
-    body: `${eventJourney(clock, context.now)}<div class="role-switcher-bar"><span class="role-switcher-label">View as:</span><a href="/fast-login?as=organizer&amp;event=${slug}" class="role-switch-btn${roles.includes("organizer") ? " role-switch-active" : ""}">Organizer</a><a href="/fast-login?as=judge_sample&amp;event=${slug}" class="role-switch-btn${roles.includes("judge") ? " role-switch-active" : ""}">Judge</a><a href="/fast-login?as=participant_sample&amp;event=${slug}" class="role-switch-btn${roles.includes("participant") ? " role-switch-active" : ""}">Builder</a></div><section class="next-action"><div><p class="eyebrow">Start here</p><h2>${esc(nextStep[0])}</h2><p>${esc(nextStep[1])}</p></div><a class="button" href="/events/${slug}/${nextStep[3]}">${esc(nextStep[2])} →</a></section><nav class="workspace-nav" aria-label="Event navigation">${links.join("")}</nav><div class="section-heading"><h2>Event at a glance</h2>${tag(phaseLabel(at(event, "phase")), "plain")}</div>${definitions([
+    body: `${eventJourney(clock, context.now)}${demoSwitcher}<section class="next-action"><div><p class="eyebrow">Start here</p><h2>${esc(nextStep[0])}</h2><p>${esc(nextStep[1])}</p></div><a class="button" href="/events/${slug}/${nextStep[3]}">${esc(nextStep[2])} →</a></section><nav class="workspace-nav" aria-label="Event navigation">${links.join("")}</nav><div class="section-heading"><h2>Event at a glance</h2>${tag(phaseLabel(at(event, "phase")), "plain")}</div>${definitions([
       ["Phase", String(at(event, "phase") ?? "-")],
       ["Submissions open", when(at(clock, "submissionsOpenAt"), timezone)],
       ["Submissions close", when(at(clock, "submissionsCloseAt"), timezone)],
@@ -222,7 +226,7 @@ function minePage(context: ViewContext): string {
   return page({
     title: "Your events",
     trail: [{ label: "Events", href: "/" }, { label: "Yours" }],
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     body:
       entries.length === 0
         ? `<p class="muted">You do not hold a role in any event yet. An organizer invites you
@@ -272,7 +276,7 @@ function judgesPage(context: ViewContext): string {
   return page({
     title: `${name}`,
     trail: eventTrail(context, { label: "Judges" }),
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     notice: gatesNotice(context.gates),
     body: `<p>Each project should be seen by
 <b>${esc(String(at(context.result, "reviewsPerProject") ?? "-"))}</b> judges.</p>
@@ -304,6 +308,13 @@ ${form({
 function signinPage(context: ViewContext): string {
   const request = commandNamed(context.registry, "auth.request");
   const minutes = String(at(context.result, "expiresInMinutes") ?? "");
+  const demoAccounts = context.demoMode === true ? `<section class="fast-login-box"><h2>Demo accounts</h2><p>Disposable, preconfigured accounts for evaluating Manak. This shortcut is disabled unless MANAK_DEMO=true.</p><div class="fast-login-grid">${[
+    ["organizer", "Organizer", "Rosa Iyer · event setup and results"],
+    ["judge_sample", "Judge · Sample Hack", "Tomas Varga · review queue and comparisons"],
+    ["judge_a", "Judge · Dogfood", "Nils Berg · review queue and comparisons"],
+    ["participant_sample", "Builder · Sample Hack", "Priya Nair · team and submission"],
+    ["participant_dogfood", "Builder · Dogfood", "Beatriz Lima · team and submission"],
+  ].map(([as, label, detail]) => demoLoginForm(as!, label!, detail!, "role-card")).join("")}</div></section>` : "";
   if (at(context.result, "sent") === true) {
     return page({
       title: "Check your inbox",
@@ -311,25 +322,21 @@ function signinPage(context: ViewContext): string {
       // titled one thing in the tab and another at the top of the body is the small
       // inconsistency that makes somebody wonder whether the link was sent.
       trail: [{ label: "Check your inbox" }],
-      whoami: context.whoami,
+      whoami: context.whoami, demoMode: context.demoMode,
       body: `<div class="panel">
 <p>A sign-in link is on its way. It works once and stops working after ${esc(minutes)} minutes.</p>
-<details open><summary>Evaluating this hackathon demo?</summary><p class="muted">Under Resend sandbox mode, emails are delivered exclusively to <code>sairamdash17@gmail.com</code>. For evaluating Manak, sign in directly with 1 click as any role below:</p><div class="fast-login-grid"><a href="/fast-login?as=organizer" class="role-card"><strong>Organizer</strong><span>Rosa Iyer</span></a><a href="/fast-login?as=judge_sample" class="role-card"><strong>Judge</strong><span>Tomas Varga</span></a><a href="/fast-login?as=participant_sample" class="role-card"><strong>Builder</strong><span>Priya Nair</span></a></div></details>
 <p><a href="/signin">Ask for another link</a></p>
-</div>`,
+</div>${demoAccounts}`,
     });
   }
   const pageHtml = formPage({
     command: request,
     formAction: "/signin",
     title: "Sign in",
-    whoami: context.whoami,
-    intro:
-      "Enter your email address to receive a single-use sign-in link, or sign in directly with a demo account below. " +
-      "(Note: In Resend sandbox mode, emails are delivered exclusively to sairamdash17@gmail.com. Use the demo accounts below for instant 1-click access).",
+    whoami: context.whoami, demoMode: context.demoMode,
+    intro: "Enter your email address to receive a single-use sign-in link.",
   });
-  const fastLoginHtml = `<section class="fast-login-box"><h2>Demo accounts</h2><p>Sign in directly as one of the pre-configured accounts:</p><div class="fast-login-grid"><a href="/fast-login?as=organizer" class="role-card"><strong>Organizer</strong><span>Rosa Iyer &middot; Dashboard, rubric settings, and results</span></a><a href="/fast-login?as=judge_sample" class="role-card"><strong>Judge (Sample Hack)</strong><span>Tomas Varga &middot; Review queue and project comparisons</span></a><a href="/fast-login?as=judge_a" class="role-card"><strong>Judge (Dogfood)</strong><span>Nils Berg &middot; Active queue and project comparisons</span></a><a href="/fast-login?as=participant_sample" class="role-card"><strong>Builder (Sample Hack)</strong><span>Priya Nair &middot; Team NorthKiln workspace</span></a><a href="/fast-login?as=participant_dogfood" class="role-card"><strong>Builder (Dogfood)</strong><span>Beatriz Lima &middot; Team Saffron workspace</span></a></div></section>`;
-  return pageHtml.replace("</main>", `${fastLoginHtml}\n</main>`);
+  return pageHtml.replace("</main>", `${demoAccounts}\n</main>`);
 }
 
 /**
@@ -347,7 +354,7 @@ function confirmPage(context: ViewContext): string {
     command: session,
     formAction: "/session",
     title: "Confirm sign-in",
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     intro: `Press the button to finish signing in. The link lapses
 ${esc(String(at(context.result, "expiresInMinutes") ?? ""))} minutes after it was sent, and
 works once.`,
@@ -376,7 +383,7 @@ function whoamiPage(context: ViewContext): string {
   return page({
     title: "Your account",
     trail: [{ label: "Your account" }],
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     body: `${definitions(
       [
         ["Name", String(at(account, "displayName") ?? "")],

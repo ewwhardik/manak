@@ -1081,10 +1081,10 @@ details.fast-login:hover > .fast-login-menu, details.fast-login[open] > .fast-lo
 .fast-login-header .role-badge { display: inline-block; font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: #5EC8D8; background: rgba(94, 200, 216, .12); border: 1px solid rgba(94, 200, 216, .25); padding: .15rem .5rem; border-radius: 4px; margin-bottom: .35rem; }
 .fast-login-header p { font-size: .76rem; line-height: 1.35; color: rgba(255, 255, 255, .65); margin: 0; }
 .fast-login-list { display: flex; flex-direction: column; gap: .35rem; }
-a.fast-login-item { display: flex; flex-direction: column; gap: .15rem; padding: .55rem .75rem; border-radius: 8px; background: rgba(255, 255, 255, .02); border: 1px solid rgba(255, 255, 255, .05); text-decoration: none; transition: all 150ms ease; }
-a.fast-login-item:hover { background: rgba(94, 200, 216, .1); border-color: rgba(94, 200, 216, .35); transform: translateX(2px); }
-a.fast-login-item strong { font-size: .84rem; color: #f3f4f6; font-weight: 600; }
-a.fast-login-item span { font-size: .74rem; color: rgba(255, 255, 255, .55); line-height: 1.3; }
+.fast-login-item { display: flex; width: 100%; text-align: left; flex-direction: column; gap: .15rem; padding: .55rem .75rem; border-radius: 8px; background: rgba(255, 255, 255, .02); border: 1px solid rgba(255, 255, 255, .05); cursor: pointer; transition: all 150ms ease; }
+.fast-login-item:hover { background: rgba(94, 200, 216, .1); border-color: rgba(94, 200, 216, .35); transform: translateX(2px); }
+.fast-login-item strong { font-size: .84rem; color: #f3f4f6; font-weight: 600; }
+.fast-login-item span { font-size: .74rem; color: rgba(255, 255, 255, .55); line-height: 1.3; }
 .fast-login-guide-link { display: inline-block; margin-top: .4rem; font-size: .74rem; color: #5EC8D8; text-decoration: none; transition: color 150ms ease; }
 .fast-login-guide-link:hover { color: #E8A548; text-decoration: underline; }
 .guide-hub { margin: 2.5rem 0; padding: 2rem; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -1198,10 +1198,13 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--accent); }
 .role-switcher-label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-right: .25rem; }
 .role-switch-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .35rem .85rem; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); color: var(--ink); text-decoration: none; font-size: .84rem; font-weight: 500; transition: all var(--quick) var(--ease); }
 .role-switch-btn:hover { border-color: rgba(94, 200, 216, .5); background: rgba(94, 200, 216, .08); transform: translateY(-1px); }
-.role-switch-active { border-color: rgba(94, 200, 216, .8); background: rgba(94, 200, 216, .18); box-shadow: 0 0 12px rgba(94, 200, 216, .25); color: #5EC8D8; font-weight: 600; }
+.role-switcher-bar form { margin: 0; }
+.role-switcher-bar button.role-switch-btn { cursor: pointer; }
 .fast-login-box { margin-top: 2.5rem; padding: 1.75rem; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 .fast-login-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .85rem; margin-top: 1rem; }
 .role-card { display: flex; flex-direction: column; gap: .25rem; padding: 1rem 1.15rem; border-radius: var(--radius-sm); background: var(--glass-high); border: 1px solid var(--line); text-decoration: none; transition: all var(--quick) var(--ease); }
+.fast-login-grid form { margin: 0; }
+.fast-login-grid button.role-card { width: 100%; height: 100%; text-align: left; cursor: pointer; font: inherit; }
 .role-card:hover { border-color: rgba(94, 200, 216, .5); background: rgba(94, 200, 216, .08); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0, 0, 0, .2); }
 .role-card strong { font-size: .92rem; color: var(--ink); font-weight: 600; }
 .role-card span { font-size: .76rem; color: var(--muted); line-height: 1.35; }

@@ -16,6 +16,7 @@ export type ResultPublication = {
   ledger_head: string;
   report: string;
   reason: string;
+  public_summary: string;
   superseded_at: number | null;
 };
 
@@ -57,8 +58,9 @@ export function evidenceDigest(db: Db, eventId: string): string {
   return sha256(JSON.stringify(snapshot));
 }
 
-export function storePublication(ctx: Ctx, eventId: string, report: Record<string, unknown>, reason: string): ResultPublication {
+export function storePublication(ctx: Ctx, eventId: string, report: Record<string, unknown>, reason: string, publicSummary?: string): ResultPublication {
   const previous = latestPublication(ctx.db, eventId);
+  const summary = publicSummary?.trim() || (previous ? "Results corrected" : "Initial results publication");
   const revision = (previous?.revision ?? 0) + 1;
   const at = ctx.now();
   const digest = evidenceDigest(ctx.db, eventId);
@@ -72,14 +74,14 @@ export function storePublication(ctx: Ctx, eventId: string, report: Record<strin
       { at, e: eventId, r: previous.revision },
     );
     ctx.write(`insert into result_publication (event_id, revision, issued_at, rubric_version,
-      algorithm, options, evidence_digest, ledger_head, report, reason)
-      values (:e, :r, :at, :rubric, :algorithm, :options, :digest, :head, :report, :reason)`, {
+      algorithm, options, evidence_digest, ledger_head, report, reason, public_summary)
+      values (:e, :r, :at, :rubric, :algorithm, :options, :digest, :head, :report, :reason, :summary)`, {
       e: eventId, r: revision, at, rubric: report.rubricVersion as number | null,
       algorithm: String(report.method), options: JSON.stringify({
         rubric: { version: "normalize-v1", ...NORMALIZE_DEFAULTS },
         pairwise: { version: "bradley-terry-v1", ...BRADLEY_TERRY_DEFAULTS },
       }), digest, head: ledger,
-      report: frozen, reason,
+      report: frozen, reason, summary,
     });
   });
   return latestPublication(ctx.db, eventId)!;

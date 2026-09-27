@@ -260,7 +260,7 @@ once submissions close. You can still compare projects if pairwise is on.</p>`;
   return page({
     title: `${name}`,
     trail: eventTrail(context, { label: "Judging" }),
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     ...(gatesNotice(context.gates) === undefined
       ? {}
       : { notice: gatesNotice(context.gates) as string }),
@@ -399,7 +399,7 @@ ${definitions([
   return page({
     title: `${name}`,
     trail: eventTrail(context, { label: "Compare" }),
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     ...(gatesNotice(context.gates) === undefined
       ? {}
       : { notice: gatesNotice(context.gates) as string }),
@@ -419,13 +419,13 @@ export function assignmentPreviewPage(context: ViewContext): string {
   const warnings = rows(result, "shortfalls").map((gap) => `<li>${esc(JSON.stringify(gap))}</li>`).join("");
   const notes = at(result, "warnings");
   const warningList = Array.isArray(notes) ? notes.map((note) => `<li>${esc(String(note))}</li>`).join("") : "";
-  return page({ title: "Assignment preview", whoami: context.whoami,
+  return page({ title: "Assignment preview", whoami: context.whoami, demoMode: context.demoMode,
     trail: eventTrail(context, { label: "Assignment preview" }),
     body: `<p>No assignments have changed. Applying recomputes this plan against the current roster. Existing ballots are protected.</p>
 ${stats([["projects", Number(at(result, "projects"))], ["judges", Number(at(result, "judges"))], ["planned reviews", Number(at(result, "assignments"))]])}
 <section class="panel"><h2>${at(result, "complete") === true ? "Coverage target met" : "Coverage needs attention"}</h2>
 <p>Planned judge load: ${esc(at(result, "loadMin"))}–${esc(at(result, "loadMax"))} reviews. Target: ${esc(at(result, "reviewsPerProject"))} reviews per project.</p>
 ${warnings || warningList ? `<ul>${warnings}${warningList}</ul>` : "<p>No assignment shortfalls reported.</p>"}
-${actionForm(context, "assignments.draw", { event: slug }, { hidden: { dryRun: "false", track: String(context.input.track ?? "") }, submit: "Apply assignments" })}
+${actionForm(context, "assignments.draw", { event: slug }, { hidden: { dryRun: "false", track: String(context.input.track ?? ""), expectedRevision: String(at(result, "planRevision") ?? "") }, submit: "Apply assignments" })}
 <p><a href="/events/${esc(slug)}/dashboard">Return to dashboard</a></p></section>` });
 }

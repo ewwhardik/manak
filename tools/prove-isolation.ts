@@ -428,6 +428,11 @@ function valuesFor(
     case "results.correct_cert":
       return { event: SCOPED, serial: "CERT-P-isolation-missing", action: "revoke",
         reason: "Isolation probe has no issued certificate" };
+    case "reviews.request":
+      return { event: SCOPED, project: planted.left, reasonCode: "coverage",
+        internalReason: "An additional review is needed for coverage.", priority: 2 };
+    case "reviews.cancel":
+      return { event: SCOPED, request: planted.left };
     case "votes.configure_abuse":
       return { event: SCOPED, patternPercent: 95, sharedOriginPercent: 80, highRisk: 70 };
     case "votes.review_abuse":
@@ -528,7 +533,11 @@ function valuesFor(
     case "events.dashboard":
     case "results.show":
     case "results.history":
+    case "results.preflight":
+    case "results.evidence_packet":
+    case "awards.list":
     case "judges.roster":
+    case "reviews.requests":
     case "results.confidence":
     case "results.publish":
     case "results.unpublish":
@@ -540,6 +549,11 @@ function valuesFor(
     case "votes.ballot":
     case "votes.abuse":
       return { event: SCOPED };
+    case "awards.decide":
+      return { event: SCOPED, project: planted.left, awardKey: `Grand prize ${tag}`,
+        type: "placement", place: 1,
+        publicSummary: "Selected after review of published project evidence.",
+        internalReason: "Organizer panel confirmed the decision for this isolation probe." };
     case "events.warp_clock":
       return { event: SCOPED, targetPhase: "realtime" };
     case "events.ping_webhook":

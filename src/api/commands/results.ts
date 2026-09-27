@@ -1656,8 +1656,10 @@ export const publish = defineCommand({
   path: "/api/events/:event/results/publish",
   capability: { audience: "organizer", scope: "event" },
   input: { event: EVENT_REF, reason: { kind: "text", min: 1, max: 500,
-    label: "Correction reason", optional: true,
-    help: "Give a reason to publish a new revision after correcting evidence. Leave blank for the first publication or a retry." } },
+    label: "Internal correction reason", optional: true,
+    help: "Private organizer note. Give a reason to publish a new revision after correcting evidence." },
+    publicSummary: { kind: "text", min: 4, max: 160, optional: true,
+      label: "Public revision summary", help: "Visible to everyone in result history. Keep judge and participant details private." } },
   returns: { kind: "json", schema: SWITCH_SCHEMA },
   limit: "organize",
   limitKey: ({ input }) => String(input.event ?? ""),
@@ -1680,7 +1682,8 @@ export const publish = defineCommand({
       const changed = row.results_public === 0 || reason.length > 0 || !previous;
       if (!previous || reason.length > 0) {
         const live = liveShow.handler(call) as Record<string, unknown>;
-        storePublication(ctx, row.id, live, reason || "Initial publication");
+        storePublication(ctx, row.id, live, reason || "Initial publication",
+          typeof input.publicSummary === "string" ? input.publicSummary : undefined);
       }
       if (row.results_public === 0) setResultsPublic(ctx, row, true);
       return { ...switchJson(ctx, row, true, changed),
@@ -1883,7 +1886,8 @@ export const history = defineCommand({
       revision: revision.revision, issuedAt: revision.issued_at,
       rubricVersion: revision.rubric_version, algorithm: revision.algorithm,
       evidenceDigest: revision.evidence_digest, ledgerHead: revision.ledger_head,
-      reason: revision.reason, supersededAt: revision.superseded_at,
+      reason: revision.public_summary, supersededAt: revision.superseded_at,
+      ...(roles.includes("organizer") ? { internalReason: revision.reason } : {}),
       reportUrl: `/api/events/${encodeURIComponent(row.slug)}/results?revision=${revision.revision}`,
     })) };
   },
@@ -1937,6 +1941,64 @@ export const judgeEvidence = defineCommand({
   },
 });
 
+export const publicationPreflight = defineCommand({
+  name: "results.preflight",
+  summary: "Check coverage, model warnings, and publication status before publishing.",
+  method: "GET",
+  path: "/api/events/:event/results/preflight",
+  capability: { audience: "organizer", scope: "event" },
+  input: { event: EVENT_REF },
+  returns: { kind: "json", schema: { type: "object", properties: {
+    revision: { type: ["integer", "null"] }, ready: { type: "boolean" },
+    checks: { type: "array", items: { type: "object" } },
+    warnings: { type: "array", items: { type: "string" } },
+    evidenceDigest: { type: ["string", "null"] },
+  }, required: ["revision", "ready", "checks", "warnings", "evidenceDigest"] } },
+  handler: (call) => {
+    const row = call.event as EventRow;
+    const dashboardResult = dashboard.handler({ ...call,
+      input: { ...call.input, finalists: 3 } }) as Record<string, unknown>;
+    const readiness = dashboardResult.readiness as { status: string; checks: unknown[] };
+    const preview = liveShow.handler(call) as { warnings: string[] };
+    const latest = latestPublication(call.ctx.db, row.id);
+    return { revision: latest?.revision ?? null,
+      ready: readiness.status === "checks-passed" && preview.warnings.length === 0,
+      checks: readiness.checks, warnings: preview.warnings,
+      evidenceDigest: latest?.evidence_digest ?? null };
+  },
+});
+
+export const evidencePacket = defineCommand({
+  name: "results.evidence_packet",
+  summary: "Download the public method and evidence summary bound to one result revision.",
+  method: "GET",
+  path: "/api/events/:event/results/evidence",
+  capability: { audience: "public", scope: "event" },
+  input: { event: EVENT_REF },
+  returns: { kind: "json", schema: { type: "object", properties: {
+    revision: { type: "integer" }, issuedAt: { type: "integer" },
+    algorithm: { type: "string" }, options: { type: "object" },
+    rubricVersion: { type: ["integer", "null"] },
+    evidenceDigest: { type: "string" }, ledgerHead: { type: "string" },
+    ballots: { type: "integer" }, comparisonsDecided: { type: "integer" },
+    warnings: { type: "array", items: { type: "string" } }, publicSummary: { type: "string" },
+  }, required: ["revision", "issuedAt", "algorithm", "options", "rubricVersion",
+    "evidenceDigest", "ledgerHead", "ballots", "comparisonsDecided", "warnings", "publicSummary"] } },
+  handler: ({ ctx, event, roles }) => {
+    const row = event as EventRow;
+    if (!roles.includes("organizer")) { assertVotingClosed(row, ctx.now()); assertGate(row, ctx.now(), "results"); }
+    const publication = latestPublication(ctx.db, row.id);
+    if (!publication) throw new RuleError("results.noSnapshot", "No frozen publication exists yet.");
+    const report = JSON.parse(publication.report) as { ballots?: number; comparisonsDecided?: number; warnings?: string[] };
+    return { revision: publication.revision, issuedAt: publication.issued_at,
+      algorithm: publication.algorithm, options: JSON.parse(publication.options),
+      rubricVersion: publication.rubric_version, evidenceDigest: publication.evidence_digest,
+      ledgerHead: publication.ledger_head, ballots: report.ballots ?? 0,
+      comparisonsDecided: report.comparisonsDecided ?? 0, warnings: report.warnings ?? [],
+      publicSummary: publication.public_summary };
+  },
+});
+
 export const RESULTS_COMMANDS: readonly Command[] = [
   dashboard,
   show,
@@ -1949,4 +2011,6 @@ export const RESULTS_COMMANDS: readonly Command[] = [
   correctIssuedCertificate,
   history,
   judgeEvidence,
+  publicationPreflight,
+  evidencePacket,
 ];

@@ -47,7 +47,13 @@
       "name": "judges"
     },
     {
+      "name": "reviews"
+    },
+    {
       "name": "results"
+    },
+    {
+      "name": "awards"
     },
     {
       "name": "votes"
@@ -10628,6 +10634,12 @@
                     "description": "Compute the plan and report shortfalls without writing any assignments.",
                     "type": "boolean",
                     "default": false
+                  },
+                  "expectedRevision": {
+                    "description": "Prevents applying a plan after event evidence changes.",
+                    "type": "string",
+                    "minLength": 64,
+                    "maxLength": 64
                   }
                 },
                 "additionalProperties": false
@@ -10647,6 +10659,12 @@
                     "description": "Compute the plan and report shortfalls without writing any assignments.",
                     "type": "boolean",
                     "default": false
+                  },
+                  "expectedRevision": {
+                    "description": "Prevents applying a plan after event evidence changes.",
+                    "type": "string",
+                    "minLength": 64,
+                    "maxLength": 64
                   }
                 },
                 "additionalProperties": false
@@ -10663,6 +10681,9 @@
                   "type": "object",
                   "properties": {
                     "method": {
+                      "type": "string"
+                    },
+                    "planRevision": {
                       "type": "string"
                     },
                     "applied": {
@@ -10911,6 +10932,9 @@
                   "type": "object",
                   "properties": {
                     "method": {
+                      "type": "string"
+                    },
+                    "planRevision": {
                       "type": "string"
                     },
                     "applied": {
@@ -11719,6 +11743,599 @@
         "x-manak-records": [
           "judge.recused",
           "judge.recusal_cleared"
+        ],
+        "x-manak-limit": "organize"
+      }
+    },
+    "/api/events/{event}/review-requests": {
+      "get": {
+        "operationId": "reviews_requests",
+        "summary": "List targeted additional review requests and completion state.",
+        "description": "Callable by a organizer of the event.",
+        "tags": [
+          "reviews"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event",
+            "in": "path",
+            "required": true,
+            "description": "The event's slug or id, as it appears in the URL.",
+            "schema": {
+              "description": "The event's slug or id, as it appears in the URL.",
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List targeted additional review requests and completion state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requests": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "required": [
+                    "requests"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request itself could not be read: a bad escape in the URL, or a body that is not the JSON it claims to be.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in. Sign in and retry.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, and a member of this event, but not with the role this needs.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing — or none that this caller is allowed to know exists.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The submission is malformed. Every problem is listed, not just the first.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. `Retry-After` says how long, and the window is fixed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds."
+              }
+            }
+          },
+          "500": {
+            "description": "A bug. The operator's log has the details; this response does not.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-manak-command": "reviews.requests",
+        "x-manak-capability": {
+          "audience": "organizer",
+          "scope": "event"
+        }
+      },
+      "post": {
+        "operationId": "reviews_request",
+        "summary": "Assign one additional eligible judge to a submitted project.",
+        "description": "Callable by a organizer of the event.",
+        "tags": [
+          "reviews"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event",
+            "in": "path",
+            "required": true,
+            "description": "The event's slug or id, as it appears in the URL.",
+            "schema": {
+              "description": "The event's slug or id, as it appears in the URL.",
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "The form encoding is the same operation and the same fields. It differs in one way: a URL-encoded body carries no types, so `3` and `true` arrive as text and are converted, while a JSON body of `\"3\"` for an integer is refused.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "project": {
+                    "description": "The project's id, as it appears in the URL.",
+                    "type": "string",
+                    "pattern": "^[0123456789ABCDEFGHJKMNPQRSTVWXYZ]{26}$",
+                    "minLength": 26,
+                    "maxLength": 26
+                  },
+                  "reasonCode": {
+                    "type": "string",
+                    "enum": [
+                      "coverage",
+                      "fragility",
+                      "appeal",
+                      "other"
+                    ]
+                  },
+                  "internalReason": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 500
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3,
+                    "default": 2
+                  },
+                  "dueAt": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "project",
+                  "reasonCode",
+                  "internalReason"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "project": {
+                    "description": "The project's id, as it appears in the URL.",
+                    "type": "string",
+                    "pattern": "^[0123456789ABCDEFGHJKMNPQRSTVWXYZ]{26}$",
+                    "minLength": 26,
+                    "maxLength": 26
+                  },
+                  "reasonCode": {
+                    "type": "string",
+                    "enum": [
+                      "coverage",
+                      "fragility",
+                      "appeal",
+                      "other"
+                    ]
+                  },
+                  "internalReason": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 500
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3,
+                    "default": 2
+                  },
+                  "dueAt": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "project",
+                  "reasonCode",
+                  "internalReason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Assign one additional eligible judge to a submitted project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "project": {
+                      "type": "string"
+                    },
+                    "judge": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "project",
+                    "judge"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request itself could not be read: a bad escape in the URL, or a body that is not the JSON it claims to be.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in. Sign in and retry.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, and a member of this event, but not with the role this needs.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing — or none that this caller is allowed to know exists.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Well-formed, and refused: a deadline, a published rubric, a withdrawn project.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is larger than this deployment accepts.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Send `application/json` or `application/x-www-form-urlencoded`; nothing else is read.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The submission is malformed. Every problem is listed, not just the first.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. `Retry-After` says how long, and the window is fixed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds."
+              }
+            }
+          },
+          "500": {
+            "description": "A bug. The operator's log has the details; this response does not.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-manak-command": "reviews.request",
+        "x-manak-capability": {
+          "audience": "organizer",
+          "scope": "event"
+        },
+        "x-manak-records": [
+          "review.requested",
+          "assignment.created"
+        ],
+        "x-manak-limit": "organize"
+      }
+    },
+    "/api/events/{event}/review-requests/{request}/cancel": {
+      "post": {
+        "operationId": "reviews_cancel",
+        "summary": "Cancel an unfinished targeted review request.",
+        "description": "Callable by a organizer of the event.",
+        "tags": [
+          "reviews"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event",
+            "in": "path",
+            "required": true,
+            "description": "The event's slug or id, as it appears in the URL.",
+            "schema": {
+              "description": "The event's slug or id, as it appears in the URL.",
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "request",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0123456789ABCDEFGHJKMNPQRSTVWXYZ]{26}$",
+              "minLength": 26,
+              "maxLength": 26
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancel an unfinished targeted review request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "state"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request itself could not be read: a bad escape in the URL, or a body that is not the JSON it claims to be.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in. Sign in and retry.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, and a member of this event, but not with the role this needs.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing — or none that this caller is allowed to know exists.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Well-formed, and refused: a deadline, a published rubric, a withdrawn project.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is larger than this deployment accepts.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Send `application/json` or `application/x-www-form-urlencoded`; nothing else is read.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The submission is malformed. Every problem is listed, not just the first.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. `Retry-After` says how long, and the window is fixed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds."
+              }
+            }
+          },
+          "500": {
+            "description": "A bug. The operator's log has the details; this response does not.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-manak-command": "reviews.cancel",
+        "x-manak-capability": {
+          "audience": "organizer",
+          "scope": "event"
+        },
+        "x-manak-records": [
+          "review.cancelled",
+          "assignment.removed"
         ],
         "x-manak-limit": "organize"
       }
@@ -14376,10 +14993,16 @@
                 "type": "object",
                 "properties": {
                   "reason": {
-                    "description": "Give a reason to publish a new revision after correcting evidence. Leave blank for the first publication or a retry.",
+                    "description": "Private organizer note. Give a reason to publish a new revision after correcting evidence.",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 500
+                  },
+                  "publicSummary": {
+                    "description": "Visible to everyone in result history. Keep judge and participant details private.",
+                    "type": "string",
+                    "minLength": 4,
+                    "maxLength": 160
                   }
                 },
                 "additionalProperties": false
@@ -14390,10 +15013,16 @@
                 "type": "object",
                 "properties": {
                   "reason": {
-                    "description": "Give a reason to publish a new revision after correcting evidence. Leave blank for the first publication or a retry.",
+                    "description": "Private organizer note. Give a reason to publish a new revision after correcting evidence.",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 500
+                  },
+                  "publicSummary": {
+                    "description": "Visible to everyone in result history. Keep judge and participant details private.",
+                    "type": "string",
+                    "minLength": 4,
+                    "maxLength": 160
                   }
                 },
                 "additionalProperties": false
@@ -15930,6 +16559,726 @@
           "judge.evidence_excluded",
           "judge.evidence_restored",
           "result.corrected"
+        ],
+        "x-manak-limit": "organize"
+      }
+    },
+    "/api/events/{event}/results/preflight": {
+      "get": {
+        "operationId": "results_preflight",
+        "summary": "Check coverage, model warnings, and publication status before publishing.",
+        "description": "Callable by a organizer of the event.",
+        "tags": [
+          "results"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event",
+            "in": "path",
+            "required": true,
+            "description": "The event's slug or id, as it appears in the URL.",
+            "schema": {
+              "description": "The event's slug or id, as it appears in the URL.",
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Check coverage, model warnings, and publication status before publishing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "revision": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "ready": {
+                      "type": "boolean"
+                    },
+                    "checks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "evidenceDigest": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "revision",
+                    "ready",
+                    "checks",
+                    "warnings",
+                    "evidenceDigest"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request itself could not be read: a bad escape in the URL, or a body that is not the JSON it claims to be.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in. Sign in and retry.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, and a member of this event, but not with the role this needs.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing — or none that this caller is allowed to know exists.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The submission is malformed. Every problem is listed, not just the first.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. `Retry-After` says how long, and the window is fixed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds."
+              }
+            }
+          },
+          "500": {
+            "description": "A bug. The operator's log has the details; this response does not.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-manak-command": "results.preflight",
+        "x-manak-capability": {
+          "audience": "organizer",
+          "scope": "event"
+        }
+      }
+    },
+    "/api/events/{event}/results/evidence": {
+      "get": {
+        "operationId": "results_evidence_packet",
+        "summary": "Download the public method and evidence summary bound to one result revision.",
+        "description": "Callable by anyone, signed in or not.",
+        "tags": [
+          "results"
+        ],
+        "security": [
+          {}
+        ],
+        "parameters": [
+          {
+            "name": "event",
+            "in": "path",
+            "required": true,
+            "description": "The event's slug or id, as it appears in the URL.",
+            "schema": {
+              "description": "The event's slug or id, as it appears in the URL.",
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Download the public method and evidence summary bound to one result revision.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "revision": {
+                      "type": "integer"
+                    },
+                    "issuedAt": {
+                      "type": "integer"
+                    },
+                    "algorithm": {
+                      "type": "string"
+                    },
+                    "options": {
+                      "type": "object"
+                    },
+                    "rubricVersion": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "evidenceDigest": {
+                      "type": "string"
+                    },
+                    "ledgerHead": {
+                      "type": "string"
+                    },
+                    "ballots": {
+                      "type": "integer"
+                    },
+                    "comparisonsDecided": {
+                      "type": "integer"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "publicSummary": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "revision",
+                    "issuedAt",
+                    "algorithm",
+                    "options",
+                    "rubricVersion",
+                    "evidenceDigest",
+                    "ledgerHead",
+                    "ballots",
+                    "comparisonsDecided",
+                    "warnings",
+                    "publicSummary"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request itself could not be read: a bad escape in the URL, or a body that is not the JSON it claims to be.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing — or none that this caller is allowed to know exists.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The submission is malformed. Every problem is listed, not just the first.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. `Retry-After` says how long, and the window is fixed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds."
+              }
+            }
+          },
+          "500": {
+            "description": "A bug. The operator's log has the details; this response does not.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-manak-command": "results.evidence_packet",
+        "x-manak-capability": {
+          "audience": "public",
+          "scope": "event"
+        }
+      }
+    },
+    "/api/events/{event}/awards": {
+      "get": {
+        "operationId": "awards_list",
+        "summary": "List explicit award decisions for the current results revision.",
+        "description": "Callable by anyone, signed in or not.",
+        "tags": [
+          "awards"
+        ],
+        "security": [
+          {}
+        ],
+        "parameters": [
+          {
+            "name": "event",
+            "in": "path",
+            "required": true,
+            "description": "The event's slug or id, as it appears in the URL.",
+            "schema": {
+              "description": "The event's slug or id, as it appears in the URL.",
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List explicit award decisions for the current results revision.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "revision": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "decisions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "required": [
+                    "revision",
+                    "decisions"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request itself could not be read: a bad escape in the URL, or a body that is not the JSON it claims to be.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing — or none that this caller is allowed to know exists.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The submission is malformed. Every problem is listed, not just the first.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. `Retry-After` says how long, and the window is fixed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds."
+              }
+            }
+          },
+          "500": {
+            "description": "A bug. The operator's log has the details; this response does not.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-manak-command": "awards.list",
+        "x-manak-capability": {
+          "audience": "public",
+          "scope": "event"
+        }
+      },
+      "post": {
+        "operationId": "awards_decide",
+        "summary": "Record an organizer award decision against the published revision.",
+        "description": "Callable by a organizer of the event.\n\nRepeated award keys in one revision explicitly represent shared awards. A corrected publication requires new decisions.",
+        "tags": [
+          "awards"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event",
+            "in": "path",
+            "required": true,
+            "description": "The event's slug or id, as it appears in the URL.",
+            "schema": {
+              "description": "The event's slug or id, as it appears in the URL.",
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "The form encoding is the same operation and the same fields. It differs in one way: a URL-encoded body carries no types, so `3` and `true` arrive as text and are converted, while a JSON body of `\"3\"` for an integer is refused.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "project": {
+                    "type": "string",
+                    "pattern": "^[0123456789ABCDEFGHJKMNPQRSTVWXYZ]{26}$",
+                    "minLength": 26,
+                    "maxLength": 26
+                  },
+                  "awardKey": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 80
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "placement",
+                      "special"
+                    ]
+                  },
+                  "place": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "publicSummary": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 500
+                  },
+                  "internalReason": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "project",
+                  "awardKey",
+                  "type",
+                  "publicSummary",
+                  "internalReason"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "project": {
+                    "type": "string",
+                    "pattern": "^[0123456789ABCDEFGHJKMNPQRSTVWXYZ]{26}$",
+                    "minLength": 26,
+                    "maxLength": 26
+                  },
+                  "awardKey": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 80
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "placement",
+                      "special"
+                    ]
+                  },
+                  "place": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "publicSummary": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 500
+                  },
+                  "internalReason": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "project",
+                  "awardKey",
+                  "type",
+                  "publicSummary",
+                  "internalReason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Record an organizer award decision against the published revision.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "revision": {
+                      "type": "integer"
+                    },
+                    "project": {
+                      "type": "string"
+                    },
+                    "awardKey": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "revision",
+                    "project",
+                    "awardKey"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request itself could not be read: a bad escape in the URL, or a body that is not the JSON it claims to be.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in. Sign in and retry.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, and a member of this event, but not with the role this needs.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing — or none that this caller is allowed to know exists.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Well-formed, and refused: a deadline, a published rubric, a withdrawn project.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is larger than this deployment accepts.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Send `application/json` or `application/x-www-form-urlencoded`; nothing else is read.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The submission is malformed. Every problem is listed, not just the first.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. `Retry-After` says how long, and the window is fixed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds."
+              }
+            }
+          },
+          "500": {
+            "description": "A bug. The operator's log has the details; this response does not.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-manak-command": "awards.decide",
+        "x-manak-capability": {
+          "audience": "organizer",
+          "scope": "event"
+        },
+        "x-manak-records": [
+          "award.decided"
         ],
         "x-manak-limit": "organize"
       }

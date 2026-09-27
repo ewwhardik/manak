@@ -132,7 +132,7 @@ talking; this page only records it.</p>`;
   return page({
     title: `${context.event === null ? "Event" : context.event.name}`,
     trail: eventTrail(context, { label: "Teams" }),
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     ...(gatesNotice(context.gates) === undefined
       ? {}
       : { notice: gatesNotice(context.gates) as string }),
@@ -193,7 +193,7 @@ ${actionForm(context, "projects.create", { event: slug }, {
   return page({
     title: `${context.event === null ? "Event" : context.event.name}`,
     trail: eventTrail(context, { label: "Projects" }),
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     ...(gatesNotice(context.gates) === undefined
       ? {}
       : { notice: gatesNotice(context.gates) as string }),
@@ -308,7 +308,7 @@ ${actionForm(context, "projects.disqualify", params)}
       },
       { label: title },
     ),
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     ...(gatesNotice(context.gates) === undefined
       ? {}
       : { notice: gatesNotice(context.gates) as string }),

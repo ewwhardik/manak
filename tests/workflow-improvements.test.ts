@@ -11,10 +11,17 @@ test("assignment preview is organizer-only, renders coverage and never writes", 
     const before = count();
     const result = await rig.json(endpoint, organizer);
     assert.equal(result.applied, false);
+    assert.match(String(result.planRevision), /^[a-f0-9]{64}$/);
     assert.ok(Number(result.assignments) > 0);
     const html = await rig.html(endpoint.replace("/api", ""), organizer);
     assert.match(html, /Apply assignments/);
     assert.match(html, /No assignments have changed/);
+    assert.equal(count(), before);
+    const stale = await rig.serve(new Request(`https://portal.test/api/events/${rig.world.event.slug}/assignments`, {
+      method: "POST", headers: { authorization: `Bearer ${organizer.token}`, "content-type": "application/json" },
+      body: JSON.stringify({ expectedRevision: "0".repeat(64) }),
+    }));
+    assert.equal(stale.status, 409);
     assert.equal(count(), before);
     for (const principal of rig.principals.filter(p => p !== organizer)) {
       assert.ok([401,403].includes((await rig.get(endpoint, principal)).status));

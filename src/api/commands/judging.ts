@@ -47,6 +47,7 @@ import {
   coverageGaps,
   criteriaOf,
   findBallot,
+  headHash,
   findProjectIn,
   gatesFor,
   judgeablePool,
@@ -633,6 +634,26 @@ function drawPlan(ctx: Ctx, event: EventRow, trackKey?: string) {
       ...(restriction.tracks === null ? {} : { tracks: restriction.tracks }),
       ...(restriction.capacity === null ? {} : { capacity: restriction.capacity }) };
   });
+  const inactive = ctx.db.all<{ id: string }>(`select distinct a.judge_id as id from assignment a
+    where a.event_id = :e and not exists (select 1 from membership m where m.event_id = a.event_id
+      and m.account_id = a.judge_id and m.role = 'judge' and m.active = 1)`, { e: event.id });
+  for (const judge of inactive) roster.push({ id: judge.id, capacity: 0, conflicts: pool.map((project) => project.id) });
+  const inPool = new Set(projects.map((project) => project.id));
+  const locked: { judge: string; project: string }[] = [];
+  const outsideLoads = new Map<string, number>();
+  for (const judge of roster) {
+    const existing = assignmentsOf(ctx.db, event.id, judge.id);
+    outsideLoads.set(judge.id, existing.filter((assignment) => !inPool.has(assignment.project_id)).length);
+    for (const assignment of existing) {
+      if (inPool.has(assignment.project_id) && (inactive.some((other) => other.id === judge.id) ||
+          findBallot(ctx.db, event.id, judge.id, assignment.project_id) ||
+          ctx.db.get(`select 1 from review_request where event_id = :e and judge_id = :j
+            and project_id = :p and state = 'open'`,
+            { e: event.id, j: judge.id, p: assignment.project_id }))) {
+        locked.push({ judge: judge.id, project: assignment.project_id });
+      }
+    }
+  }
   try {
     const seed = `${event.id}|assign`;
     const result = assignReviews(
@@ -640,8 +661,9 @@ function drawPlan(ctx: Ctx, event: EventRow, trackKey?: string) {
       roster,
       event.reviews_per_project,
       seed,
+      { lockedAssignments: locked, outsideLoads },
     );
-    return { pool, judges, result, seed };
+    return { pool, judges, roster, result, seed };
   } catch (error) {
     if (error instanceof JudgingError) {
       throw new RuleError("assignment.impossible", error.message, { reason: error.code });
@@ -673,13 +695,16 @@ export const draw = defineCommand({
   method: "POST",
   path: "/api/events/:event/assignments",
   capability: { audience: "organizer", scope: "event" },
-  input: { event: EVENT_REF, track: TRACK_FILTER, dryRun: DRY_RUN },
+  input: { event: EVENT_REF, track: TRACK_FILTER, dryRun: DRY_RUN,
+    expectedRevision: { kind: "text", min: 64, max: 64, optional: true,
+      label: "Preview revision", help: "Prevents applying a plan after event evidence changes." } },
   returns: {
     kind: "json",
     schema: {
       type: "object",
       properties: {
         method: { type: "string" },
+        planRevision: { type: "string" },
         applied: { type: "boolean" },
         reviewsPerProject: { type: "integer" },
         projects: { type: "integer" },
@@ -725,17 +750,24 @@ export const draw = defineCommand({
     // DRAW_BODY
     const row = event as EventRow;
     const track = typeof input.track === "string" ? input.track : undefined;
-    const { pool, judges, result, seed } = drawPlan(ctx, row, track);
+    const planRevision = headHash(ctx.db);
+    if (typeof input.expectedRevision === "string" && input.expectedRevision !== planRevision) {
+      throw new RuleError("assignment.stale", "The event changed since this preview. Refresh before applying assignments.");
+    }
+    const { pool, judges, roster, result, seed } = drawPlan(ctx, row, track);
     const apply = input.dryRun !== true;
     const inPool = new Set(pool.map((project) => project.id));
     const planned = new Set(result.assignments.map((a) => `${a.judge}|${a.project}`));
 
-    let added = 0;
-    let removed = 0;
-    let kept = 0;
-    let blockedByCapacity = 0;
+    const existingPairs = new Set(roster.flatMap((judge) => assignmentsOf(ctx.db, row.id, judge.id)
+      .filter((assignment) => inPool.has(assignment.project_id))
+      .map((assignment) => `${judge.id}|${assignment.project_id}`)));
+    const added = [...planned].filter((pair) => !existingPairs.has(pair)).length;
+    const removed = [...existingPairs].filter((pair) => !planned.has(pair)).length;
+    const kept = [...planned].filter((pair) => existingPairs.has(pair)).length;
     if (apply) {
       ctx.db.tx(() => {
+        if (headHash(ctx.db) !== planRevision) throw new RuleError("assignment.stale", "The event changed while the assignment plan was prepared.");
         ctx.recorded(
           {
             action: "assignment.run",
@@ -745,7 +777,7 @@ export const draw = defineCommand({
               seed,
               track: track ?? null,
               projects: pool.length,
-              judges: judges.length,
+              judges: roster.length,
               target: row.reviews_per_project,
               planned: result.assignments.length,
               shortfalls: result.shortfalls,
@@ -754,17 +786,15 @@ export const draw = defineCommand({
           },
           () => {},
         );
-        for (const judge of judges) {
+        for (const judge of roster) {
           for (const existing of assignmentsOf(ctx.db, row.id, judge.id)) {
             // Only the pool under consideration. See the note above about track-scoped draws.
             if (!inPool.has(existing.project_id)) continue;
             if (planned.has(`${judge.id}|${existing.project_id}`)) continue;
             if (findBallot(ctx.db, row.id, judge.id, existing.project_id) !== undefined) {
-              kept++;
-              continue;
+              throw new RuleError("assignment.impossible", "The plan tried to remove a submitted review. Retry the preview.");
             }
             unassignProject(ctx, row.id, judge.id, existing.project_id);
-            removed++;
           }
         }
         for (const assignment of result.assignments) {
@@ -772,23 +802,18 @@ export const draw = defineCommand({
             (a) => a.project_id === assignment.project,
           );
           if (before) continue;
-          try {
-            assignProject(ctx, row.id, assignment.judge, assignment.project, "schedule");
-            added++;
-          } catch (error) {
-            if (error instanceof RuleError && error.code === "judge.capacity") blockedByCapacity++;
-            else throw error;
-          }
+          assignProject(ctx, row.id, assignment.judge, assignment.project, "schedule");
         }
       });
     }
-    const actualGaps = apply ? coverageGaps(ctx.db, row) : [];
+    const actualGaps = coverageGaps(ctx.db, row);
     return {
       method: result.method,
+      planRevision,
       applied: apply,
       reviewsPerProject: result.reviewsPerProject,
       projects: pool.length,
-      judges: judges.length,
+      judges: roster.length,
       assignments: result.assignments.length,
       added,
       removed,
@@ -797,10 +822,9 @@ export const draw = defineCommand({
       loadMax: result.loadMax,
       loadMean: result.loadMean,
       balanced: result.balanced,
-      complete: apply ? actualGaps.length === 0 : result.complete,
+      complete: result.complete,
       shortfalls: result.shortfalls,
-      warnings: [...result.warnings, ...(blockedByCapacity > 0 ?
-        [`${blockedByCapacity} planned assignments could not be added because existing retained work fills judge capacity.`] : [])],
+      warnings: result.warnings,
       gaps: actualGaps,
     };
   },
@@ -883,6 +907,136 @@ export const recusal = defineCommand({
     String(input.judge), String(input.project), String(input.reason), input.decision === "recuse"),
 });
 
+type ReviewRequestRow = { id: string; project_id: string; judge_id: string;
+  reason_code: string; internal_reason: string; priority: number; due_at: number | null;
+  state: string; created_at: number; cancelled_at: number | null };
+
+export const reviewRequests = defineCommand({
+  name: "reviews.requests",
+  summary: "List targeted additional review requests and completion state.",
+  method: "GET",
+  path: "/api/events/:event/review-requests",
+  capability: { audience: "organizer", scope: "event" },
+  input: { event: EVENT_REF },
+  returns: { kind: "json", schema: { type: "object", properties: {
+    requests: { type: "array", items: { type: "object" } },
+  }, required: ["requests"] } },
+  handler: ({ ctx, event }) => ({ requests: ctx.db.all<ReviewRequestRow>(
+    `select id, project_id, judge_id, reason_code, internal_reason, priority, due_at,
+      state, created_at, cancelled_at from review_request where event_id = :e
+      order by state, priority desc, created_at, id`, { e: (event as EventRow).id })
+    .map((request) => ({ id: request.id, project: request.project_id, judge: request.judge_id,
+      reasonCode: request.reason_code, internalReason: request.internal_reason,
+      priority: request.priority, dueAt: request.due_at, state: request.state,
+      createdAt: request.created_at, cancelledAt: request.cancelled_at,
+      completed: findBallot(ctx.db, (event as EventRow).id, request.judge_id,
+        request.project_id)?.submitted_at !== null &&
+        findBallot(ctx.db, (event as EventRow).id, request.judge_id,
+          request.project_id) !== undefined })) }),
+});
+
+export const requestReview = defineCommand({
+  name: "reviews.request",
+  summary: "Assign one additional eligible judge to a submitted project.",
+  method: "POST",
+  path: "/api/events/:event/review-requests",
+  capability: { audience: "organizer", scope: "event" },
+  input: { event: EVENT_REF, project: PROJECT_REF,
+    reasonCode: { kind: "enum", values: ["coverage", "fragility", "appeal", "other"], label: "Reason code" },
+    internalReason: { kind: "text", min: 8, max: 500, label: "Private reason" },
+    priority: { kind: "int", min: 1, max: 3, fallback: 2, label: "Priority" },
+    dueAt: { kind: "int", min: 1, optional: true, label: "Due time (Unix milliseconds)" } },
+  returns: { kind: "json", schema: { type: "object", properties: {
+    id: { type: "string" }, project: { type: "string" }, judge: { type: "string" },
+  }, required: ["id", "project", "judge"] } },
+  limit: "organize",
+  limitKey: ({ input }) => String(input.event ?? ""),
+  records: ["review.requested", "assignment.created"],
+  form: { title: "Request an additional review", submit: "Assign review",
+    redirect: ({ input }) => `/events/${encodeURIComponent(String(input.event))}/dashboard` },
+  handler: ({ ctx, event, input }) => {
+    const row = event as EventRow;
+    const project = findProjectIn(ctx.db, row.id, String(input.project));
+    if (!project || project.status !== "submitted") {
+      throw new RuleError("project.notSubmitted", "Choose a submitted project in this event.");
+    }
+    const judges = membersOf(ctx.db, row.id, "judge");
+    if (judges.length === 0) throw new RuleError("review.unavailable", "No active judges are available.");
+    const roster: AssignJudge[] = judges.map((judge) => {
+      const restriction = judgeRestrictions(ctx.db, row.id, judge.id);
+      return { id: judge.id,
+        conflicts: conflictsIn(ctx, row.id, [project], judge.id).concat(
+          assignmentsOf(ctx.db, row.id, judge.id).some((a) => a.project_id === project.id)
+            ? [project.id] : []),
+        ...(restriction.tracks === null ? {} : { tracks: restriction.tracks }),
+        ...(restriction.capacity === null ? {} : { capacity: restriction.capacity }),
+      };
+    });
+    const loads = new Map(roster.map((judge) => [judge.id, assignmentsOf(ctx.db, row.id, judge.id).length]));
+    const seed = `${row.id}|${project.id}|${headHash(ctx.db)}`;
+    const plan = assignReviews([{ id: project.id,
+      ...(project.track_key === null ? {} : { track: project.track_key }) }], roster, 1, seed,
+      { outsideLoads: loads });
+    const selected = plan.assignments[0];
+    if (!selected) throw new RuleError("review.unavailable", "No eligible judge has remaining capacity.");
+    const id = ctx.newId();
+    const result = { id, project: project.id, judge: selected.judge };
+    return ctx.db.tx(() => {
+      assignProject(ctx, row.id, selected.judge, project.id, "backfill");
+      return ctx.recorded({ action: "review.requested", eventId: row.id, subject: project.id,
+        payload: { id, judge: selected.judge, reasonCode: input.reasonCode,
+          internalReason: input.internalReason, priority: input.priority,
+          dueAt: input.dueAt ?? null } }, () => {
+        ctx.write(`insert into review_request (id, event_id, project_id, judge_id,
+          reason_code, internal_reason, priority, due_at, state, created_at, cancelled_at)
+          values (:id, :e, :p, :j, :reason, :detail, :priority, :due, 'open', :at, null)`, {
+          id, e: row.id, p: project.id, j: selected.judge, reason: String(input.reasonCode),
+          detail: String(input.internalReason), priority: Number(input.priority),
+          due: typeof input.dueAt === "number" ? input.dueAt : null,
+          at: ctx.now(),
+        });
+        return result;
+      });
+    });
+  },
+});
+
+export const cancelReview = defineCommand({
+  name: "reviews.cancel",
+  summary: "Cancel an unfinished targeted review request.",
+  method: "POST",
+  path: "/api/events/:event/review-requests/:request/cancel",
+  capability: { audience: "organizer", scope: "event" },
+  input: { event: EVENT_REF, request: { kind: "id", label: "Review request ID" } },
+  returns: { kind: "json", schema: { type: "object", properties: {
+    id: { type: "string" }, state: { type: "string" },
+  }, required: ["id", "state"] } },
+  limit: "organize",
+  limitKey: ({ input }) => String(input.event ?? ""),
+  records: ["review.cancelled", "assignment.removed"],
+  handler: ({ ctx, event, input }) => {
+    const row = event as EventRow;
+    const request = ctx.db.get<ReviewRequestRow>(`select id, project_id, judge_id, reason_code,
+      internal_reason, priority, due_at, state, created_at, cancelled_at from review_request
+      where id = :id and event_id = :e`, { id: String(input.request), e: row.id });
+    if (!request || request.state !== "open") {
+      throw new RuleError("review.unavailable", "That active review request was not found.");
+    }
+    if (findBallot(ctx.db, row.id, request.judge_id, request.project_id)) {
+      throw new RuleError("review.alreadyFiled", "A review has been started; retain its evidence.");
+    }
+    return ctx.db.tx(() => {
+      unassignProject(ctx, row.id, request.judge_id, request.project_id);
+      return ctx.recorded({ action: "review.cancelled", eventId: row.id,
+        subject: request.project_id, payload: { id: request.id, judge: request.judge_id } }, () => {
+        ctx.write(`update review_request set state = 'cancelled', cancelled_at = :at
+          where id = :id`, { at: ctx.now(), id: request.id });
+        return { id: request.id, state: "cancelled" };
+      });
+    });
+  },
+});
+
 export const JUDGING_COMMANDS: readonly Command[] = [
   queue,
   saveBallotCommand,
@@ -893,4 +1047,7 @@ export const JUDGING_COMMANDS: readonly Command[] = [
   roster,
   configureRoster,
   recusal,
+  reviewRequests,
+  requestReview,
+  cancelReview,
 ];

@@ -50,7 +50,7 @@ export function aboutPage(context: ViewContext): string {
   return page({
     title: `About ${title}`,
     trail: [{ label: "About" }],
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     body: `<p>${esc(title)} runs a hackathon end to end: teams register, submit a project against
 a deadline, judges score what they are assigned against a published rubric, and the organizer
 gets a ranking that has been corrected for the fact that judges are not calibrated to each

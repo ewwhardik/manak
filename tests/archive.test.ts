@@ -121,7 +121,7 @@ test("a deployment moves to another database, and the ledger arrives with it", (
 
     const exported = archive(["export", out], from);
     assert.equal(exported.status, 0, `export failed\n${exported.out}${exported.err}`);
-    assert.match(exported.out, /wrote 28 files and a manifest/);
+    assert.match(exported.out, new RegExp(`wrote ${ARCHIVE_TABLES.length} files and a manifest`));
     // The warning about what an archive contains is not decoration. It is the one thing an
     // operator needs to know before attaching the directory to a support ticket.
     assert.match(exported.out, /every email address in the deployment/);
@@ -131,7 +131,7 @@ test("a deployment moves to another database, and the ledger arrives with it", (
     // be one step of a runbook nobody reads.
     const imported = archive(["import", out], to);
     assert.equal(imported.status, 0, `import failed\n${imported.out}${imported.err}`);
-    assert.match(imported.out, /imported \d+ rows into 28 tables/);
+    assert.match(imported.out, new RegExp(`imported \\d+ rows into ${ARCHIVE_TABLES.length} tables`));
     assert.match(imported.out, /nobody has to sign in twice/);
 
     assert.equal(head(to), head(from), "the restored database has a different ledger head");
@@ -219,7 +219,7 @@ test("export warns about a broken chain and copies the rows out anyway", () => {
     assert.equal(exported.status, 0, `a warning became a refusal\n${exported.err}`);
     assert.match(exported.err, /WARNING the audit chain breaks at entry 1 \(1 break\(s\) in all\)/);
     assert.match(exported.err, /keep this copy as evidence rather than as a restore point/);
-    assert.match(exported.out, /wrote 28 files and a manifest/);
+    assert.match(exported.out, new RegExp(`wrote ${ARCHIVE_TABLES.length} files and a manifest`));
 
     // And the consequence the warning named, demonstrated rather than promised.
     const imported = archive(["import", out], to);

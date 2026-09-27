@@ -71,6 +71,7 @@ export const STATUS_TEXT: Readonly<Record<number, string>> = {
  */
 const PAYLOAD_FIXABLE: readonly string[] = [
   "abuse.threshold",
+  "award.place",
   "abuse.tokens",
   "abuse.unknownVoter",
   "account.email",
@@ -103,8 +104,13 @@ const WORLD_FIXABLE: readonly string[] = [
   // it — the organizer has to invite a judge or lower `reviews_per_project` — so 409, not
   // 422, even though the request that provoked it had a body.
   "assignment.impossible",
+  "assignment.stale",
+  "award.alreadyDecided",
+  "review.unavailable",
+  "review.alreadyFiled",
   "ballot.staleRubric",
   "certificate.notIssued",
+  "certificate.alreadyIssued",
   "comment.unavailable",
   "event.archived",
   "judging.closed",

@@ -24,6 +24,7 @@ export type ViewContext = {
   readonly result: unknown;
   /** The signed-in account's display name, or null. */
   readonly whoami: string | null;
+  readonly demoMode?: boolean;
   readonly accountId: string | null;
   readonly event: EventRow | null;
   readonly gates: EventGates | null;
@@ -364,7 +365,7 @@ export function genericPage(context: ViewContext): string {
   return page({
     title: context.command.summary,
     trail: eventTrail(context, { label: context.command.summary }),
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     notice: gatesNotice(context.gates),
     body,
   });
@@ -435,6 +436,7 @@ export function formPage(options: {
   readonly title: string;
   readonly trail?: readonly Breadcrumb[];
   readonly whoami: string | null;
+  readonly demoMode?: boolean;
   readonly notice?: string;
   readonly intro?: string;
   readonly prefill?: Readonly<Record<string, string>>;
@@ -446,6 +448,7 @@ export function formPage(options: {
     title: options.title,
     trail: options.trail ?? [{ label: options.title }],
     whoami: options.whoami,
+    demoMode: options.demoMode,
     ...(options.notice === undefined ? {} : { notice: options.notice }),
     body: `${options.intro === undefined ? "" : `<p>${esc(options.intro)}</p>\n`}${form({
       formAction: options.formAction,
@@ -491,7 +494,7 @@ export function docsPage(context: ViewContext): string {
   return page({
     title: "API reference",
     trail: [{ label: "API reference" }],
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     body: `<p>Every operation this deployment performs. The same list drives the HTML forms, the
 JSON API and <a href="/api/openapi.json">the OpenAPI document</a>; there is no operation
 in one that is missing from the others.</p>

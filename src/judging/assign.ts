@@ -50,6 +50,10 @@ export type AssignJudge = {
 export type AssignmentOptions = {
   /** Cap on repair moves, so a pathological roster cannot spin. */
   repairPasses?: number;
+  /** Existing reviewed assignments that must survive a redraw. */
+  lockedAssignments?: readonly Assignment[];
+  /** Work outside the project pool, which still consumes judge capacity. */
+  outsideLoads?: ReadonlyMap<JudgeId, number>;
 };
 
 export type Assignment = { judge: JudgeId; project: ProjectId };
@@ -151,10 +155,28 @@ export function assignReviews(
     );
   }
 
-  const load = new Map<JudgeId, number>(judges.map((j) => [j.id, 0]));
+  const load = new Map<JudgeId, number>(judges.map((j) => [j.id, opt.outsideLoads?.get(j.id) ?? 0]));
   const byJudge = new Map<JudgeId, ProjectId[]>(judges.map((j) => [j.id, []]));
   const byProject = new Map<ProjectId, JudgeId[]>(projects.map((p) => [p.id, []]));
   const assignedPairs = new Set<string>();
+  const locked = new Set<string>();
+  for (const [judge, value] of load) {
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw new JudgingError("assign.outsideLoad", `Outside load for ${judge} must be a non-negative safe integer.`);
+    }
+  }
+  for (const assignment of opt.lockedAssignments ?? []) {
+    if (!judgeIds.has(assignment.judge) || !projectIds.has(assignment.project)) {
+      throw new JudgingError("assign.locked", "A retained assignment is outside the draw roster or project pool.");
+    }
+    const key = `${assignment.judge} ${assignment.project}`;
+    if (locked.has(key)) throw new JudgingError("assign.locked", "The retained assignment list contains a duplicate.");
+    locked.add(key);
+    assignedPairs.add(key);
+    byJudge.get(assignment.judge)!.push(assignment.project);
+    byProject.get(assignment.project)!.push(assignment.judge);
+    load.set(assignment.judge, load.get(assignment.judge)! + 1);
+  }
 
   // Most-constrained-first: fewest eligible judges, then seeded order for ties.
   const projectOrder = rng
@@ -229,7 +251,7 @@ export function assignReviews(
           }
         }
         for (const carried of byJudge.get(judge)!.slice().sort()) {
-          if (visitedProjects.has(carried)) continue;
+          if (visitedProjects.has(carried) || locked.has(`${judge} ${carried}`)) continue;
           visitedProjects.add(carried);
           viaJudge.set(carried, judge);
           queue.push(carried);
@@ -265,6 +287,7 @@ export function assignReviews(
       const carried = (byJudge.get(from) as ProjectId[]).slice().sort();
       let done = false;
       for (const projectId of carried) {
+        if (locked.has(`${from} ${projectId}`)) continue;
         const project = projects.find((p) => p.id === projectId) as AssignProject;
         for (const to of lightest) {
           const judge = judges.find((j) => j.id === to) as AssignJudge;
@@ -325,6 +348,11 @@ export function assignReviews(
   }
 
   const warnings: string[] = [];
+  for (const judge of judges) {
+    if (load.get(judge.id)! > capacityOf.get(judge.id)!) {
+      warnings.push(`${judge.id} already has retained work above their configured capacity; the draw did not remove submitted reviews.`);
+    }
+  }
   if (shortfalls.length > 0) {
     warnings.push(
       `${plural(shortfalls.length, "project")} received fewer than ${reviewsPerProject} reviews. ` +

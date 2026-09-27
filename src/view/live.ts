@@ -37,6 +37,7 @@ export type LiveProject = {
 export type LiveLeaderboardProps = {
   readonly event: { readonly slug: string; readonly name: string };
   readonly whoami?: string | null;
+  readonly demoMode?: boolean;
   readonly isOrganizer: boolean;
   readonly published: boolean;
   readonly headHash?: string | null;
@@ -95,7 +96,7 @@ export function liveLeaderboardPage(props: LiveLeaderboardProps): string {
     return page({
       title: `Live Ceremony Leaderboard — ${event.name}`,
       trail: eventTrail({ event } as any, { label: "Live Ceremony Leaderboard" }),
-      whoami: props.whoami,
+      whoami: props.whoami, demoMode: props.demoMode,
       refresh: 10,
       lead: "Judges are reviewing submissions. Live ceremony broadcast will begin once results are published.",
       body: `
@@ -109,7 +110,7 @@ export function liveLeaderboardPage(props: LiveLeaderboardProps): string {
   </div>
   <div class="live-controls">
     <a class="button" href="/events/${esc(slug)}/projects">Browse Submitted Projects</a>
-    <a class="button" href="/fast-login?as=organizer">Organizer Sign In</a>
+    <a class="button" href="/signin">Organizer Sign In</a>
   </div>
 </div>
 
@@ -288,7 +289,7 @@ export function liveLeaderboardPage(props: LiveLeaderboardProps): string {
   return page({
     title: `Live Leaderboard & Ceremony — ${event.name}`,
     trail: eventTrail({ event } as any, { label: "Live Ceremony Leaderboard" }),
-    whoami: props.whoami,
+    whoami: props.whoami, demoMode: props.demoMode,
     refresh: isPaused ? undefined : interval,
     lead: "Real-time, bias-adjusted standings for stage ceremonies and live hackathon broadcasts.",
     body: `

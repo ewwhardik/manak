@@ -223,7 +223,7 @@ ${actionForm(context, "rubrics.create", { event: slug })}
   return page({
     title: `${context.event === null ? "Event" : context.event.name}`,
     trail: eventTrail(context, { label: "Rubric" }),
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     ...(gatesNotice(context.gates) === undefined
       ? {}
       : { notice: gatesNotice(context.gates) as string }),
@@ -658,7 +658,7 @@ does not look like a discovery.</p>
   return page({
     title: `${context.event === null ? "Event" : context.event.name}`,
     trail: eventTrail(context, { label: "Dashboard" }),
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     lead: "Understand the evidence. Support your panel. Publish with context.",
     ...(gatesNotice(context.gates) === undefined
       ? {}
@@ -754,6 +754,11 @@ ${actionForm(context, "assignments.preview", { event: slug }, { method: "get", s
 <p><a href="/api/events/${encodeURIComponent(slug)}/judges/roster">Inspect the current roster rules</a></p>
 ${actionForm(context, "judges.configure", { event: slug })}
 ${actionForm(context, "judges.recusal", { event: slug })}
+</details>
+<details><summary>Request a targeted review</summary>
+<p>Use a submitted project ID from the coverage table. The scheduler chooses an eligible judge with remaining capacity; the private reason is visible only to organizers.</p>
+<p><a href="/api/events/${encodeURIComponent(slug)}/review-requests">Inspect review requests and completion</a></p>
+${actionForm(context, "reviews.request", { event: slug })}
 </details>
 <details><summary>Voting anomaly thresholds</summary>
 <p>Set these for this event. A flag opens an investigation; it never changes a vote by itself. Inspect benign shared-network and coordinated outreach patterns before confirming a signal.</p>
@@ -995,14 +1000,15 @@ ${actionForm(context, "results.publish", { event: slug })}`;
         : ""
     }<details><summary>Revoke or replace a certificate</summary><p>Corrections are signed and append-only. A replacement needs the corrected recipient and detail fields; download the private response and share that single record with its recipient.</p>
 ${actionForm(context, "results.correct_cert", { event: slug })}</details>`;
+  const decisionLinks = !mayPublish ? "" : `<p><a href="/api/events/${encodeURIComponent(slug)}/results/preflight">Publication preflight (JSON)</a>${published ? ` · <a href="/api/events/${encodeURIComponent(slug)}/results/evidence">Public evidence packet (JSON)</a> · <a href="/api/events/${encodeURIComponent(slug)}/awards">Award decisions (JSON)</a>` : ""}</p>${published ? `<details><summary>Record an explicit award</summary><p>Award decisions bind to the current publication revision. Use one key for a shared award and provide a public explanation separate from private deliberation.</p>${actionForm(context, "awards.decide", { event: slug })}</details>` : ""}`;
   return page({
     title: `${context.event === null ? "Event" : context.event.name}`,
     trail: eventTrail(context, { label: "Results" }),
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     ...(gatesNotice(context.gates) === undefined
       ? {}
       : { notice: gatesNotice(context.gates) as string }),
-    body: `<p>${
+    body: `${decisionLinks}<p>${
       published
         ? tag("published", "open")
         : `${tag("not published", "shut")} You are reading a preview. Nobody else can see this
@@ -1285,7 +1291,7 @@ wrong. Read the first number; the second is there so the first cannot be mistake
       },
       { label: "Confidence" },
     ),
-    whoami: context.whoami,
+    whoami: context.whoami, demoMode: context.demoMode,
     ...(gatesNotice(context.gates) === undefined
       ? {}
       : { notice: gatesNotice(context.gates) as string }),

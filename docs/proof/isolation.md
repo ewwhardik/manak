@@ -12,12 +12,12 @@ derived from the declarations.
 
 | Measured                                     | Count |
 | -------------------------------------------- | ----- |
-| Operations declared                          | 69    |
+| Operations declared                          | 76    |
 | Witnesses impersonated                       | 6     |
 | Renderings per operation                     | 2     |
-| Requests sent over a socket                  | 828   |
-| Answers that were a refusal                  | 428   |
-| Refusals of an operation that writes         | 304   |
+| Requests sent over a socket                  | 912   |
+| Answers that were a refusal                  | 478   |
+| Refusals of an operation that writes         | 334   |
 | Ledger entries appended by a refused request | 0     |
 | Sign-in and invitation messages delivered    | 14    |
 | Breaks in the ledger's hash chain afterwards | 0     |
@@ -107,6 +107,9 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 | judges.roster              | `GET /api/events/:event/judges/roster`                    | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 | judges.configure           | `POST /api/events/:event/judges/configure`                | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 | judges.recusal             | `POST /api/events/:event/judges/recusal`                  | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| reviews.requests           | `GET /api/events/:event/review-requests`                  | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| reviews.request            | `POST /api/events/:event/review-requests`                 | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| reviews.cancel             | `POST /api/events/:event/review-requests/:request/cancel` | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 | events.dashboard           | `GET /api/events/:event/dashboard`                        | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 | results.show               | `GET /api/events/:event/results`                          | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | results.confidence         | `GET /api/events/:event/results/confidence`               | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
@@ -118,6 +121,10 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 | results.correct_cert       | `POST /api/events/:event/certificates/corrections`        | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 | results.history            | `GET /api/events/:event/results/history`                  | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | results.judge_evidence     | `POST /api/events/:event/results/judge-evidence`          | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| results.preflight          | `GET /api/events/:event/results/preflight`                | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| results.evidence_packet    | `GET /api/events/:event/results/evidence`                 | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| awards.list                | `GET /api/events/:event/awards`                           | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| awards.decide              | `POST /api/events/:event/awards`                          | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 | votes.start                | `POST /api/events/:event/votes/start`                     | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | votes.cast                 | `POST /api/events/:event/votes`                           | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | votes.results              | `GET /api/events/:event/votes`                            | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
@@ -248,6 +255,18 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 | judges.recusal         | stranger | html      |,               | 200         |
 | judges.recusal         | founder  | json      | `event.missing` | 200         |
 | judges.recusal         | founder  | html      |,               | 200         |
+| reviews.requests       | stranger | json      | `event.missing` | 200         |
+| reviews.requests       | stranger | html      |,               | 200         |
+| reviews.requests       | founder  | json      | `event.missing` | 200         |
+| reviews.requests       | founder  | html      |,               | 200         |
+| reviews.request        | stranger | json      | `event.missing` | 200         |
+| reviews.request        | stranger | html      |,               | 200         |
+| reviews.request        | founder  | json      | `event.missing` | 200         |
+| reviews.request        | founder  | html      |,               | 200         |
+| reviews.cancel         | stranger | json      | `event.missing` | 200         |
+| reviews.cancel         | stranger | html      |,               | 200         |
+| reviews.cancel         | founder  | json      | `event.missing` | 200         |
+| reviews.cancel         | founder  | html      |,               | 200         |
 | events.dashboard       | stranger | json      | `event.missing` | 200         |
 | events.dashboard       | stranger | html      |,               | 200         |
 | events.dashboard       | founder  | json      | `event.missing` | 200         |
@@ -276,6 +295,14 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 | results.judge_evidence | stranger | html      |,               | 200         |
 | results.judge_evidence | founder  | json      | `event.missing` | 200         |
 | results.judge_evidence | founder  | html      |,               | 200         |
+| results.preflight      | stranger | json      | `event.missing` | 200         |
+| results.preflight      | stranger | html      |,               | 200         |
+| results.preflight      | founder  | json      | `event.missing` | 200         |
+| results.preflight      | founder  | html      |,               | 200         |
+| awards.decide          | stranger | json      | `event.missing` | 200         |
+| awards.decide          | stranger | html      |,               | 200         |
+| awards.decide          | founder  | json      | `event.missing` | 200         |
+| awards.decide          | founder  | html      |,               | 200         |
 | votes.abuse            | stranger | json      | `event.missing` | 200         |
 | votes.abuse            | stranger | html      |,               | 200         |
 | votes.abuse            | founder  | json      | `event.missing` | 200         |
@@ -301,12 +328,12 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 
 | Status | Code                     | Media type                 | Answers |
 | ------ | ------------------------ | -------------------------- | ------- |
-| 401    |,                        | `text/html`                | 46      |
-| 401    | `access.unauthenticated` | `application/problem+json` | 46      |
-| 403    |,                        | `text/html`                | 86      |
-| 403    | `access.forbidden`       | `application/problem+json` | 86      |
-| 404    |,                        | `text/html`                | 82      |
-| 404    | `event.missing`          | `application/problem+json` | 82      |
+| 401    |,                        | `text/html`                | 51      |
+| 401    | `access.unauthenticated` | `application/problem+json` | 51      |
+| 403    |,                        | `text/html`                | 96      |
+| 403    | `access.forbidden`       | `application/problem+json` | 96      |
+| 404    |,                        | `text/html`                | 92      |
+| 404    | `event.missing`          | `application/problem+json` | 92      |
 
 ## What this does not prove
 

@@ -356,7 +356,7 @@ export function makeApp(options: AppOptions): Serve {
       const activeEvents = db.all<{ slug: string; name: string }>(
         "select slug, name from event where archived_at is null order by created_at asc",
       );
-      return html(guidePage({ whoami, events: activeEvents }), 200);
+      return html(guidePage({ whoami, demoMode: options.demoMode === true, events: activeEvents }), 200);
     }
 
     const liveMatch = /^\/(api\/)?events\/([^/]+)\/live\/?$/.exec(target.pathname);
@@ -406,6 +406,7 @@ export function makeApp(options: AppOptions): Serve {
           event: { slug: event.slug, name: event.name },
           whoami,
           isOrganizer,
+          demoMode: options.demoMode === true,
           published,
           headHash: currentHead,
           now,
@@ -428,7 +429,11 @@ export function makeApp(options: AppOptions): Serve {
         gates,
         now,
         registry,
-      } as any) as Record<string, unknown>;
+        address, userAgent: request.headers.get("user-agent") ?? "", origin: publicOrigin.origin,
+        signIn: () => { throw new Error("Read-only report cannot sign in"); },
+        signOut: () => { throw new Error("Read-only report cannot sign out"); },
+        deliver: () => { throw new Error("Read-only report cannot send mail"); },
+      } satisfies Invocation) as Record<string, unknown>;
 
       const allProjects = (Array.isArray(liveData.projects) ? liveData.projects : []) as LiveProject[];
       const projects = selectedTrack ? allProjects.filter((project) => project.trackKey === selectedTrack) : allProjects;
@@ -466,6 +471,7 @@ export function makeApp(options: AppOptions): Serve {
         event: { slug: event.slug, name: event.name },
         whoami,
         isOrganizer,
+        demoMode: options.demoMode === true,
         published,
         headHash: currentHead,
         now,
@@ -519,7 +525,7 @@ export function makeApp(options: AppOptions): Serve {
         signIn: () => { throw new Error("Read-only report cannot sign in"); },
         signOut: () => { throw new Error("Read-only report cannot sign out"); },
         deliver: () => { throw new Error("Read-only report cannot send mail"); },
-      } as Invocation) as Record<string, unknown>;
+      } satisfies Invocation) as Record<string, unknown>;
       const pList = (Array.isArray(liveData.projects) ? liveData.projects : []) as LiveProject[];
       const finalists: TieBreakerFinalist[] = pList.slice(0, 2).map((p) => ({
         id: p.project, title: p.title, trackKey: p.trackKey, adjusted: p.adjusted,
@@ -530,7 +536,7 @@ export function makeApp(options: AppOptions): Serve {
       if (isApi) return json({ event: { slug: event.slug, name: event.name },
         finalists, ...assessment, revision: liveData.revision ?? null, criteria: [],
       }, 200);
-      return html(tieBreakerPage({ slug: event.slug, eventName: event.name, whoami,
+      return html(tieBreakerPage({ slug: event.slug, eventName: event.name, whoami, demoMode: options.demoMode === true,
         isOrganizer, finalists, assessment,
       }), 200);
     }
@@ -538,14 +544,15 @@ export function makeApp(options: AppOptions): Serve {
 
     if (target.pathname === "/fast-login") {
       if (options.demoMode !== true) throw notFound("route");
-      if (request.method !== "GET" && request.method !== "HEAD") {
-        throw methodNotAllowed(request.method, ["GET"]);
-      }
-      const as = url.searchParams.get("as") ?? "organizer";
+      if (request.method !== "POST") throw methodNotAllowed(request.method, ["POST"]);
+      const origin = request.headers.get("origin");
+      if (origin !== null && origin !== publicOrigin.origin) throw forbidden("Demo login requires the deployment origin.");
+      const body = await request.formData();
+      const as = String(body.get("as") ?? "");
       const sampleEvent = resolveEvent(db, "sample-hack-2026") ?? resolveEvent(db, "evt_01");
       const dogfoodEvent = resolveEvent(db, "dogfood");
-      const eventParam = url.searchParams.get("event");
-      const chosenEvent = eventParam ? resolveEvent(db, eventParam) : undefined;
+      const eventParam = body.get("event");
+      const chosenEvent = typeof eventParam === "string" ? resolveEvent(db, eventParam) : undefined;
       const wantsDogfood = as === "judge_a" || as === "judge_nils" || as.includes("dogfood");
       const targetEvent = chosenEvent ?? (wantsDogfood ? dogfoodEvent ?? sampleEvent : sampleEvent ?? dogfoodEvent) ?? db.get<{ slug: string }>("select slug from event order by created_at desc limit 1");
       const isDogfood = targetEvent?.slug === "dogfood";
@@ -576,6 +583,9 @@ export function makeApp(options: AppOptions): Serve {
       const persona = personas[as];
       if (!persona) throw notFound("demo persona");
       if (!targetEvent || !["sample-hack-2026", "dogfood"].includes(targetEvent.slug)) throw notFound("demo event");
+      if (as !== "organizer" && (as.includes("dogfood") || ["judge_a", "judge_nils", "judge_b"].includes(as)) !== isDogfood && chosenEvent !== undefined) {
+        throw notFound("demo persona in event");
+      }
       const ctx = makeContext(db, { clock: { now: () => now } });
       const secure = options.secure ?? isSecure(request, url, trustProxy);
       const minted = db.tx(() => {
@@ -585,7 +595,7 @@ export function makeApp(options: AppOptions): Serve {
         }
         const allEvents = db.all<{ id: string; slug: string }>("select id, slug from event where archived_at is null and slug in ('sample-hack-2026', 'dogfood')");
         for (const ev of allEvents) {
-          if (persona.role !== undefined) {
+          if (persona.role !== undefined && (as === "organizer" || ev.slug === targetEvent.slug)) {
             grantRole(ctx, ev.id, account.id, persona.role);
           }
         }
@@ -826,6 +836,7 @@ export function makeApp(options: AppOptions): Serve {
       command,
       input,
       whoami: trace.whoami,
+      demoMode: options.demoMode === true,
       accountId,
       event,
       gates,

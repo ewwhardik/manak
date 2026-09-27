@@ -129,7 +129,7 @@ Roles are scoped to one event. A judge invited to one event does not gain access
 
 **Target:** Let an operator inspect decisions, integrate the portal, and leave with their data.
 
-**Current behavior:** Writes append event-scoped audit entries linked by hashes. CSV exports cover relevant event data. The archive CLI exports deterministic JSONL files and a manifest with migration and file digests; preview validates an archive before import into an empty compatible database. A Devpost import tool accepts external project data. The 69 command declarations serve the browser and JSON API and generate OpenAPI. A configured webhook worker sends signed, ordered event notifications to one trusted receiver, retries failed delivery and exposes read-only delivery status. The signing CLI issues Ed25519 JSON records for eligible participants and judges; organizers can sign revocation or supersession records. The offline verifier checks records against an independently trusted public key. An embeddable gallery widget is available as a separate route.
+**Current behavior:** Writes append event-scoped audit entries linked by hashes. CSV exports cover relevant event data. The archive CLI exports deterministic JSONL files and a manifest with migration and file digests; preview validates an archive before import into an empty compatible database. A Devpost import tool accepts external project data. The 76 command declarations serve the browser and JSON API and generate OpenAPI. A configured webhook worker sends signed, ordered event notifications to one trusted receiver, retries failed delivery and exposes read-only delivery status. The signing CLI issues Ed25519 JSON records for earned participants, completed judges, and explicit award decisions; organizers can sign revocation or supersession records. The offline verifier checks records against an independently trusted public key. An embeddable gallery widget is available as a separate route.
 
 **Try it:** Open `/docs`, `/api/openapi.json`, and `/api/capabilities`. Run the archive round-trip proof. Follow [OPERATIONS.md](OPERATIONS.md) to test webhook delivery and signed records.
 
@@ -137,7 +137,7 @@ Roles are scoped to one event. A judge invited to one event does not gain access
 
 ## Command inventory
 
-The 50 registered operations are grouped below. `/docs` supplies the current method, path, fields, and role rule for each one. This inventory is a feature checklist, not an alternative API contract.
+The 76 registered operations are grouped below. `/docs` supplies the current method, path, fields, and role rule for each one. This inventory is a feature checklist; generated [OpenAPI](openapi.json) is the full contract.
 
 | Area | Operations |
 | --- | --- |
@@ -147,12 +147,12 @@ The 50 registered operations are grouped below. `/docs` supplies the current met
 | Projects | `projects.list`, `projects.show`, `projects.create`, `projects.update`, `projects.submit`, `projects.withdraw`, `projects.pull`, `projects.disqualify` |
 | Comments | `comments.add`, `comments.hide` |
 | Rubrics | `rubrics.show`, `rubrics.create`, `rubrics.publish` |
-| Judge work | `judging.queue`, `ballots.save`, `duels.next`, `duels.decide`, `assignments.draw` |
-| Results and evidence | `results.show`, `results.confidence`, `events.dashboard`, `results.publish`, `results.unpublish` |
+| Judge work | `judging.queue`, `ballots.save`, `duels.next`, `duels.decide`, `assignments.preview`, `assignments.draw`, `judges.roster`, `judges.configure`, `judges.recusal`, `reviews.requests`, `reviews.request`, `reviews.cancel` |
+| Results, evidence and awards | `results.show`, `results.confidence`, `events.dashboard`, `results.preflight`, `results.evidence_packet`, `results.history`, `results.publish`, `results.unpublish`, `awards.list`, `awards.decide`, certificate issuance and correction |
 | Community voting | `votes.start`, `votes.cast`, `votes.results`, `votes.ballot` |
 | Export | `exports.download` |
 | System | `system.home`, `system.healthz`, `system.docs`, `system.openapi`, `system.capabilities`, `system.about` |
 
 ## Validation still needed for the hackathon
 
-The official fixtures and acceptance tooling, Docker boot on a supported host, intended event-size testing, external SMTP and webhook checks, a public source repository, and a five-minute lifecycle video are not represented by local unit tests.
+The official acceptance tooling, Docker boot on a supported host, intended event-size testing, external mail and webhook checks, and a five-minute lifecycle video require separate evidence. The local tests and proof reports cover their stated fixtures and routes only.

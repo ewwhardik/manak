@@ -1,10 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { runInNewContext } from "node:vm";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { assessFinalists } from "../src/judging/index.ts";
 import { ALL_COMMANDS } from "../src/api/commands/index.ts";
 import { makeRegistry } from "../src/api/index.ts";
-import { createSession, rolesIn, findAccountByEmail, setResultsPublic, saveBallot, createEvent, getClockOffset } from "../src/db/index.ts";
+import { createSession, rolesIn, findAccountByEmail, setResultsPublic, saveBallot, createEvent, getClockOffset, mintEventCertificates } from "../src/db/index.ts";
 import { makeApp } from "../src/http/index.ts";
 import { VIEWS } from "../src/view/index.ts";
 import { world } from "./support/world.ts";
@@ -18,7 +21,10 @@ function harness(demoMode = false) {
     publicOrigin: "https://portal.test", demoMode, log: () => {}, report: () => {} });
   const get = (path: string, auth = false) => serve(new Request(`https://portal.test${path}`,
     { headers: auth ? { authorization: `Bearer ${token}` } : {} }), "203.0.113.9");
-  return { w, token, serve, get };
+  const postDemo = (as: string, event?: string) => serve(new Request("https://portal.test/fast-login", {
+    method: "POST", body: new URLSearchParams({ as, ...(event === undefined ? {} : { event }) }),
+  }), "203.0.113.9");
+  return { w, token, serve, get, postDemo };
 }
 
 test("close-call support never fabricates probabilities or treats rubric units as BT strengths", () => {
@@ -71,11 +77,99 @@ test("ceremony projects remain frozen after a ballot changes", async () => {
   } finally { rig.close(); }
 });
 
+test("private judge-exclusion notes never enter public publication history", async () => {
+  const rig = judged();
+  try {
+    const org = rig.principals.find(p => p.label === "organizer")!;
+    setResultsPublic(rig.world.asOrganizer, rig.world.event, false);
+    const base = `https://portal.test/api/events/${rig.fill.event}`;
+    const post = (path: string, body: Record<string, unknown>) => rig.serve(new Request(`${base}${path}`, {
+      method: "POST", headers: { authorization: `Bearer ${org.token}`, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }));
+    assert.equal((await post("/results/publish", {})).status, 200);
+    const sentinel = "PRIVATE_ALLEGATION_7b92";
+    assert.equal((await post("/results/judge-evidence", {
+      judge: rig.world.judges[0]!.id, decision: "exclude", reason: sentinel,
+    })).status, 200);
+    const history = await rig.json(`/api/events/${rig.fill.event}/results/history`);
+    assert.doesNotMatch(JSON.stringify(history), /PRIVATE_ALLEGATION_7b92/);
+    const publicResults = await rig.json(`/api/events/${rig.fill.event}/results`);
+    assert.doesNotMatch(JSON.stringify(publicResults), /PRIVATE_ALLEGATION_7b92/);
+    const packet = await rig.json(`/api/events/${rig.fill.event}/results/evidence`);
+    assert.equal(packet.revision, 2);
+    assert.doesNotMatch(JSON.stringify(packet), /PRIVATE_ALLEGATION_7b92/);
+    const internal = await (await rig.serve(new Request(`${base}/results/history`, {
+      headers: { authorization: `Bearer ${org.token}` },
+    }))).json() as any;
+    assert.match(JSON.stringify(internal), /PRIVATE_ALLEGATION_7b92/);
+  } finally { rig.close(); }
+});
+
+test("awards are explicit publication-bound decisions and only those mint winner certificates", async () => {
+  const rig = judged();
+  const keys = mkdtempSync(join(tmpdir(), "manak-awards-"));
+  try {
+    const org = rig.principals.find(p => p.label === "organizer")!;
+    setResultsPublic(rig.world.asOrganizer, rig.world.event, false);
+    const base = `https://portal.test/api/events/${rig.fill.event}`;
+    const post = (path: string, body: Record<string, unknown>) => rig.serve(new Request(`${base}${path}`, {
+      method: "POST", headers: { authorization: `Bearer ${org.token}`, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }));
+    assert.equal((await post("/results/publish", {})).status, 200);
+    assert.equal(mintEventCertificates(rig.world.db, rig.fill.event!, rig.world.clock.now(), keys).winners, 0);
+    const decision = await post("/awards", { project: rig.world.projects[0]!.id,
+      awardKey: "Grand prize", type: "placement", place: 1,
+      publicSummary: "Selected after review of the published results.",
+      internalReason: "Organizer panel confirmed eligibility and submission." });
+    assert.equal(decision.status, 200, await decision.clone().text());
+    const publicList = await rig.json(`/api/events/${rig.fill.event}/awards`);
+    assert.equal((publicList.decisions as unknown[]).length, 1);
+    assert.doesNotMatch(JSON.stringify(publicList), /Organizer panel confirmed/);
+    const certs = mintEventCertificates(rig.world.db, rig.fill.event!, rig.world.clock.now(), keys);
+    assert.ok(certs.winners > 0);
+    assert.ok(certs.certificates.some(cert => cert.detail.includes("Grand prize")));
+    assert.equal((await post("/results/publish", { reason: "Corrected evidence" })).status, 200);
+    assert.deepEqual((await rig.json(`/api/events/${rig.fill.event}/awards`)).decisions, []);
+  } finally { rig.close(); rmSync(keys, { recursive: true, force: true }); }
+});
+
+test("targeted review requests assign eligible capacity and keep private reasons private", async () => {
+  const h = harness();
+  try {
+    const base = `/api/events/${h.w.event.slug}/review-requests`;
+    const post = (path: string, body: Record<string, unknown>) => h.serve(new Request(`https://portal.test${path}`, {
+      method: "POST", headers: { authorization: `Bearer ${h.token}`, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }));
+    const privateReason = "PRIVATE_REVIEW_REASON_9231";
+    const response = await post(base, { project: h.w.projects[0]!.id,
+      reasonCode: "fragility", internalReason: privateReason, priority: 3 });
+    assert.equal(response.status, 200, await response.clone().text());
+    const request = await response.json() as { id: string; project: string; judge: string };
+    assert.equal(request.project, h.w.projects[0]!.id);
+    assert.ok(h.w.judges.some((judge) => judge.id === request.judge));
+    const list = await (await h.get(base, true)).json() as { requests: any[] };
+    assert.equal(list.requests.length, 1);
+    assert.equal(list.requests[0].internalReason, privateReason);
+    assert.equal((await h.get(base)).status, 401);
+    const cancel = await post(`${base}/${request.id}/cancel`, {});
+    assert.equal(cancel.status, 200, await cancel.clone().text());
+    assert.equal(h.w.db.one<{ n: number }>(`select count(*) as n from assignment
+      where event_id = ? and project_id = ? and judge_id = ?`,
+      [h.w.event.id, request.project, request.judge]).n, 0);
+  } finally { h.w.close(); }
+});
+
 test("production fast-login and clock warp cannot grant roles or change time", async () => {
   const h = harness();
   try {
     const before = h.w.db.one<{ n: number }>("select count(*) as n from membership").n;
     assert.equal((await h.get("/fast-login?as=organizer")).status, 404);
+    assert.equal((await h.postDemo("organizer")).status, 404);
+    const signin = await (await h.get("/signin")).text();
+    assert.doesNotMatch(signin, /Demo accounts|\/fast-login|sairamdash17/);
     assert.equal(h.w.db.one<{ n: number }>("select count(*) as n from membership").n, before);
     const offset = getClockOffset();
     const response = await h.serve(new Request(`https://portal.test/api/events/${h.w.event.slug}/clock/warp`, {
@@ -92,10 +186,11 @@ test("demo login grants no membership in unrelated events", async () => {
     createEvent(h.w.system, { slug: "dogfood", name: "Demo", timezone: "UTC",
       submissionsOpenAt: 1, submissionsCloseAt: 2, judgingOpenAt: 3, judgingCloseAt: 4,
       reviewsPerProject: 2, pairwiseEnabled: false });
-    assert.equal((await h.get("/fast-login?as=organizer&event=dogfood")).status, 303);
+    assert.equal((await h.postDemo("organizer", "dogfood")).status, 303);
     const persona = findAccountByEmail(h.w.db, "rosa@example.com")!;
     assert.deepEqual(rolesIn(h.w.db, h.w.event.id, persona.id), []);
-    assert.equal((await h.get(`/fast-login?as=organizer&event=${h.w.event.slug}`)).status, 404);
+    assert.equal((await h.postDemo("organizer", h.w.event.slug)).status, 404);
+    assert.equal((await h.get("/fast-login?as=organizer")).status, 405);
   } finally { h.w.close(); }
 });
 

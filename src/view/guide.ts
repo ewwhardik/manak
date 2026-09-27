@@ -14,6 +14,7 @@ export type GuideEvent = {
 
 export type GuideProps = {
   readonly whoami?: string | null;
+  readonly demoMode?: boolean;
   readonly events?: readonly GuideEvent[];
 };
 
@@ -39,7 +40,7 @@ export function guidePage(props: GuideProps): string {
     [`/events/${esc(sampleEvent.slug)}/results/confidence`, "Organizers", "In-depth statistical evidence, judge bias, and outlier analysis", `<a href="/events/${esc(sampleEvent.slug)}/results/confidence">Confidence analysis</a>`],
     [`/api/events/${esc(sampleEvent.slug)}/csv/audit`, "Organizers & Auditors", "Download immutable hash-chained event ledger as CSV", `<a href="/api/events/${esc(sampleEvent.slug)}/csv/audit">Download audit CSV</a>`],
     ["/verify", "Public", "Offline Ed25519 cryptographic certificate verifier using local WebCrypto", '<a href="/verify">Certificate verifier</a>'],
-    ["/fast-login", "Testers & Judges", "Instant role session provisioning without email delivery", '<a href="/fast-login?as=judge_sample">Fast login (Judge)</a>'],
+    ...(props.demoMode === true ? [["/signin", "Demo evaluators", "Disposable role shortcuts appear on the sign-in page", '<a href="/signin">Open demo accounts</a>'] as const] : []),
     ["/signin", "All users", "Passwordless magic-link authentication via email", '<a href="/signin">Sign in</a>'],
     ["/mine", "Authenticated", "Personal workspace listing all joined events and assigned roles", '<a href="/mine">My workspace</a>'],
     ["/about", "Public", "Architectural claims, 0-dependency design, and 3D motion study", '<a href="/about">About Manak</a>'],
@@ -52,7 +53,7 @@ export function guidePage(props: GuideProps): string {
   return page({
     title: "Platform Guide & Evaluation Sitemap",
     trail: [{ label: "Events", href: "/" }, { label: "Evaluation Guide & Sitemap" }],
-    whoami: props.whoami,
+    whoami: props.whoami, demoMode: props.demoMode,
     eyebrow: "Operational Guide & Platform Sitemap",
     lead: "A comprehensive reference and direct-jump directory for hackathon judges, organizers, and builders. Understand Manak's evaluation model, access every feature with one click, and explore the complete platform architecture.",
     headingActions: `<div class="hero-actions"><a class="button" href="#sitemap">Explore platform sitemap <span aria-hidden="true">&darr;</span></a><a class="text-link" href="#judges">Judge evaluation hub <span aria-hidden="true">&rarr;</span></a><a class="text-link" href="#organizers">Organizer control room <span aria-hidden="true">&rarr;</span></a></div>`,
@@ -66,7 +67,7 @@ export function guidePage(props: GuideProps): string {
 </div>
 <span class="tag">Dual-Mode Judging</span>
 </div>
-<p>Manak removes evaluation friction. Reviewers need no passwords or registration forms: sign in via magic link or use <b>Fast login</b> in the top navigation bar to assume an invited judge persona instantly. In the deployed web application, Resend is used for transactional links; the open repository uses terminal emailing and Fast Login by default.</p>
+<p>Reviewers sign in through a one-use magic link. A disposable demo launched with <code>MANAK_DEMO=true</code> also offers Fast login for seeded personas. The repository prints links to its terminal by default.</p>
 
 <div class="guide-grid">
 <div class="guide-card">

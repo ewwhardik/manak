@@ -20,11 +20,9 @@
 # They cost about a hundred kilobytes and they are the difference between trusting this image
 # and verifying it.
 
-# Pinned to the major and not to a digest, deliberately. A digest is reproducible and it is
-# also frozen: this tag is where Node's security patches for 22.x arrive, and a portal that
-# holds people's email addresses should get them. Anyone who needs bit-exact rebuilds should
-# pin the digest in their own fork, where they will also see when it goes stale.
-FROM node:22-alpine
+# Review the upstream digest when applying Node security updates. Keeping the tag and
+# manifest digest together makes this build reproducible across supported architectures.
+FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
 
 # No `image.source`. It would be the one label nothing in this repository can verify, and a
 # URL that resolves to nothing is worse than a label that was never set. No `image.vendor`
@@ -68,7 +66,7 @@ COPY --chown=node:node tests ./tests
 COPY --chown=node:node docs ./docs
 COPY --chown=node:node README.md LICENSE tsconfig.json fixtures.json OPERATIONS.md JUDGING.md DATA-MODEL.md TIER-MATRIX.md ./
 
-# USER node
+USER node
 EXPOSE 8080
 
 # Reads `status` out of the body, which is the contract `system.healthz` documents: the probe

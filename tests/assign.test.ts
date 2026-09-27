@@ -153,6 +153,34 @@ test("capacity limits produce a shortfall with the capacity reason", () => {
   assert.ok(result.shortfalls.some((s) => /capacity/.test(s.reason)));
 });
 
+test("retained ballots and work outside a track consume capacity without moving reviewed edges", () => {
+  const panel: AssignJudge[] = [
+    { id: "j1", capacity: 2, conflicts: ["p2"] },
+    { id: "j2", capacity: 2 },
+    { id: "j3", capacity: 1 },
+  ];
+  const result = assignReviews([{ id: "p1" }, { id: "p2" }], panel, 2, "retained", {
+    lockedAssignments: [{ judge: "j1", project: "p1" }],
+    outsideLoads: new Map([["j1", 1], ["j2", 1]]),
+  });
+  assert.ok(result.assignments.some((edge) => edge.judge === "j1" && edge.project === "p1"));
+  assert.equal(result.byJudge.get("j1")?.length, 1);
+  assert.equal(result.loadMax, 2);
+  assert.equal(result.shortfalls.length, 1);
+  assert.deepEqual(assignReviews([{ id: "p1" }, { id: "p2" }], panel, 2, "retained", {
+    lockedAssignments: [{ judge: "j1", project: "p1" }],
+    outsideLoads: new Map([["j1", 1], ["j2", 1]]),
+  }).assignments, result.assignments);
+});
+
+test("capacity reductions never detach reviewed work", () => {
+  const result = assignReviews([{ id: "p1" }], [{ id: "j1", capacity: 0 }, { id: "j2", capacity: 1 }],
+    2, "reduced", { lockedAssignments: [{ judge: "j1", project: "p1" }] });
+  assert.equal(result.complete, true);
+  assert.equal(result.byProject.get("p1")?.length, 2);
+  assert.match(result.warnings.join(" "), /retained work above/);
+});
+
 test("bad input is refused with a code, not a stack trace", () => {
   assert.throws(() => assignReviews([], judges(2), 1, "s"), (e: unknown) =>
     e instanceof JudgingError && e.code === "assign.noProjects");
