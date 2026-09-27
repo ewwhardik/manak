@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: manak
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: MANAK_HOST
+        value: 0.0.0.0
+      - key: MANAK_PORT
+        value: 8080
+      - key: MANAK_DEMO
+        value: "true"
+      - key: MANAK_FOUNDERS
+        value: rosa@example.com
+      - key: MANAK_TRUST_PROXY
+        value: "true"
+      - key: MANAK_SECURE_COOKIE
+        value: "true"
