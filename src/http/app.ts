@@ -382,7 +382,9 @@ export function makeApp(options: AppOptions): Serve {
         secure,
       });
       const sampleEvent = resolveEvent(db, "sample-hack-2026") ?? resolveEvent(db, "evt_01");
-      const targetEvent = sampleEvent ?? resolveEvent(db, "dogfood") ?? db.get<{ slug: string }>("select slug from event order by created_at desc limit 1");
+      const dogfoodEvent = resolveEvent(db, "dogfood");
+      const wantsDogfood = as === "judge_a" || as === "judge_nils" || as.includes("dogfood");
+      const targetEvent = (wantsDogfood ? dogfoodEvent ?? sampleEvent : sampleEvent ?? dogfoodEvent) ?? db.get<{ slug: string }>("select slug from event order by created_at desc limit 1");
       const destination = targetEvent !== undefined ? `/events/${targetEvent.slug}` : "/";
       return seeOther(destination, { cookies: [cookie] });
     }
