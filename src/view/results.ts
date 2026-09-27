@@ -1015,6 +1015,8 @@ page yet.`
   </div>
   <div class="live-controls">
     <a class="button" href="/events/${encodeURIComponent(slug)}/live">📺 Launch Live Ceremony Leaderboard</a>
+    <a class="button" href="/events/${encodeURIComponent(slug)}/simulator">⚖️ Fairness Simulator</a>
+    <a class="button" href="/events/${encodeURIComponent(slug)}/tie-breaker">🎯 Tie-Breaker Assistant</a>
   </div>
 </div>
 ${typeof at(result, "revision") === "number" ? `<p class="muted">Publication revision ${esc(at(result, "revision"))} · Evidence cutoff ${esc(when(at(result, "evidenceCutoffAt"), zoneOf(context)))} · Digest <code>${esc(at(result, "evidenceDigest"))}</code>. <a href="/api/events/${encodeURIComponent(slug)}/results/history">Correction history</a>.</p>` : ""}

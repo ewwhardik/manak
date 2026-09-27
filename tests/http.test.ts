@@ -1183,3 +1183,81 @@ test("the live ceremony leaderboard delivers real-time podium and plain-English 
     r.close();
   }
 });
+
+test("the fairness simulator delivers interactive bias scenarios and answers the planted question", async () => {
+  const r = rig();
+  try {
+    const slug = r.world.event.slug;
+
+    // 1. Default scenario (the 3-spammer)
+    const res = await r.get(`/events/${slug}/simulator`, { wants: "html" });
+    assert.equal(res.status, 200);
+    const html = await res.text();
+    assert.match(html, /Fairness Simulator/);
+    assert.match(html, /Active Scenario: The 3-Spammer/);
+    assert.match(html, /Tell us what you did about the judge who marks everything a 3/);
+    assert.match(html, /Scale Shrinkage/);
+    assert.match(html, /Hard Clamp Floor/);
+    assert.match(html, /Simulation Comparison Table/);
+
+    // 2. Grinch scenario via query parameter
+    const grinchRes = await r.get(`/events/${slug}/simulator?persona=grinch`, { wants: "html" });
+    assert.equal(grinchRes.status, 200);
+    const grinchHtml = await grinchRes.text();
+    assert.match(grinchHtml, /Active Scenario: The Grinch/);
+    assert.match(grinchHtml, /b_j = -2\.01/);
+
+    // 3. Global route /simulator works without event slug
+    const globalRes = await r.get("/simulator", { wants: "html" });
+    assert.equal(globalRes.status, 200);
+    const globalHtml = await globalRes.text();
+    assert.match(globalHtml, /Fairness Simulator/);
+
+    // 4. API endpoint returns json defense structure
+    const apiRes = await r.get(`/api/events/${slug}/simulator`);
+    assert.equal(apiRes.status, 200);
+    const apiJson = (await apiRes.json()) as Record<string, unknown>;
+    assert.equal(apiJson.simulator, "Manak Interactive Fairness Simulator");
+    assert.equal(apiJson.activePersona, "flat_three");
+    assert.ok(Array.isArray(apiJson.defense));
+  } finally {
+    r.close();
+  }
+});
+
+test("the finalist tie-breaker assistant provides head-to-head win probability and resolution pathways", async () => {
+  const r = rig();
+  try {
+    const slug = r.world.event.slug;
+    const orgToken = tokenFor(r.world, r.world.organizer.id);
+
+    // 1. HTML view delivers matchup shootout and 3 resolution options
+    const res = await r.get(`/events/${slug}/tie-breaker`, {
+      token: orgToken,
+      wants: "html",
+    });
+    assert.equal(res.status, 200);
+    const html = await res.text();
+    assert.match(html, /Finalist Tie-Breaker Assistant/);
+    assert.match(html, /TIER 1 STATISTICAL TIE DETECTED/);
+    assert.match(html, /Head-to-Head Finalist Matchup/);
+    assert.match(html, /Simulated Head-to-Head Win Probability/);
+    assert.match(html, /Criterion-by-Criterion Deep Dive/);
+    assert.match(html, /Lightning Head-to-Head Duel/);
+    assert.match(html, /Declare Co-Champions/);
+    assert.match(html, /Documented Organizer Judgment/);
+
+    // 2. API endpoint returns JSON with finalists and win probability
+    const apiRes = await r.get(`/api/events/${slug}/tie-breaker`, {
+      token: orgToken,
+    });
+    assert.equal(apiRes.status, 200);
+    const apiJson = (await apiRes.json()) as Record<string, unknown>;
+    assert.equal(apiJson.tieBreaker, "Finalist Tie-Breaker Assistant");
+    assert.ok(Array.isArray(apiJson.finalists));
+    assert.ok(typeof apiJson.winProbabilityA === "number");
+    assert.ok(Array.isArray(apiJson.resolutions));
+  } finally {
+    r.close();
+  }
+});

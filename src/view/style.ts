@@ -1193,4 +1193,21 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--accent); }
 .live-standby { color: #e67e22; border-color: rgba(230, 126, 34, .4); background: rgba(230, 126, 34, .12); }
 .live-preview { color: #f39c12; border-color: rgba(243, 156, 18, .4); background: rgba(243, 156, 18, .15); }
 .podium-unit { font-size: .5em; color: var(--muted); font-weight: 400; }
+/* Fairness Simulator & Tie-Breaker Assistant */
+.sim-hero { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; background: var(--glass-high); border: 1px solid rgba(94, 200, 216, .3); border-radius: var(--radius); margin-bottom: 2rem; box-shadow: 0 4px 20px rgba(0, 0, 0, .15); }
+.sim-preset-bar { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.25rem 0 2rem; }
+.sim-preset-btn { display: inline-flex; align-items: center; gap: .5rem; padding: .6rem 1.1rem; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); color: var(--ink); text-decoration: none; transition: transform var(--quick) var(--ease), border-color var(--quick) var(--ease); }
+.sim-preset-btn:hover { border-color: rgba(94, 200, 216, .5); transform: translateY(-1px); }
+.sim-active { border-color: rgba(94, 200, 216, .8); background: rgba(94, 200, 216, .15); box-shadow: 0 0 12px rgba(94, 200, 216, .2); }
+.sim-tag-error { color: #e74c3c; font-weight: 700; }
+.sim-tag-ok { color: #2ecc71; font-weight: 700; }
+.sim-explainer { margin: 3rem 0; padding: 1.75rem; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.tie-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; background: var(--glass-high); border: 1px solid rgba(243, 156, 18, .4); border-radius: var(--radius); margin-bottom: 2rem; box-shadow: 0 4px 20px rgba(243, 156, 18, .1); }
+.tie-grid { display: grid; grid-template-columns: minmax(260px, 1fr) auto minmax(260px, 1fr); align-items: center; gap: 1.5rem; margin: 2rem 0; }
+.tie-card { padding: 1.75rem; border-radius: var(--radius); background: var(--glass); border: 1px solid var(--line); box-shadow: var(--shadow); backdrop-filter: var(--blur); }
+.tie-vs { text-align: center; font-size: 1.6rem; font-weight: 900; color: var(--muted); padding: 1rem; }
+.tie-prob-bar { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-radius: var(--radius-sm); background: var(--glass-high); border: 1px solid var(--line); margin: 1rem 0; }
+.tie-prob-label { font-weight: 700; }
+.tie-action-box { margin: 2rem 0; }
+.tie-btn-box { margin-top: 1rem; }
 `;

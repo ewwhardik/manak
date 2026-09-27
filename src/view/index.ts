@@ -66,6 +66,10 @@ export { verifyPage } from "./verify.ts";
 export { guidePage } from "./guide.ts";
 export { liveLeaderboardPage } from "./live.ts";
 export type { LiveLeaderboardProps, LiveProject } from "./live.ts";
+export { fairnessSimulatorPage } from "./simulator.ts";
+export type { PersonaKey, SimulatorProps } from "./simulator.ts";
+export { tieBreakerPage } from "./tie-breaker.ts";
+export type { TieBreakerFinalist, TieBreakerProps } from "./tie-breaker.ts";
 
 export { VIEWS } from "./views.ts";
 

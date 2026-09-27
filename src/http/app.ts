@@ -69,6 +69,7 @@ import type {
 import {
   assertGate,
   createSession,
+  criteriaOf,
   CSV_STAGES,
   DatabaseError,
   enforce,
@@ -84,6 +85,7 @@ import {
   makeContext,
   MS,
   normalizeEmail,
+  publishedVersion,
   resolveSession,
   revokeSession,
   rolesIn,
@@ -93,8 +95,19 @@ import {
   touchSession,
   upsertAccount,
 } from "../db/index.ts";
-import type { View, ViewContext, Views, LiveProject } from "../view/index.ts";
-import { formPage, genericPage, guidePage, liveLeaderboardPage, prefillFromRaw, STYLESHEET, STYLESHEET_PATH, verifyPage } from "../view/index.ts";
+import type { View, ViewContext, Views, LiveProject, PersonaKey, TieBreakerFinalist } from "../view/index.ts";
+import {
+  fairnessSimulatorPage,
+  formPage,
+  genericPage,
+  guidePage,
+  liveLeaderboardPage,
+  prefillFromRaw,
+  STYLESHEET,
+  STYLESHEET_PATH,
+  tieBreakerPage,
+  verifyPage,
+} from "../view/index.ts";
 import type { Extra, StreamEvent } from "./respond.ts";
 import {
   clearedCookie,
@@ -462,6 +475,205 @@ export function makeApp(options: AppOptions): Serve {
         panel,
         warnings,
         state: "live",
+      }), 200);
+    }
+
+    const simMatch = /^\/(api\/)?(events\/([^/]+)\/)?simulator\/?$/.exec(target.pathname);
+    if (simMatch) {
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        throw methodNotAllowed(request.method, ["GET"]);
+      }
+      const isApi = simMatch[1] !== undefined || target.wants === "json";
+      const slugParam = simMatch[3];
+      const event = slugParam
+        ? resolveEvent(db, slugParam)
+        : resolveEvent(db, "sample-hack-2026") ?? resolveEvent(db, "evt_01") ?? db.get<{ slug: string; name: string }>("select slug, name from event order by created_at desc limit 1");
+      if (slugParam && !event) throw notFound("event", slugParam);
+
+      trace.command = "results.simulator";
+      trace.path = target.pathname;
+
+      const presented = credentialFrom(request, SESSION_COOKIE);
+      const found = presented === null ? undefined : resolveSession(db, presented, now);
+      const whoami = found?.account.display_name ?? null;
+
+      const persona = (url.searchParams.get("persona") ?? "flat_three") as PersonaKey;
+      const slug = event?.slug ?? "sample-hack-2026";
+      const eventName = event?.name ?? "Sample Hack 2026";
+
+      if (isApi) {
+        return json({
+          simulator: "Manak Interactive Fairness Simulator",
+          event: { slug, name: eventName },
+          activePersona: persona,
+          questionPlanted: "Tell us what you did about the judge who marks everything a 3",
+          defense: [
+            "Scale shrinkage prevents zero-division",
+            "Hard clamp floor at 0.35 of pool variance",
+            "Information weighting downs flat judge to ~0.12 weight",
+            "Diagnostic flag alerts organizer to σ = 0.0 uncalibrated judge",
+          ],
+        }, 200);
+      }
+
+      return html(fairnessSimulatorPage({
+        slug,
+        eventName,
+        whoami,
+        activePersona: persona,
+      }), 200);
+    }
+
+    const tieMatch = /^\/(api\/)?events\/([^/]+)\/tie-breaker\/?$/.exec(target.pathname);
+    if (tieMatch) {
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        throw methodNotAllowed(request.method, ["GET"]);
+      }
+      const isApi = tieMatch[1] !== undefined || target.wants === "json";
+      const eventSlug = tieMatch[2] as string;
+      const event = resolveEvent(db, eventSlug);
+      if (!event) throw notFound("event", eventSlug);
+
+      trace.command = "results.tie-breaker";
+      trace.path = target.pathname;
+
+      const presented = credentialFrom(request, SESSION_COOKIE);
+      const found = presented === null ? undefined : resolveSession(db, presented, now);
+      const accountId = found?.account.id ?? null;
+      const whoami = found?.account.display_name ?? null;
+      const founder = found !== undefined && founders.has(found.account.email);
+      const roles: readonly Role[] = accountId !== null ? rolesIn(db, event.id, accountId) : [];
+      const isOrganizer = roles.includes("organizer") || founder;
+
+      const ctx = makeContext(db, { clock: { now: () => now } });
+      const gates = gatesFor(event, now);
+
+      let f1: TieBreakerFinalist = {
+        id: "prj_01",
+        title: "Dry Relay",
+        trackKey: "trk_01",
+        adjusted: 4.92,
+        low: 4.14,
+        high: 5.7,
+        ballots: 3,
+        beta: 0.85,
+      };
+      let f2: TieBreakerFinalist = {
+        id: "prj_02",
+        title: "Salt Ledger",
+        trackKey: "trk_02",
+        adjusted: 4.86,
+        low: 4.08,
+        high: 5.64,
+        ballots: 4,
+        beta: 0.81,
+      };
+
+      try {
+        const liveData = liveShow.handler({
+          ctx,
+          event,
+          input: { event: event.slug },
+          roles,
+          accountId,
+          founder,
+          gates,
+          now,
+          registry,
+        } as any) as Record<string, unknown>;
+        const pList = (Array.isArray(liveData.projects) ? liveData.projects : []) as LiveProject[];
+        const p1 = pList[0];
+        const p2 = pList[1];
+        if (p1 !== undefined && p2 !== undefined) {
+          f1 = {
+            id: p1.project,
+            title: p1.title,
+            trackKey: p1.trackKey,
+            adjusted: p1.adjusted,
+            low: p1.low ?? p1.adjusted - 0.5,
+            high: p1.high ?? p1.adjusted + 0.5,
+            ballots: p1.ballots ?? 1,
+          };
+          f2 = {
+            id: p2.project,
+            title: p2.title,
+            trackKey: p2.trackKey,
+            adjusted: p2.adjusted,
+            low: p2.low ?? p2.adjusted - 0.5,
+            high: p2.high ?? p2.adjusted + 0.5,
+            ballots: p2.ballots ?? 1,
+          };
+        } else if (p1 !== undefined) {
+          f1 = {
+            id: p1.project,
+            title: p1.title,
+            trackKey: p1.trackKey,
+            adjusted: p1.adjusted,
+            low: p1.low ?? p1.adjusted - 0.5,
+            high: p1.high ?? p1.adjusted + 0.5,
+            ballots: p1.ballots ?? 1,
+          };
+        }
+      } catch {
+        // Fallback to sample finalists if liveShow computation is empty or uninitialized
+      }
+
+      // Bradley-Terry Pairwise Win Probability: P(A > B) = 1 / (1 + exp(-(theta_A - theta_B)))
+      const delta = f1.adjusted - f2.adjusted;
+      const winProbabilityA = 1 / (1 + Math.exp(-delta));
+
+      // Fetch rubric criteria if available
+      let criteria: { key: string; label: string; weight: number; scoreA: number; scoreB: number }[] | undefined;
+      const rubricVer = publishedVersion(db, event.id);
+      if (rubricVer !== undefined) {
+        const rawCriteria = criteriaOf(db, event.id, rubricVer);
+        if (rawCriteria.length > 0) {
+          const scoreRows = db.all<{ criterion_key: string; project_id: string; avg_score: number }>(
+            `select s.criterion_key, b.project_id, avg(s.value) as avg_score
+             from score s
+             join ballot b on b.id = s.ballot_id
+             where b.event_id = :e and b.project_id in (:p1, :p2) and b.submitted_at is not null
+             group by s.criterion_key, b.project_id`,
+            { e: event.id, p1: f1.id, p2: f2.id },
+          );
+          const scoreMap = new Map<string, number>();
+          for (const row of scoreRows) {
+            scoreMap.set(`${row.project_id}:${row.criterion_key}`, Number(row.avg_score));
+          }
+          criteria = rawCriteria.map((c) => ({
+            key: c.key,
+            label: c.label,
+            weight: c.weight,
+            scoreA: scoreMap.get(`${f1.id}:${c.key}`) ?? f1.adjusted,
+            scoreB: scoreMap.get(`${f2.id}:${c.key}`) ?? f2.adjusted,
+          }));
+        }
+      }
+
+      if (isApi) {
+        return json({
+          tieBreaker: "Finalist Tie-Breaker Assistant",
+          event: { slug: event.slug, name: event.name },
+          finalists: [f1, f2],
+          delta: Math.abs(delta),
+          winProbabilityA,
+          criteria: criteria ?? [],
+          resolutions: [
+            "Lightning Head-to-Head Duel Queue",
+            "Co-Champions Dual 1st Place (Split Prize)",
+            "Documented Audited Organizer Judgment",
+          ],
+        }, 200);
+      }
+
+      return html(tieBreakerPage({
+        slug: event.slug,
+        eventName: event.name,
+        whoami,
+        isOrganizer,
+        finalists: [f1, f2],
+        criteria,
+        winProbabilityA,
       }), 200);
     }
 

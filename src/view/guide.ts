@@ -35,6 +35,8 @@ export function guidePage(props: GuideProps): string {
     [`/events/${esc(sampleEvent.slug)}/judges`, "Organizers", "Judge roster management and single-use magic invitation links", `<a href="/events/${esc(sampleEvent.slug)}/judges">Judges roster</a>`],
     [`/events/${esc(sampleEvent.slug)}/results`, "Organizers & Public", "Final standings, 95% Bayesian confidence intervals, and certificates", `<a href="/events/${esc(sampleEvent.slug)}/results">Results & certificates</a>`],
     [`/events/${esc(sampleEvent.slug)}/live`, "All roles", "Real-time auto-updating leaderboard with stage podium presentation", `<a href="/events/${esc(sampleEvent.slug)}/live">Live ceremony leaderboard</a>`],
+    [`/events/${esc(sampleEvent.slug)}/simulator`, "All roles", "Interactive sandbox proving Bayesian recovery under flat-3, harsh, and generous judges", `<a href="/events/${esc(sampleEvent.slug)}/simulator">Fairness simulator</a>`],
+    [`/events/${esc(sampleEvent.slug)}/tie-breaker`, "Organizers", "Statistical decision support and head-to-head win probability for top finalists", `<a href="/events/${esc(sampleEvent.slug)}/tie-breaker">Tie-breaker assistant</a>`],
     [`/events/${esc(sampleEvent.slug)}/results/confidence`, "Organizers", "In-depth statistical evidence, judge bias, and outlier analysis", `<a href="/events/${esc(sampleEvent.slug)}/results/confidence">Confidence analysis</a>`],
     [`/api/events/${esc(sampleEvent.slug)}/results/audit.csv`, "Organizers & Auditors", "Download immutable hash-chained event ledger as CSV", `<a href="/api/events/${esc(sampleEvent.slug)}/results/audit.csv">Download audit CSV</a>`],
     ["/verify", "Public", "Offline Ed25519 cryptographic certificate verifier using local WebCrypto", '<a href="/verify">Certificate verifier</a>'],
@@ -175,6 +177,25 @@ export function guidePage(props: GuideProps): string {
 <p>Inspect residual variance, reviewer leverage, and numerical stability diagnostics to identify and resolve outlier judgements.</p>
 <div class="guide-actions">
 <a href="/events/${esc(sampleEvent.slug)}/results/confidence">Confidence Analysis ↗</a>
+</div>
+</div>
+
+<div class="guide-card">
+<span class="role-badge">Bias Sandbox</span>
+<h3>Fairness Simulator</h3>
+<p>Test adversarial judge behaviors (flat 3-spammers, harsh Grinches, overly generous Santas, and noisy raters) and observe how Bayesian shrinkage recovers true rankings.</p>
+<div class="guide-actions">
+<a href="/events/${esc(sampleEvent.slug)}/simulator">Sample Hack: Simulator ↗</a>
+<a href="/simulator">Global Sandbox ↗</a>
+</div>
+</div>
+
+<div class="guide-card">
+<span class="role-badge">Decision Support</span>
+<h3>Finalist Tie-Breaker Assistant</h3>
+<p>Resolve close calls between top finalists using Bradley-Terry head-to-head win probability and criteria breakdowns rather than arbitrary decimal hair-splitting.</p>
+<div class="guide-actions">
+<a href="/events/${esc(sampleEvent.slug)}/tie-breaker">Sample Hack: Tie-Breaker ↗</a>
 </div>
 </div>
 
