@@ -1042,7 +1042,20 @@ header.bar:hover {
 .who span { color: rgba(255, 255, 255, .75); font-size: .84rem; }
 .who button.quiet, button.quiet { display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(94, 200, 216, .55); border-radius: 999px; color: #5EC8D8; background: transparent; padding: .4rem 1.2rem; font-size: .84rem; font-weight: 500; cursor: pointer; transition: all 180ms ease; white-space: nowrap; }
 .who button.quiet:hover, button.quiet:hover { border-color: #E8A548; background: rgba(232, 165, 72, .12); box-shadow: 0 0 16px rgba(232, 165, 72, .35); color: #E8A548; }
-details.fast-login { position: relative; display: inline-flex; align-items: center; }
+header .who details.fast-login,
+details.fast-login {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
 summary.fast-login-btn { display: inline-flex; align-items: center; justify-content: center; padding: .42rem 1.45rem; border: 1px solid rgba(94, 200, 216, .55); border-radius: 999px; color: #5EC8D8; background: transparent; font-size: .88rem; font-weight: 500; cursor: pointer; list-style: none; transition: all 180ms ease; white-space: nowrap; }
 summary.fast-login-btn::-webkit-details-marker { display: none; }
 summary.fast-login-btn:hover, details.fast-login[open] > summary.fast-login-btn { border-color: #E8A548; background: rgba(232, 165, 72, .12); box-shadow: 0 0 16px rgba(232, 165, 72, .35); color: #E8A548; }
@@ -1061,7 +1074,7 @@ main { padding-top: 2.4rem; }
 .page-heading { margin-top: 1.8rem; }
 .home .page-heading { padding: 1.5rem 0 .5rem; }
 .home h1 { font-weight: 690; }
-.panel, dl, .pair > *, .scroll, details, .filter-bar, .briefing,
+.panel, dl, .pair > *, .scroll, details:not(.fast-login), .filter-bar, .briefing,
 .evidence-lab, .next-action, .evidence-guide, .advanced-analysis,
 .event-card, .project-card, .empty-state {
   background: var(--glass);

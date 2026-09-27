@@ -145,13 +145,13 @@ ${
 <div class="fast-login-menu">
 <div class="fast-login-header">
 <span class="role-badge">Judge evaluation mode</span>
-<p>This is only for hackathon judges to test the website cleanly and with ease.</p>
+<p>Quick sign-in for testing Sample Hack 2026 &amp; Dogfood.</p>
 </div>
 <div class="fast-login-list">
-<a href="/fast-login?as=organizer" class="fast-login-item"><strong>Sign in as Organizer</strong> <span>Rosa Iyer &middot; Event controls &amp; results</span></a>
-<a href="/fast-login?as=judge_a" class="fast-login-item"><strong>Sign in as Judge (Nils)</strong> <span>Nils Berg &middot; Scoring &amp; duels</span></a>
-<a href="/fast-login?as=judge_b" class="fast-login-item"><strong>Sign in as Judge (Amara)</strong> <span>Amara Osei &middot; Rubric review</span></a>
-<a href="/fast-login?as=participant" class="fast-login-item"><strong>Sign in as Builder</strong> <span>Beatriz Lima &middot; Team Saffron (Lintwright)</span></a>
+<a href="/fast-login?as=organizer" class="fast-login-item"><strong>Sign in as Organizer</strong> <span>Rosa Iyer &middot; Admin on Sample Hack &amp; Dogfood</span></a>
+<a href="/fast-login?as=judge_sample" class="fast-login-item"><strong>Sign in as Judge (Sample Hack)</strong> <span>Tomas Varga &middot; Judge on Sample Hack &amp; Dogfood</span></a>
+<a href="/fast-login?as=judge_a" class="fast-login-item"><strong>Sign in as Judge (Dogfood)</strong> <span>Nils Berg &middot; Judge on Dogfood &amp; Sample Hack</span></a>
+<a href="/fast-login?as=participant" class="fast-login-item"><strong>Sign in as Builder</strong> <span>Beatriz Lima &middot; Participant on both events</span></a>
 </div>
 </div>
 </details></nav>

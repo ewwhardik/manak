@@ -302,11 +302,17 @@ export function makeApp(options: AppOptions): Serve {
         throw methodNotAllowed(request.method, ["GET"]);
       }
       const as = url.searchParams.get("as") ?? "organizer";
-      const defaultPersona = { email: "rosa@example.com", name: "Rosa Iyer", role: "organizer" as Role };
-      const personas: Record<string, { email: string; name: string; role?: Role }> = {
+      const defaultPersona: { email: string; name: string; role?: Role; targetId?: string } = {
+        email: "rosa@example.com",
+        name: "Rosa Iyer",
+        role: "organizer",
+      };
+      const personas: Record<string, { email: string; name: string; role?: Role; targetId?: string }> = {
         organizer: defaultPersona,
-        judge: { email: "nils@example.com", name: "Nils Berg", role: "judge" },
+        judge: { email: "tomas.varga@example.org", name: "Tomas Varga", role: "judge", targetId: "jdg_01" },
+        judge_sample: { email: "tomas.varga@example.org", name: "Tomas Varga", role: "judge", targetId: "jdg_01" },
         judge_a: { email: "nils@example.com", name: "Nils Berg", role: "judge" },
+        judge_nils: { email: "nils@example.com", name: "Nils Berg", role: "judge" },
         judge_b: { email: "amara@example.com", name: "Amara Osei", role: "judge" },
         participant: { email: "beatriz@example.com", name: "Beatriz Lima", role: "participant" },
         builder: { email: "beatriz@example.com", name: "Beatriz Lima", role: "participant" },
@@ -317,11 +323,13 @@ export function makeApp(options: AppOptions): Serve {
       const minted = db.tx(() => {
         let account = findAccountByEmail(db, persona.email);
         if (account === undefined) {
-          account = upsertAccount(ctx, persona.email, persona.name);
+          account = upsertAccount(ctx, persona.email, persona.name, persona.targetId);
         }
-        const event = resolveEvent(db, "dogfood");
-        if (event !== undefined && persona.role !== undefined) {
-          grantRole(ctx, event.id, account.id, persona.role);
+        const allEvents = db.all<{ id: string; slug: string }>("select id, slug from event where archived_at is null");
+        for (const ev of allEvents) {
+          if (persona.role !== undefined) {
+            grantRole(ctx, ev.id, account.id, persona.role);
+          }
         }
         return createSession(ctx, account.id, { userAgent: "Hackathon Fast Login" });
       });
@@ -329,8 +337,9 @@ export function makeApp(options: AppOptions): Serve {
         maxAge: Math.max(0, Math.ceil((minted.expiresAt - now) / 1000)),
         secure,
       });
-      const event = resolveEvent(db, "dogfood") ?? db.get<{ slug: string }>("select slug from event order by created_at desc limit 1");
-      const destination = event !== undefined ? `/events/${event.slug}` : "/";
+      const sampleEvent = resolveEvent(db, "sample-hack-2026") ?? resolveEvent(db, "evt_01");
+      const targetEvent = sampleEvent ?? resolveEvent(db, "dogfood") ?? db.get<{ slug: string }>("select slug from event order by created_at desc limit 1");
+      const destination = targetEvent !== undefined ? `/events/${targetEvent.slug}` : "/";
       return seeOther(destination, { cookies: [cookie] });
     }
 
