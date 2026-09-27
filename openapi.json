@@ -4486,8 +4486,8 @@
     "/api/events/{event}/webhooks/ping": {
       "post": {
         "operationId": "events_ping_webhook",
-        "summary": "Send an immediate signed HMAC test ping to an event webhook endpoint.",
-        "description": "Callable by a organizer of the event.\n\nIssues a signed HMAC-SHA256 test delivery and records the test in the audit ledger.",
+        "summary": "Generate a signed webhook test payload without sending it.",
+        "description": "Callable by a organizer of the event.\n\nGenerates a signed test payload locally and records it. Does not contact the supplied URL or verify delivery.",
         "tags": [
           "events"
         ],
@@ -4569,7 +4569,7 @@
         },
         "responses": {
           "200": {
-            "description": "Send an immediate signed HMAC test ping to an event webhook endpoint.",
+            "description": "Generate a signed webhook test payload without sending it.",
             "content": {
               "application/json": {
                 "schema": {

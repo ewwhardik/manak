@@ -33,11 +33,11 @@ export function guidePage(props: GuideProps): string {
     [`/events/${esc(sampleEvent.slug)}/dashboard`, "Organizers", "Live review coverage, judge calibration, and bottleneck diagnostics", `<a href="/events/${esc(sampleEvent.slug)}/dashboard">Organizer dashboard</a>`],
     [`/events/${esc(sampleEvent.slug)}/rubric`, "Organizers", "Configure evaluation criteria, scale ranges, and relative weights", `<a href="/events/${esc(sampleEvent.slug)}/rubric">Rubric editor</a>`],
     [`/events/${esc(sampleEvent.slug)}/judges`, "Organizers", "Judge roster management and single-use magic invitation links", `<a href="/events/${esc(sampleEvent.slug)}/judges">Judges roster</a>`],
-    [`/events/${esc(sampleEvent.slug)}/results`, "Organizers & Public", "Final standings, 95% Bayesian confidence intervals, and certificates", `<a href="/events/${esc(sampleEvent.slug)}/results">Results & certificates</a>`],
+    [`/events/${esc(sampleEvent.slug)}/results`, "Organizers & Public", "Final standings, model-based confidence intervals, and certificates", `<a href="/events/${esc(sampleEvent.slug)}/results">Results & certificates</a>`],
     [`/events/${esc(sampleEvent.slug)}/live`, "All roles", "Real-time auto-updating leaderboard with stage podium presentation", `<a href="/events/${esc(sampleEvent.slug)}/live">Live ceremony leaderboard</a>`],
     [`/events/${esc(sampleEvent.slug)}/tie-breaker`, "Organizers", "Statistical decision support and head-to-head win probability for top finalists", `<a href="/events/${esc(sampleEvent.slug)}/tie-breaker">Tie-breaker assistant</a>`],
     [`/events/${esc(sampleEvent.slug)}/results/confidence`, "Organizers", "In-depth statistical evidence, judge bias, and outlier analysis", `<a href="/events/${esc(sampleEvent.slug)}/results/confidence">Confidence analysis</a>`],
-    [`/api/events/${esc(sampleEvent.slug)}/results/audit.csv`, "Organizers & Auditors", "Download immutable hash-chained event ledger as CSV", `<a href="/api/events/${esc(sampleEvent.slug)}/results/audit.csv">Download audit CSV</a>`],
+    [`/api/events/${esc(sampleEvent.slug)}/csv/audit`, "Organizers & Auditors", "Download immutable hash-chained event ledger as CSV", `<a href="/api/events/${esc(sampleEvent.slug)}/csv/audit">Download audit CSV</a>`],
     ["/verify", "Public", "Offline Ed25519 cryptographic certificate verifier using local WebCrypto", '<a href="/verify">Certificate verifier</a>'],
     ["/fast-login", "Testers & Judges", "Instant role session provisioning without email delivery", '<a href="/fast-login?as=judge_sample">Fast login (Judge)</a>'],
     ["/signin", "All users", "Passwordless magic-link authentication via email", '<a href="/signin">Sign in</a>'],
@@ -46,7 +46,7 @@ export function guidePage(props: GuideProps): string {
     ["/docs", "Developers", "OpenAPI operation specifications, parameters, and access controls", '<a href="/docs">API documentation</a>'],
     ["/api/openapi.json", "Developers", "Raw OpenAPI 3.1 specification for code generation", '<a href="/api/openapi.json">OpenAPI JSON</a>'],
     ["/api/capabilities", "Auditors", "Live access control matrix verified across all roles and gates", '<a href="/api/capabilities">Access matrix</a>'],
-    ["/api/healthz", "Auditors & DevOps", "Deployment health, migration status, and Merkle ledger head hash", '<a href="/api/healthz">Health check</a>'],
+    ["/api/healthz", "Auditors & DevOps", "Deployment health, migration status, and hash-chain ledger head hash", '<a href="/api/healthz">Health check</a>'],
   ];
 
   return page({
@@ -102,7 +102,7 @@ export function guidePage(props: GuideProps): string {
 <div class="guide-card">
 <span class="role-badge">Community</span>
 <h3>Community Choice Voting</h3>
-<p>Cast quadratic voting tokens for projects during public voting periods. Token weighting prevents ballot stuffing and measures genuine community enthusiasm.</p>
+<p>Cast quadratic voting tokens for projects during public voting periods. Credit budgets bound per-account influence; identity abuse still needs independent review.</p>
 <div class="guide-actions">
 <a href="/events/${esc(sampleEvent.slug)}/voting">Sample Hack: Cast Votes ↗</a>
 </div>
@@ -110,10 +110,10 @@ export function guidePage(props: GuideProps): string {
 </div>
 
 <div class="briefing">
-<h2>Judge-effect normalization: Why scores are fair</h2>
+<h2>Judge-effect normalization: Assumptions and limits</h2>
 <ul>
-<li><b>Leniency &amp; severity correction:</b> Judges naturally calibrate differently. Manak's Bayesian Bradley-Terry and shrinkage models estimate each reviewer's bias parameter and adjust project scores accordingly.</li>
-<li><b>No reviewer luck:</b> A team assigned to a harsh panel is mathematically compensated, while a team assigned to an easy panel receives no unearned advantage.</li>
+<li><b>Leniency &amp; severity correction:</b> Judges naturally calibrate differently. The rubric model estimates reviewer offsets and shrunk scale effects. Pairwise comparisons use a separate Bradley–Terry model.</li>
+<li><b>Evidence matters:</b> Sparse or disconnected review panels can remain unreliable after adjustment. Normalization cannot guarantee removal of reviewer luck.</li>
 <li><b>Anonymized public presentation:</b> Public results pages name no individual judges or private ballots, preserving reviewer independence and candor.</li>
 </ul>
 </div>
@@ -163,7 +163,7 @@ export function guidePage(props: GuideProps): string {
 <div class="guide-card">
 <span class="role-badge">Certification</span>
 <h3>Results &amp; Ed25519 Certificates</h3>
-<p>Preview Bayesian normalized standings, 95% confidence intervals, and tiered rankings. Publish results and generate tamper-proof offline-verifiable digital certificates.</p>
+<p>Preview Model-adjusted standings, 95% confidence intervals, and tiered rankings. Publish results and generate signed offline-verifiable digital certificates.</p>
 <div class="guide-actions">
 <a href="/events/${esc(sampleEvent.slug)}/results">Sample Hack: Results ↗</a>
 <a href="/events/${esc(dogfoodEvent.slug)}/results">Dogfood: Results ↗</a>
@@ -182,7 +182,7 @@ export function guidePage(props: GuideProps): string {
 <div class="guide-card">
 <span class="role-badge">Decision Support</span>
 <h3>Finalist Tie-Breaker Assistant</h3>
-<p>Resolve close calls between top finalists using Bradley-Terry head-to-head win probability and criteria breakdowns rather than arbitrary decimal hair-splitting.</p>
+<p>Resolve close calls between top finalists using reported score intervals and, when available, a connected and converged Bradley–Terry fit rather than arbitrary decimal hair-splitting.</p>
 <div class="guide-actions">
 <a href="/events/${esc(sampleEvent.slug)}/tie-breaker">Sample Hack: Tie-Breaker ↗</a>
 </div>
@@ -191,9 +191,9 @@ export function guidePage(props: GuideProps): string {
 <div class="guide-card">
 <span class="role-badge">Audit Chain</span>
 <h3>Tamper-Evident CSV Ledger</h3>
-<p>Export the full cryptographic audit ledger as CSV. Every vote, score, draft, and configuration change forms an append-only SHA-256 Merkle chain.</p>
+<p>Export the full cryptographic audit ledger as CSV. Every vote, score, draft, and configuration change forms an append-only SHA-256 hash chain.</p>
 <div class="guide-actions">
-<a href="/api/events/${esc(sampleEvent.slug)}/results/audit.csv">Download Audit CSV ↗</a>
+<a href="/api/events/${esc(sampleEvent.slug)}/csv/audit">Download Audit CSV ↗</a>
 </div>
 </div>
 </div>
@@ -270,7 +270,7 @@ export function guidePage(props: GuideProps): string {
 </div>
 <span class="count-label">${sitemapRows.length} routes</span>
 </div>
-<p>The exhaustive catalog of every public, evaluation, administrative, and developer route available on this deployment:</p>
+<p>A directory of common workflows. The API reference documents registered operations; custom UI routes are listed here separately:</p>
 <div class="sitemap-table">
 ${scroller(table(
   ["Route path", "Access role", "Purpose & capabilities", "Direct action"],

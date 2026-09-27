@@ -852,6 +852,7 @@ export const warpClock = defineCommand({
       newOffset = input.offsetMs;
     }
 
+    const previousOffset = getClockOffset();
     setClockOffset(newOffset);
     const virtualNow = rNow + newOffset;
     const gates = gatesFor(row, virtualNow);
@@ -861,7 +862,7 @@ export const warpClock = defineCommand({
         action: "clock.warped",
         eventId: row.id,
         payload: {
-          previousOffset: getClockOffset(),
+          previousOffset,
           newOffset,
           virtualNow,
           phase: gates.phase,
@@ -933,7 +934,7 @@ export const webhooks = defineCommand({
 
 export const pingWebhook = defineCommand({
   name: "events.ping_webhook",
-  summary: "Send an immediate signed HMAC test ping to an event webhook endpoint.",
+  summary: "Generate a signed webhook test payload without sending it.",
   method: "POST",
   path: "/api/events/:event/webhooks/ping",
   capability: { audience: "organizer", scope: "event" },
@@ -974,11 +975,11 @@ export const pingWebhook = defineCommand({
   limitKey: ({ input }) => String(input.event ?? ""),
   records: ["webhook.pinged"],
   form: {
-    title: "Test webhook endpoint",
-    submit: "Send signed test ping",
+    title: "Generate webhook test payload",
+    submit: "Generate signed payload",
     redirect: ({ input }) => `/events/${encodeURIComponent(String(input.event))}`,
   },
-  notes: "Issues a signed HMAC-SHA256 test delivery and records the test in the audit ledger.",
+  notes: "Generates a signed test payload locally and records it. Does not contact the supplied URL or verify delivery.",
   handler: ({ ctx, event, input }) => {
     const row = event as EventRow;
     const deliveryId = `ping-${ctx.newId()}`;
@@ -1010,10 +1011,10 @@ export const pingWebhook = defineCommand({
       deliveryId,
       signature,
       payload: payloadStr,
-      delivered: true,
-      statusCode: 200,
+      delivered: false,
+      statusCode: null,
       latencyMs: 0,
-      error: null,
+      error: "Signed payload generated locally; no network delivery was attempted. Use the configured durable webhook dispatcher for delivery.",
     };
   },
 });

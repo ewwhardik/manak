@@ -237,7 +237,11 @@ function fitAdditive(
     }
     const offset = mean([...b.values()]);
     for (const [judge, value] of b) b.set(judge, value - offset);
-    if (![...theta.values(), ...b.values()].every(Number.isFinite)) {
+    // Avoid allocating two arrays on every inner sweep; keep the finite fallback unchanged.
+    let finite = true;
+    for (const value of theta.values()) if (!Number.isFinite(value)) { finite = false; break; }
+    if (finite) for (const value of b.values()) if (!Number.isFinite(value)) { finite = false; break; }
+    if (!finite) {
       return { theta: priorTheta, b: priorB, converged: false, used, fallback: true };
     }
     if (movement < tolerance) { converged = true; break; }

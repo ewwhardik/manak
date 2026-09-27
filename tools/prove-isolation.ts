@@ -717,6 +717,7 @@ async function probeAll(): Promise<Run> {
       process.stderr.write(`  server bug: ${error instanceof Error ? error.stack : String(error)}\n`);
     },
     founders: [FOUNDER_EMAIL],
+    demoMode: true, // This proof exercises the explicitly demo-only clock operation.
     publicOrigin: "http://127.0.0.1",
     host: "127.0.0.1",
     port: 0,

@@ -60,7 +60,7 @@ type Rig = {
 type Options = { token?: string; wants?: "json" | "html"; json?: boolean };
 
 /** The one place a request is built, so every test sends the same shape of one. */
-function rig(options: { founders?: readonly string[] } = {}): Rig {
+function rig(options: { founders?: readonly string[]; demoMode?: boolean } = {}): Rig {
   const w = world();
   const sent: Delivery[] = [];
   const logs: LogRecord[] = [];
@@ -74,6 +74,7 @@ function rig(options: { founders?: readonly string[] } = {}): Rig {
     log: (record) => logs.push(record),
     report: () => {},
     secure: true,
+    ...(options.demoMode === undefined ? {} : { demoMode: options.demoMode }),
     ...(options.founders === undefined ? {} : { founders: options.founders }),
   });
   const headers = (o: Options = {}): Record<string, string> => ({
@@ -1072,8 +1073,9 @@ test("the pages nobody wrote still print a time as a time", async () => {
   }
 });
 
-test("fast-login grants an instant session without email delivery", async () => {
-  const r = rig();
+test("explicit demo fast-login grants a session only for seeded events", async () => {
+  const r = rig({ demoMode: true });
+  createEvent(r.world.system, { slug: "dogfood", name: "Demo", timezone: "UTC", submissionsOpenAt: 1, submissionsCloseAt: 2, judgingOpenAt: 3, judgingCloseAt: 4, reviewsPerProject: 2, pairwiseEnabled: false });
   try {
     const postRefusal = await r.post("/fast-login", {});
     assert.equal(postRefusal.status, 405);
@@ -1184,7 +1186,7 @@ test("the live ceremony leaderboard delivers real-time podium and plain-English 
   }
 });
 
-test("the finalist tie-breaker assistant provides head-to-head win probability and resolution pathways", async () => {
+test("the finalist tie-breaker assistant reports unavailable evidence without fabricated finalists", async () => {
   const r = rig();
   try {
     const slug = r.world.event.slug;
@@ -1198,13 +1200,9 @@ test("the finalist tie-breaker assistant provides head-to-head win probability a
     assert.equal(res.status, 200);
     const html = await res.text();
     assert.match(html, /Finalist Tie-Breaker Assistant/);
-    assert.match(html, /TIER 1 STATISTICAL TIE DETECTED/);
-    assert.match(html, /Head-to-Head Finalist Matchup/);
-    assert.match(html, /Simulated Head-to-Head Win Probability/);
-    assert.match(html, /Criterion-by-Criterion Deep Dive/);
-    assert.match(html, /Lightning Head-to-Head Duel/);
-    assert.match(html, /Declare Co-Champions/);
-    assert.match(html, /Documented Organizer Judgment/);
+    assert.match(html, /Not enough evidence for a matchup/);
+    assert.match(html, /Comparison probability unavailable/);
+    assert.doesNotMatch(html, /Dry Relay|Salt Ledger|52%/);
 
     // 2. API endpoint returns JSON with finalists and win probability
     const apiRes = await r.get(`/api/events/${slug}/tie-breaker`, {
@@ -1212,10 +1210,10 @@ test("the finalist tie-breaker assistant provides head-to-head win probability a
     });
     assert.equal(apiRes.status, 200);
     const apiJson = (await apiRes.json()) as Record<string, unknown>;
-    assert.equal(apiJson.tieBreaker, "Finalist Tie-Breaker Assistant");
+    assert.equal(apiJson.state, "insufficient");
     assert.ok(Array.isArray(apiJson.finalists));
-    assert.ok(typeof apiJson.winProbabilityA === "number");
-    assert.ok(Array.isArray(apiJson.resolutions));
+    assert.equal(apiJson.winProbabilityA, null);
+    assert.deepEqual(apiJson.finalists, []);
   } finally {
     r.close();
   }

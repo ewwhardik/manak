@@ -8,9 +8,9 @@
  * (zero client-side JavaScript needed, strictly obeying CSP 'script-src none').
  *
  * Includes:
- * 1. Live ceremony masthead with pulse status, Merkle ledger checkpoint, and ceremony controls.
- * 2. 🥇 Gold, 🥈 Silver, and 🥉 Bronze podium presentation for top finalists.
- * 3. Complete Bayesian-adjusted standings table with bias corrections and 95% confidence intervals.
+ * 1. Live ceremony masthead with pulse status, hash-chain ledger checkpoint, and ceremony controls.
+ * 2. Gold, Silver, and Bronze podium presentation for top finalists.
+ * 3. Complete model-adjusted standings table with bias corrections and 95% confidence intervals.
  * 4. Human-readable, plain-English explainer for judges, participants, and spectators.
  */
 
@@ -87,7 +87,7 @@ export function liveLeaderboardPage(props: LiveLeaderboardProps): string {
   const interval = props.refreshInterval && props.refreshInterval > 0 ? props.refreshInterval : 5;
   const isPaused = props.pause === true;
   const isProjector = props.mode === "projector";
-  const head = props.headHash ?? "Verified Ledger Head";
+  const head = props.headHash ?? "Unavailable";
   const shortHead = head.length > 16 ? `${head.slice(0, 12)}…` : head;
 
   // 1. Standby / Pre-ceremony Waiting Room View (for public visitors before organizer publishes)
@@ -129,16 +129,16 @@ export function liveLeaderboardPage(props: LiveLeaderboardProps): string {
   <p class="lead">Here is what will happen behind the scenes when the ceremony starts:</p>
   <div class="explainer-grid">
     <div class="explainer-card">
-      <h3>⚖️ Bias-Free Scoring</h3>
+      <h3>Bias-free scoring</h3>
       <p>Not all judges grade alike. Strict judges give lower marks while generous judges give 10/10. Manak automatically detects each judge's personal leniency and normalizes all scores so no team is penalized by drawing a tough judge.</p>
     </div>
     <div class="explainer-card">
-      <h3>🎯 Confidence Tiers</h3>
+      <h3>Confidence tiers</h3>
       <p>When scores are too close to tell apart statistically (e.g. 9.15 vs 9.12), Manak groups them into the same tier to prevent hair-splitting where a fraction of a point decides a winner without real evidence.</p>
     </div>
     <div class="explainer-card">
-      <h3>🛡️ Cryptographic Integrity</h3>
-      <p>Every single vote, review, and certification is cryptographically chained into an immutable SHA-256 Merkle ledger. It is physically impossible to quietly rig scores or tamper with final outcomes.</p>
+      <h3>Audit ledger</h3>
+      <p>Recorded mutations form a SHA-256 hash chain. External checkpoints and protected backups help detect rewriting; a server operator can still alter the database.</p>
     </div>
   </div>
 </section>
@@ -167,8 +167,8 @@ export function liveLeaderboardPage(props: LiveLeaderboardProps): string {
       ? `
   <div class="podium-card podium-gold">
     <div class="podium-rank">
-      <span>🥇 1st Place (Gold)</span>
-      <span class="tag">Tier ${count(top1.tier ?? 1)}</span>
+      <span>1st Place (Gold)</span>
+      <span class="tag">Tier ${count(top1.tier)}</span>
     </div>
     <h3 class="podium-title">${esc(top1.title)}</h3>
     <div class="podium-score">${num(top1.adjusted)} <span class="podium-unit">/ 10</span></div>
@@ -185,8 +185,8 @@ export function liveLeaderboardPage(props: LiveLeaderboardProps): string {
       ? `
   <div class="podium-card podium-silver">
     <div class="podium-rank">
-      <span>🥈 2nd Place (Silver)</span>
-      <span class="tag">Tier ${count(top2.tier ?? 1)}</span>
+      <span>2nd Place (Silver)</span>
+      <span class="tag">Tier ${count(top2.tier)}</span>
     </div>
     <h3 class="podium-title">${esc(top2.title)}</h3>
     <div class="podium-score">${num(top2.adjusted)} <span class="podium-unit">/ 10</span></div>
@@ -203,8 +203,8 @@ export function liveLeaderboardPage(props: LiveLeaderboardProps): string {
       ? `
   <div class="podium-card podium-bronze">
     <div class="podium-rank">
-      <span>🥉 3rd Place (Bronze)</span>
-      <span class="tag">Tier ${count(top3.tier ?? 2)}</span>
+      <span>3rd Place (Bronze)</span>
+      <span class="tag">Tier ${count(top3.tier)}</span>
     </div>
     <h3 class="podium-title">${esc(top3.title)}</h3>
     <div class="podium-score">${num(top3.adjusted)} <span class="podium-unit">/ 10</span></div>
@@ -261,7 +261,7 @@ export function liveLeaderboardPage(props: LiveLeaderboardProps): string {
 
     return [
       count(p.rank),
-      count(p.tier ?? 1),
+      count(p.tier),
       `<a href="/events/${esc(slug)}/projects">${esc(p.title)}</a>`,
       esc(p.trackKey ?? "-"),
       `<strong>${num(p.adjusted, 3)}</strong>`,
@@ -298,8 +298,8 @@ export function liveLeaderboardPage(props: LiveLeaderboardProps): string {
     <span>Auto-refresh: ${isPaused ? "<strong>Paused</strong>" : `Every ${interval}s`} &middot; Ledger: <code>${esc(shortHead)}</code></span>
   </div>
   <div class="live-controls">
-    <a class="button" href="${esc(pauseToggleUrl)}">${isPaused ? "▶ Resume Live Feed" : `⏸ Pause (${interval}s)`}</a>
-    <a class="button" href="${esc(projectorToggleUrl)}">${isProjector ? "Normal Mode" : "📺 Projector Mode"}</a>
+    <a class="button" href="${esc(pauseToggleUrl)}">${isPaused ? "Resume Live Feed" : `Pause (${interval}s)`}</a>
+    <a class="button" href="${esc(projectorToggleUrl)}">${isProjector ? "Normal mode" : "Projector mode"}</a>
     <a class="button" href="/events/${esc(slug)}/results">Official Results</a>
     <a class="button" href="/api/events/${esc(slug)}/live">Live JSON API</a>
   </div>
@@ -317,27 +317,27 @@ ${scroller(table(headers, tableRows, [2], [0, 1, 4, 5, 6, 7, 8, 9]), "Live Stand
   <p class="lead">Here is how Manak's mathematical fairness engine works, explained simply without confusing jargon:</p>
   <div class="explainer-grid">
     <div class="explainer-card">
-      <h3>⚖️ What is an "Adjusted Score"?</h3>
+      <h3>What is an "Adjusted Score"?</h3>
       <p>Judges aren't robots. Some are strict and give 6/10 to great projects, while others are generous and give 9/10 to everything. If we only looked at raw averages, a team that drew harsh judges would lose unfairly. Manak measures each judge's personal leniency and normalizes all scores to a common, fair baseline.</p>
     </div>
     <div class="explainer-card">
-      <h3>🎯 What is a "Tier"?</h3>
-      <p>When two projects have scores that differ by only 0.02 or 0.05 points, that gap is statistical noise, not a true difference in quality. Manak groups projects into Tiers. Teams in the same tier are tied within experimental error. This prevents unfair hair-splitting.</p>
+      <h3>What is a "Tier"?</h3>
+      <p>Tiers group projects the fitted model does not separate at its chosen threshold. They describe limited evidence, not proof of equal quality. Review the model assumptions before deciding an award.</p>
     </div>
     <div class="explainer-card">
-      <h3>📈 What does "Rank Move" (▲ / ▼) mean?</h3>
+      <h3>What does "Rank Move" (▲ / ▼) mean?</h3>
       <p>This shows how a project's standing changed after judge bias was removed. If a project jumped up (▲ +2), it means strict judges gave it low raw marks, and Manak restored the points they rightfully earned.</p>
     </div>
     <div class="explainer-card">
-      <h3>🔬 What is the "95% Confidence Range"?</h3>
-      <p>This is the statistical error margin. We are 95% certain that the project's true quality lies between these two numbers. As more judges review a project, this window shrinks and confidence increases.</p>
+      <h3>What is the "95% Confidence Range"?</h3>
+      <p>These are model-based intervals, not a 95% probability of true quality. Coverage depends on sampling and model assumptions. More independent evidence can improve precision; correlated reviews can remain misleading.</p>
     </div>
     <div class="explainer-card">
-      <h3>🛡️ Cryptographic Proof & Head Hash</h3>
+      <h3>Audit trail and ledger integrity</h3>
       <p>Can anyone secretly change a score? Absolutely not. Every single vote and decision is recorded into an append-only, SHA-256 hash-chained ledger. The fingerprint at the top changes if even one byte is altered.</p>
     </div>
     <div class="explainer-card">
-      <h3>📺 Ceremony &amp; Projector Ready</h3>
+      <h3>Ceremony and projector ready</h3>
       <p>This page auto-refreshes natively every few seconds with zero client-side JavaScript, zero tracking cookies, and sub-millisecond response times. Plug your laptop into any stage display for a flawless closing ceremony.</p>
     </div>
   </div>

@@ -1,3 +1,5 @@
+import { assessFinalists } from "../judging/index.ts";
+import type { PairwiseEvidence } from "../judging/index.ts";
 /**
  * The request pipeline: ten steps, in an order chosen once and written down.
  *
@@ -52,7 +54,6 @@ import {
   RegistryError,
   SESSION_COOKIE,
   unauthenticated,
-  liveShow,
 } from "../api/index.ts";
 import type {
   Clock,
@@ -207,6 +208,8 @@ export type AppOptions = {
   readonly founders?: readonly string[];
   readonly publicKey?: string;
   readonly keyDir?: string;
+  /** Explicit opt-in for disposable seeded demos. Never enable on a real event database. */
+  readonly demoMode?: boolean;
 };
 
 /** The whole server as one function. No socket, so a test can call it directly. */
@@ -227,7 +230,7 @@ type Trace = {
   path: string;
 };
 
-const WIDGET_JS = `(function(){function r(c){var s=c.getAttribute('data-event')||c.getAttribute('data-manak-event');if(!s)return;var b=c.getAttribute('data-api')||window.location.origin;var u=b+'/api/events/'+encodeURIComponent(s)+'/projects';fetch(u).then(function(res){return res.json();}).then(function(d){var p=d.projects||[];if(p.length===0){c.innerHTML='<div style="padding:1rem;color:#888;">No submitted projects found.</div>';return;}var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;font-family:system-ui,sans-serif;">';for(var i=0;i<p.length;i++){var x=p[i];h+='<div style="border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:1rem;background:rgba(255,255,255,0.03);"><h3 style="margin:0 0 0.5rem 0;font-size:1.1rem;"><a href="'+b+'/events/'+encodeURIComponent(s)+'/projects/'+encodeURIComponent(x.id)+'" style="color:#60a5fa;text-decoration:none;">'+(x.title||'')+'</a></h3><p style="margin:0 0 0.5rem 0;font-size:0.9rem;opacity:0.8;">'+(x.summary||'')+'</p>'+(x.track?'<span style="display:inline-block;padding:2px 6px;font-size:0.75rem;border-radius:4px;background:#374151;color:#f3f4f6;">'+x.track+'</span>':'')+'</div>';}h+='</div>';c.innerHTML=h;}).catch(function(e){c.innerHTML='<div style="color:#ef4444;font-size:0.85rem;">Failed to load projects: '+e.message+'</div>';});}function init(){var ns=document.querySelectorAll('[data-manak-event],[data-manak-gallery]');for(var i=0;i<ns.length;i++)r(ns[i]);}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}})();`;
+const WIDGET_JS = `(function(){function e(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[ch];});}function r(c){var s=c.getAttribute('data-event')||c.getAttribute('data-manak-event');if(!s)return;var b=c.getAttribute('data-api')||window.location.origin;try{var base=new URL(b,window.location.origin);if(!/^https?:$/.test(base.protocol))throw new Error('Invalid API origin');b=base.origin;}catch(err){c.textContent='Invalid gallery API origin';return;}var u=b+'/api/events/'+encodeURIComponent(s)+'/projects';fetch(u).then(function(res){if(!res.ok)throw new Error('Gallery request failed');return res.json();}).then(function(d){var p=d.projects||[];if(p.length===0){c.innerHTML='<div style="padding:1rem;color:#888;">No submitted projects found.</div>';return;}var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;font-family:system-ui,sans-serif;">';for(var i=0;i<p.length;i++){var x=p[i];h+='<div style="border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:1rem;background:rgba(255,255,255,0.03);"><h3 style="margin:0 0 0.5rem 0;font-size:1.1rem;"><a href="'+e(b)+'/events/'+encodeURIComponent(s)+'/projects/'+encodeURIComponent(x.id)+'" style="color:#60a5fa;text-decoration:none;">'+e(x.title)+'</a></h3><p style="margin:0 0 0.5rem 0;font-size:0.9rem;opacity:0.8;">'+e(x.summary)+'</p>'+(x.track?'<span style="display:inline-block;padding:2px 6px;font-size:0.75rem;border-radius:4px;background:#374151;color:#f3f4f6;">'+e(x.track)+'</span>':'')+'</div>';}h+='</div>';c.innerHTML=h;}).catch(function(err){c.innerHTML='<div style="color:#ef4444;font-size:0.85rem;">Failed to load projects: '+e(err.message)+'</div>';});}function init(){var ns=document.querySelectorAll('[data-manak-event],[data-manak-gallery]');for(var i=0;i<ns.length;i++)r(ns[i]);}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}})();`;
 
 export function makeApp(options: AppOptions): Serve {
   const { db, registry } = options;
@@ -378,11 +381,12 @@ export function makeApp(options: AppOptions): Serve {
       const isOrganizer = roles.includes("organizer") || founder;
 
       const ctx = makeContext(db, { clock: { now: () => now } });
+      enforce(ctx, "read", `ceremony:${accountId ?? address}:${event.id}`);
       const currentHead = headHash(db);
       const gates = gatesFor(event, now);
 
       const pause = url.searchParams.get("pause") === "1";
-      const refreshInterval = parseInt(url.searchParams.get("refresh") ?? "5", 10) || 5;
+      const refreshInterval = Math.min(60, Math.max(5, parseInt(url.searchParams.get("refresh") ?? "5", 10) || 5));
       const mode = url.searchParams.get("mode") === "projector" ? "projector" : "standard";
       const selectedTrack = url.searchParams.get("track") || null;
 
@@ -414,7 +418,7 @@ export function makeApp(options: AppOptions): Serve {
         }), 200);
       }
 
-      const liveData = liveShow.handler({
+      const liveData = registry.byName("results.show")!.handler({
         ctx,
         event,
         input: { event: event.slug },
@@ -426,7 +430,8 @@ export function makeApp(options: AppOptions): Serve {
         registry,
       } as any) as Record<string, unknown>;
 
-      const projects = (Array.isArray(liveData.projects) ? liveData.projects : []) as LiveProject[];
+      const allProjects = (Array.isArray(liveData.projects) ? liveData.projects : []) as LiveProject[];
+      const projects = selectedTrack ? allProjects.filter((project) => project.trackKey === selectedTrack) : allProjects;
       const panel = liveData.panel as any;
       const warnings = Array.isArray(liveData.warnings) ? (liveData.warnings as string[]) : [];
 
@@ -437,6 +442,8 @@ export function makeApp(options: AppOptions): Serve {
           event: { slug: event.slug, name: event.name },
           headHash: currentHead,
           updatedAt: now,
+          revision: liveData.revision,
+          evidenceCutoffAt: liveData.evidenceCutoffAt,
           ballots: liveData.ballots,
           comparisonsDecided: liveData.comparisonsDecided,
           method: liveData.method,
@@ -446,7 +453,7 @@ export function makeApp(options: AppOptions): Serve {
             title: p.title,
             trackKey: p.trackKey,
             adjusted: p.adjusted,
-            tier: p.tier ?? 1,
+            tier: p.tier ?? null,
             rankMove: p.rankMove ?? 0,
           })),
           projects,
@@ -466,6 +473,7 @@ export function makeApp(options: AppOptions): Serve {
         refreshInterval,
         mode,
         selectedTrack,
+        revision: typeof liveData.revision === "number" ? liveData.revision : null,
         method: String(liveData.method ?? "none"),
         converged: liveData.converged === true,
         ballots: Number(liveData.ballots ?? 0),
@@ -502,136 +510,34 @@ export function makeApp(options: AppOptions): Serve {
       const ctx = makeContext(db, { clock: { now: () => now } });
       const gates = gatesFor(event, now);
 
-      let f1: TieBreakerFinalist = {
-        id: "prj_01",
-        title: "Dry Relay",
-        trackKey: "trk_01",
-        adjusted: 4.92,
-        low: 4.14,
-        high: 5.7,
-        ballots: 3,
-        beta: 0.85,
-      };
-      let f2: TieBreakerFinalist = {
-        id: "prj_02",
-        title: "Salt Ledger",
-        trackKey: "trk_02",
-        adjusted: 4.86,
-        low: 4.08,
-        high: 5.64,
-        ballots: 4,
-        beta: 0.81,
-      };
-
-      try {
-        const liveData = liveShow.handler({
-          ctx,
-          event,
-          input: { event: event.slug },
-          roles,
-          accountId,
-          founder,
-          gates,
-          now,
-          registry,
-        } as any) as Record<string, unknown>;
-        const pList = (Array.isArray(liveData.projects) ? liveData.projects : []) as LiveProject[];
-        const p1 = pList[0];
-        const p2 = pList[1];
-        if (p1 !== undefined && p2 !== undefined) {
-          f1 = {
-            id: p1.project,
-            title: p1.title,
-            trackKey: p1.trackKey,
-            adjusted: p1.adjusted,
-            low: p1.low ?? p1.adjusted - 0.5,
-            high: p1.high ?? p1.adjusted + 0.5,
-            ballots: p1.ballots ?? 1,
-          };
-          f2 = {
-            id: p2.project,
-            title: p2.title,
-            trackKey: p2.trackKey,
-            adjusted: p2.adjusted,
-            low: p2.low ?? p2.adjusted - 0.5,
-            high: p2.high ?? p2.adjusted + 0.5,
-            ballots: p2.ballots ?? 1,
-          };
-        } else if (p1 !== undefined) {
-          f1 = {
-            id: p1.project,
-            title: p1.title,
-            trackKey: p1.trackKey,
-            adjusted: p1.adjusted,
-            low: p1.low ?? p1.adjusted - 0.5,
-            high: p1.high ?? p1.adjusted + 0.5,
-            ballots: p1.ballots ?? 1,
-          };
-        }
-      } catch {
-        // Fallback to sample finalists if liveShow computation is empty or uninitialized
-      }
-
-      // Bradley-Terry Pairwise Win Probability: P(A > B) = 1 / (1 + exp(-(theta_A - theta_B)))
-      const delta = f1.adjusted - f2.adjusted;
-      const winProbabilityA = 1 / (1 + Math.exp(-delta));
-
-      // Fetch rubric criteria if available
-      let criteria: { key: string; label: string; weight: number; scoreA: number; scoreB: number }[] | undefined;
-      const rubricVer = publishedVersion(db, event.id);
-      if (rubricVer !== undefined) {
-        const rawCriteria = criteriaOf(db, event.id, rubricVer);
-        if (rawCriteria.length > 0) {
-          const scoreRows = db.all<{ criterion_key: string; project_id: string; avg_score: number }>(
-            `select s.criterion_key, b.project_id, avg(s.value) as avg_score
-             from score s
-             join ballot b on b.id = s.ballot_id
-             where b.event_id = :e and b.project_id in (:p1, :p2) and b.submitted_at is not null
-             group by s.criterion_key, b.project_id`,
-            { e: event.id, p1: f1.id, p2: f2.id },
-          );
-          const scoreMap = new Map<string, number>();
-          for (const row of scoreRows) {
-            scoreMap.set(`${row.project_id}:${row.criterion_key}`, Number(row.avg_score));
-          }
-          criteria = rawCriteria.map((c) => ({
-            key: c.key,
-            label: c.label,
-            weight: c.weight,
-            scoreA: scoreMap.get(`${f1.id}:${c.key}`) ?? f1.adjusted,
-            scoreB: scoreMap.get(`${f2.id}:${c.key}`) ?? f2.adjusted,
-          }));
-        }
-      }
-
-      if (isApi) {
-        return json({
-          tieBreaker: "Finalist Tie-Breaker Assistant",
-          event: { slug: event.slug, name: event.name },
-          finalists: [f1, f2],
-          delta: Math.abs(delta),
-          winProbabilityA,
-          criteria: criteria ?? [],
-          resolutions: [
-            "Lightning Head-to-Head Duel Queue",
-            "Co-Champions Dual 1st Place (Split Prize)",
-            "Documented Audited Organizer Judgment",
-          ],
-        }, 200);
-      }
-
-      return html(tieBreakerPage({
-        slug: event.slug,
-        eventName: event.name,
-        whoami,
-        isOrganizer,
-        finalists: [f1, f2],
-        criteria,
-        winProbabilityA,
+      if (!found) throw unauthenticated("Sign in as an event organizer to inspect finalist evidence.");
+      if (!roles.includes("organizer")) throw forbidden("Finalist decision support is organizer-only.");
+      enforce(ctx, "read", `tie-breaker:${accountId}:${event.id}`);
+      const liveData = registry.byName("results.show")!.handler({
+        ctx, event, input: { event: event.slug }, roles, accountId, founder, gates, now, registry,
+        address, userAgent: request.headers.get("user-agent") ?? "", origin: publicOrigin.origin,
+        signIn: () => { throw new Error("Read-only report cannot sign in"); },
+        signOut: () => { throw new Error("Read-only report cannot sign out"); },
+        deliver: () => { throw new Error("Read-only report cannot send mail"); },
+      } as Invocation) as Record<string, unknown>;
+      const pList = (Array.isArray(liveData.projects) ? liveData.projects : []) as LiveProject[];
+      const finalists: TieBreakerFinalist[] = pList.slice(0, 2).map((p) => ({
+        id: p.project, title: p.title, trackKey: p.trackKey, adjusted: p.adjusted,
+        ...(p.low === undefined ? {} : { low: p.low }),
+        ...(p.high === undefined ? {} : { high: p.high }), ballots: p.ballots ?? 0,
+      }));
+      const assessment = assessFinalists(finalists, liveData.pairwise as PairwiseEvidence | null);
+      if (isApi) return json({ event: { slug: event.slug, name: event.name },
+        finalists, ...assessment, revision: liveData.revision ?? null, criteria: [],
+      }, 200);
+      return html(tieBreakerPage({ slug: event.slug, eventName: event.name, whoami,
+        isOrganizer, finalists, assessment,
       }), 200);
     }
 
+
     if (target.pathname === "/fast-login") {
+      if (options.demoMode !== true) throw notFound("route");
       if (request.method !== "GET" && request.method !== "HEAD") {
         throw methodNotAllowed(request.method, ["GET"]);
       }
@@ -667,7 +573,9 @@ export function makeApp(options: AppOptions): Serve {
         builder_sample: { email: "priya1@example.org", name: "Priya Nair", role: "participant" },
         builder_dogfood: { email: "beatriz@example.com", name: "Beatriz Lima", role: "participant" },
       };
-      const persona = personas[as] ?? defaultPersona;
+      const persona = personas[as];
+      if (!persona) throw notFound("demo persona");
+      if (!targetEvent || !["sample-hack-2026", "dogfood"].includes(targetEvent.slug)) throw notFound("demo event");
       const ctx = makeContext(db, { clock: { now: () => now } });
       const secure = options.secure ?? isSecure(request, url, trustProxy);
       const minted = db.tx(() => {
@@ -675,7 +583,7 @@ export function makeApp(options: AppOptions): Serve {
         if (account === undefined) {
           account = upsertAccount(ctx, persona.email, persona.name, persona.targetId);
         }
-        const allEvents = db.all<{ id: string; slug: string }>("select id, slug from event where archived_at is null");
+        const allEvents = db.all<{ id: string; slug: string }>("select id, slug from event where archived_at is null and slug in ('sample-hack-2026', 'dogfood')");
         for (const ev of allEvents) {
           if (persona.role !== undefined) {
             grantRole(ctx, ev.id, account.id, persona.role);
@@ -800,6 +708,7 @@ export function makeApp(options: AppOptions): Serve {
       throw notFound("event");
     }
 
+    if (command.name === "events.warp_clock" && options.demoMode !== true) throw forbidden("Clock controls require an explicitly enabled disposable demo.");
     const gates: EventGates | null = event === null ? null : gatesFor(event, now);
     const gate = command.capability.gate;
     if (gate !== undefined) assertGate(event as EventRow, now, gate);

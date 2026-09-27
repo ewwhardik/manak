@@ -213,6 +213,7 @@ const HELP = `manak — a self-hostable hackathon submission and judging portal
   node --experimental-strip-types bin/manak.ts        (or: npm start)
 
 Environment:
+  MANAK_DEMO          true enables disposable demo login and global clock controls; default false
   MANAK_DATABASE      path to the SQLite file, or :memory:   ${DEFAULT_DATABASE}
   MANAK_PORT / PORT   port to listen on, 0 for any free one  8080
   MANAK_HOST          address to bind                        0.0.0.0
@@ -486,6 +487,7 @@ async function main(): Promise<void> {
   const listening = await listen({
     db,
     publicKey: keys.publicKeyPem,
+    demoMode: process.env.MANAK_DEMO === "true",
     registry: makeRegistry(ALL_COMMANDS),
     publicOrigin: externalOrigin,
     views: VIEWS,

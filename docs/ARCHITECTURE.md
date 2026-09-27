@@ -78,14 +78,14 @@ before the socket opens.
 
 | | Lines | May import | Owns |
 | --- | --- | --- | --- |
-| `src/judging` | 7,423 | nothing | the arithmetic: normalization, reliability, per-criterion analysis, pairwise fitting, bootstrap intervals, judge calibration, assignment |
+| `src/judging` | 7,466 | nothing | the arithmetic: normalization, reliability, per-criterion analysis, pairwise fitting, bootstrap intervals, judge calibration, assignment |
 | `src/db` | 6,286 | `node:*`, the engine's types | schema, migrations, repositories, ledger, limiter |
-| `src/api` | 9,322 | `src/db/index.ts` | the declarations, capability, schema, errors, OpenAPI |
-| `src/view` | 6,263 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
-| `src/http` | 2,150 | everything below | the dispatcher, the responses, the socket |
+| `src/api` | 9,323 | `src/db/index.ts` | the declarations, capability, schema, errors, OpenAPI |
+| `src/view` | 6,077 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
+| `src/http` | 2,059 | everything below | the dispatcher, the responses, the socket |
 | `src/mail` | 1,058 | `node:*`, one erased type | RFC 5322 composition, an SMTP client, the outbox |
-| `bin/manak.ts` | 580 | everything | the environment, migration, signals, the process |
-| `tools` | 5,970 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
+| `bin/manak.ts` | 582 | everything | the environment, migration, signals, the process |
+| `tools` | 5,971 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
 
 `src/mail` is the one entry that is not part of the stack, and the shape of its row is the
 reason. It sits beside the layers rather than on top of them: it imports `node:*` and one
@@ -564,7 +564,7 @@ database, exports again and compares the bytes. All three are committed, re-exec
 run as tests by `tests/proof.test.ts`, so a change that quietly invalidates one fails
 `npm test` rather than waiting to be noticed.
 
-The 569 tests are Node's own runner with no framework. Three files in there are load-bearing in
+The 576 tests are Node's own runner with no framework. Three files in there are load-bearing in
 a way the rest are not: `tests/source.test.ts` holds every layer and source rule described
 above,
 `tests/api.test.ts` asserts that every refusal the published document describes is one the

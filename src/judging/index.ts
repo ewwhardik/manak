@@ -165,3 +165,6 @@ export { decomposeTournament } from "./hodge.ts";
 export { wasserstein2, distributionCalibration } from "./distribution.ts";
 export { comparisonInformation } from "./information.ts";
 export type { InformationPair } from "./information.ts";
+
+export { assessFinalists } from "./close-call.ts";
+export type { CloseCall, FinalistEvidence, PairwiseEvidence } from "./close-call.ts";
