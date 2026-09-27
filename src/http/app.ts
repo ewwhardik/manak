@@ -292,7 +292,7 @@ export function makeApp(options: AppOptions): Serve {
       return html(verifyPage(), 200, {
         headers: {
           "content-security-policy":
-            "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+            "default-src 'none'; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
         },
       });
     }

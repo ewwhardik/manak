@@ -90,7 +90,7 @@ export function guidePage(props: GuideProps): string {
 <div class="guide-card">
 <span class="role-badge">Discovery</span>
 <h3>Project Gallery &amp; Showcase</h3>
-<p>Browse all submissions across tracks, inspect repository links, architecture summaries, and embedded demonstration videos.</p>
+<p>Browse all submissions across tracks with 1-click filter pills, inspect repository links, architecture summaries, and dedicated demonstration video showcase cards.</p>
 <div class="guide-actions">
 <a href="/events/${esc(sampleEvent.slug)}/projects">Sample Hack: Gallery ↗</a>
 <a href="/events/${esc(dogfoodEvent.slug)}/projects">Dogfood: Gallery ↗</a>
@@ -131,7 +131,7 @@ export function guidePage(props: GuideProps): string {
 <div class="guide-card">
 <span class="role-badge">Real-Time Operations</span>
 <h3>Organizer Dashboard</h3>
-<p>Monitor live review coverage, projects needing additional reviews, panel overlap, and judge participation rates. Visual warnings flag information bottlenecks before judging closes.</p>
+<p>Monitor live review coverage with instant shortfall warning banners, projects needing additional reviews, panel overlap, and judge participation rates. Visual warnings flag information bottlenecks before judging closes.</p>
 <div class="guide-actions">
 <a href="/events/${esc(sampleEvent.slug)}/dashboard">Sample Hack: Dashboard ↗</a>
 <a href="/events/${esc(dogfoodEvent.slug)}/dashboard">Dogfood: Dashboard ↗</a>
@@ -233,7 +233,7 @@ export function guidePage(props: GuideProps): string {
 <div class="guide-card">
 <span class="role-badge">Verification Tool</span>
 <h3>Offline Certificate Verifier</h3>
-<p>Paste the organizer's public key and certificate JSON to verify signatures locally using the browser's built-in WebCrypto API.</p>
+<p>Paste the organizer's public key or click auto-load to verify signatures locally using the browser's built-in WebCrypto API.</p>
 <div class="guide-actions">
 <a href="/verify">Open Offline Verifier ↗</a>
 <a href="/.well-known/manak-key.pub">Download Server Public Key ↗</a>

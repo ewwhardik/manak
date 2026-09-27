@@ -187,6 +187,9 @@ ${actionForm(context, "projects.create", { event: slug }, {
       })}
 </details>`
     : `<p class="muted">${open ? `<a href="/signin">Sign in</a> to enter your project.` : "Submissions are closed, so nothing further can be entered."}</p>`;
+  const trackPills = tracks.length === 0
+    ? ""
+    : `<nav class="track-pills" aria-label="Filter projects by track"><span class="track-pill-label">Track:</span><a class="track-pill${!context.input.trackKey ? " track-pill-active" : ""}" href="/events/${encodeURIComponent(slug)}/projects${context.input.q ? `?q=${encodeURIComponent(String(context.input.q))}` : ""}">All tracks</a>${tracks.map((track) => `<a class="track-pill${context.input.trackKey === track.key ? " track-pill-active" : ""}" href="/events/${encodeURIComponent(slug)}/projects?trackKey=${encodeURIComponent(String(track.key))}${context.input.q ? `&q=${encodeURIComponent(String(context.input.q))}` : ""}">${esc(String(track.label))}</a>`).join("")}</nav>`;
   return page({
     title: `${context.event === null ? "Event" : context.event.name}`,
     trail: eventTrail(context, { label: "Projects" }),
@@ -197,6 +200,7 @@ ${actionForm(context, "projects.create", { event: slug }, {
     lead: "Ideas worth a closer look. Explore the projects and the people building them.",
     body: `<p class="collection-meta"><strong>${projects.length} projects</strong><span>${tracks.length} tracks</span><span>${esc(slice ?? "")}</span></p>
 <form method="get" class="filter-bar" action="/events/${encodeURIComponent(slug)}/projects"><div class="field"><label for="project-search">Search the collection</label><input id="project-search" type="search" name="q" value="${esc(context.input.q ?? "")}" placeholder="Project, team, or idea…" maxlength="200"></div><div class="field"><label for="track-filter">Track</label><select name="trackKey" id="track-filter"><option value="">All tracks</option>${tracks.map((track) => `<option value="${esc(track.key)}"${context.input.trackKey === track.key ? " selected" : ""}>${esc(track.label)}</option>`).join("")}</select></div><button type="submit">Find projects</button></form>
+${trackPills}
 ${context.input.q || context.input.trackKey ? `<p class="muted">Showing ${projects.length} matching projects${context.input.q ? ` for “${esc(context.input.q)}”` : ""}${context.input.trackKey ? ` in ${esc(trackLabels.get(String(context.input.trackKey)) ?? String(context.input.trackKey))}` : ""}. <a href="/events/${encodeURIComponent(slug)}/projects">Reset filters</a></p>` : ""}
 ${listing}
 ${context.event?.questions ? `<section class="briefing"><h2>Before you submit</h2><ol>${textLines(context.event.questions)}</ol></section>` : ""}
@@ -312,7 +316,7 @@ ${actionForm(context, "projects.disqualify", params)}
     body: `<p>${esc(String(at(project, "summary") ?? ""))}</p>
 ${at(project, "techTags") ? `<p class="technology-tags">${String(at(project, "techTags")).split(",").map((tag) => `<span>${esc(tag.trim())}</span>`).join("")}</p>` : ""}
 ${at(project, "description") ? `<section class="project-story"><h2>The full story</h2><p>${esc(at(project, "description"))}</p></section>` : ""}
-${at(project, "videoUrl") ? `<p>Demo video: ${link(at(project, "videoUrl"))}</p>` : ""}
+${at(project, "videoUrl") ? `<section class="video-showcase"><div class="video-showcase-header"><h3>Demonstration Video</h3>${tag("walkthrough", "open")}</div><p class="muted">The team submitted an external demonstration video of their project:</p><a class="video-link-card" href="${esc(String(at(project, "videoUrl")))}" target="_blank" rel="noopener noreferrer"><span class="video-play-symbol" aria-hidden="true">&#9654;</span><span class="video-url-label">${esc(String(at(project, "videoUrl")))}</span><span class="video-external-arrow" aria-hidden="true">&rarr;</span></a></section>` : ""}
 <div class="project-media">${mediaImage(at(project, "thumbnailUrl"), `${title} cover`)}${String(at(project, "imageUrls") ?? "").split(/\r?\n/).slice(0,8).map((url, i) => mediaImage(url, `${title} screenshot ${i + 1}`)).join("")}</div>
 ${at(project, "answers") ? `<section class="project-story"><h2>Event questions</h2><ol>${textLines(context.event?.questions)}</ol><p>${esc(at(project, "answers"))}</p></section>` : ""}
 ${definitions(

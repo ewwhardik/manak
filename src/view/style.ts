@@ -772,6 +772,12 @@ dd { overflow-wrap: anywhere; font-size: .9rem; }
 .filter-bar { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; padding: 1.3rem; border: 1px solid var(--line); background: var(--glass); border-radius: var(--radius); }
 .filter-bar .field { margin: 0; flex: 1; min-width: 9rem; }
 .filter-bar .field:first-child { flex: 2; }
+.track-pills { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: 1rem 0; }
+.track-pill-label { font-size: .8rem; color: var(--muted); font-weight: 600; margin-right: .25rem; }
+.track-pill { font-size: .78rem; padding: .35rem .85rem; border-radius: 999px; border: 1px solid var(--line); color: var(--ink); text-decoration: none; background: var(--glass); transition: border-color var(--quick) var(--ease), background var(--quick) var(--ease); }
+.track-pill:hover { border-color: var(--accent); color: var(--accent); }
+.track-pill-active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.track-pill-active:hover { background: var(--accent); color: var(--accent-ink); }
 .project-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,20rem),1fr)); gap: 1.25rem; }
 .project-card { background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
 .project-cover { padding: 2rem; min-height: 9rem; display: flex; align-items: center; justify-content: space-between; background: var(--glass-low); color: var(--accent); }
@@ -787,6 +793,8 @@ dd { overflow-wrap: anywhere; font-size: .9rem; }
 .briefing h2 { margin-top: 0; }
 .briefing ul { padding-left: 1.25rem; }
 .briefing li { margin: .7rem 0; font-size: .9rem; }
+.coverage-alert { display: flex; align-items: center; gap: 1rem; padding: 1.1rem 1.4rem; margin-bottom: 1.5rem; background: radial-gradient(ellipse at right top, #ffad6620, transparent 65%), var(--glass-high); border: 1px solid #e8a548; border-radius: var(--radius); color: var(--ink); }
+.alert-icon { font-size: 1.4rem; color: #e8a548; line-height: 1; flex-shrink: 0; }
 .section-index { display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: .8rem; padding: 1rem 0; }
 .section-index a { text-decoration: none; }
 .export-links { display: flex; gap: .6rem; flex-wrap: wrap; }
@@ -813,6 +821,14 @@ footer.bar { max-width: 76rem; margin: 3rem auto 0; padding: 1.6rem 0; backgroun
 .cover-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2; }
 .project-media { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,22rem),1fr)); gap: 1rem; }
 .project-image { width: 100%; max-height: 28rem; object-fit: contain; border-radius: 12px; background: var(--glass-low); }
+.video-showcase { margin: 1.5rem 0; padding: 1.4rem; background: var(--glass-low); border: 1px solid var(--line); border-radius: var(--radius); }
+.video-showcase-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .6rem; }
+.video-showcase-header h3 { margin: 0; font-size: 1.15rem; }
+.video-link-card { display: flex; align-items: center; gap: .75rem; padding: .85rem 1.1rem; background: var(--glass); border: 1px solid var(--line-strong); border-radius: 8px; text-decoration: none; color: var(--ink); transition: border-color var(--quick) var(--ease), transform var(--quick) var(--spring); }
+.video-link-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.video-play-symbol { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: .8rem; flex-shrink: 0; }
+.video-url-label { font-family: ui-monospace, monospace; font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.video-external-arrow { font-size: 1.1rem; color: var(--muted); flex-shrink: 0; }
 .project-story p { white-space: pre-wrap; line-height: 1.8; }
 .technology-tags { display: flex; gap: .5rem; flex-wrap: wrap; }
 .technology-tags span { border: 1px solid var(--line); padding: .35rem .7rem; border-radius: 5px; font: .7rem ui-monospace,monospace; }

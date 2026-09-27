@@ -285,6 +285,11 @@ export function dashboardPage(context: ViewContext): string {
   const readiness = at(result, "readiness");
   const readinessBlock = `<section class="readiness" id="readiness"><div class="section-heading"><div><p class="eyebrow">Evidence checkpoint</p><h2>${esc(String(at(readiness, "status") ?? "Review evidence").replaceAll("-", " "))}</h2></div><span class="readiness-count">${esc(at(readiness, "passed") ?? 0)} / ${esc(at(readiness, "total") ?? 0)} checks passed</span></div><div class="readiness-grid">${rows(readiness, "checks").map((check) => `<article class="readiness-check ${esc(check.status)}"><span class="check-icon" aria-hidden="true">${check.status === "pass" ? "✓" : check.status === "missing" ? "!" : "↗"}</span><div><h3>${esc(check.title)}</h3><p>${esc(check.detail)}</p><span class="detail">${esc(check.status)}</span></div></article>`).join("")}</div><p class="detail">${esc(at(readiness, "note"))}</p></section>`;
   const sensitivity = at(decision, "sensitivity");
+  const target = count(at(counts, "reviewsPerProject"));
+  const shortCount = Number(at(counts, "shortProjects") ?? 0);
+  const urgencyAlert = shortCount > 0
+    ? `<div class="coverage-alert" role="alert"><span class="alert-icon" aria-hidden="true">&#9888;</span><div><strong>Review Shortfall Warning:</strong> <b>${shortCount}</b> project${shortCount === 1 ? "" : "s"} lack the required target of ${esc(target)} reviews. <a href="#coverage">Review the ${shortCount} short project${shortCount === 1 ? "" : "s"} below &darr;</a></div></div>`
+    : "";
   const notStarted = judges.filter((j) => Number(j.submitted ?? 0) === 0 && Number(j.comparisons ?? 0) === 0);
   const completion = Number(at(counts, "assignments") ?? 0) === 0 ? 0 : Number(at(counts, "ballots") ?? 0) / Number(at(counts, "assignments"));
   const briefing = `<section class="briefing"><p class="eyebrow">The organizer’s briefing</p><h2>${gaps.length > 0 ? `${gaps.length} projects need more evidence.` : candidates.length > 0 ? "Coverage is complete. Review the close calls." : "Your judging room is ready."}</h2>${meter(completion, `${percent(completion)} of assigned rubric reviews filed`)}<p class="detail">${percent(completion)} of assigned rubric reviews filed. Drafts do not count.</p><ul>${notStarted.length > 0 ? `<li><b>${notStarted.length} judges have not started:</b> ${notStarted.map((j) => esc(j.name)).join(", ")}. Check their invitations and workload.</li>` : ""}${gaps.length > 0 ? `<li><a href="#coverage">Review coverage shortfalls</a> before publishing.</li>` : ""}<li>${candidates.length === 0 ? "No rubric evidence yet. Publish a rubric and collect reviews." : at(decision, "decisive") === true ? "The current intervals separate the finalist cut. Check the model warnings before making the final decision." : "The finalist cut is contested. Collect an independent review of the overlapping candidates."}</li></ul><nav class="section-index" aria-label="Dashboard sections"><a href="#decision-support">Finalist review ↓</a><a href="#judges">Judge progress ↓</a><a href="#coverage">Coverage ↓</a><a href="#audit">Audit trail ↓</a><a href="#operations">Operations ↓</a><a href="/events/${encodeURIComponent(slug)}/results">Preview results ↗</a></nav></section>`;
@@ -433,7 +438,6 @@ ${warningList(
           Array.isArray(at(criteria, "warnings")) ? (at(criteria, "warnings") as unknown[]) : [],
           "Every criterion is doing work and none of them repeat each other.",
         )}`;
-  const target = count(at(counts, "reviewsPerProject"));
   const judgeTable =
     judges.length === 0
       ? `<p class="muted">No judges have accepted an invitation yet.</p>`
@@ -659,7 +663,7 @@ does not look like a discovery.</p>
     ...(gatesNotice(context.gates) === undefined
       ? {}
       : { notice: gatesNotice(context.gates) as string }),
-    body: `${briefing}${actionPlan(rows(readiness, "checks").map((c) => ({ code: String(c.code), status: String(c.status), title: String(c.title), detail: String(c.detail) })), slug)}${stats([
+    body: `${urgencyAlert}${briefing}${actionPlan(rows(readiness, "checks").map((c) => ({ code: String(c.code), status: String(c.status), title: String(c.title), detail: String(c.detail) })), slug)}${stats([
       ["projects", count(at(counts, "projects"))],
       ["judges", count(at(counts, "judges"))],
       ["ballots filed", count(at(counts, "ballots"))],

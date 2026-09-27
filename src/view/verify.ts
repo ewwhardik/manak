@@ -13,6 +13,8 @@ export function verifyPage(): string {
     label { display: block; margin-top: 1.25rem; font-weight: bold; }
     #result { margin-top: 1.5rem; padding: 1rem; border: 1px solid currentColor; white-space: pre-wrap; }
     :focus-visible { outline: 3px solid #f0a43a; outline-offset: 3px; }
+    .key-load-row { display: flex; align-items: center; gap: 0.75rem; margin: 0.75rem 0; flex-wrap: wrap; }
+    .helper-text { font-size: 0.85rem; opacity: 0.75; }
   </style>
 </head>
 <body>
@@ -21,6 +23,10 @@ export function verifyPage(): string {
   <h1>Offline Certificate Verifier</h1>
   <p>Paste a public key that you obtained from the organizer through a trusted channel. A key copied from a certificate or the same unverified server cannot establish organizer identity. This page uses local WebCrypto; save the key and this page for offline use.</p>
   <p><a href="/.well-known/manak-key.pub">Download this server's current public key</a> and compare its SHA-256 key ID with an independently shared fingerprint. Keep older keys to verify records issued before rotation.</p>
+  <div class="key-load-row">
+    <button type="button" id="btnLoadKey">Auto-load server public key</button>
+    <span class="helper-text">1-click fetch from <code>/.well-known/manak-key.pub</code> into the verification field</span>
+  </div>
   <label for="pubkey">Trusted issuer public key (Ed25519 SPKI PEM)</label>
   <textarea id="pubkey" spellcheck="false"></textarea>
   <label for="certJson">Signed certificate JSON</label>
@@ -35,6 +41,19 @@ export function verifyPage(): string {
 </main>
 <script>
   const result = document.getElementById('result');
+  const btnLoadKey = document.getElementById('btnLoadKey');
+  if (btnLoadKey) {
+    btnLoadKey.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/.well-known/manak-key.pub');
+        if (!res.ok) throw new Error('HTTP ' + res.status + ' fetching public key');
+        document.getElementById('pubkey').value = await res.text();
+        result.textContent = 'Server public key loaded into field. Paste signed certificate JSON to verify.';
+      } catch (err) {
+        result.textContent = 'Failed to load server key: ' + (err instanceof Error ? err.message : String(err));
+      }
+    });
+  }
   function bytesFromHex(hex) {
     if (typeof hex !== 'string' || !/^(?:[0-9a-fA-F]{2})+$/.test(hex)) throw new Error('Invalid hexadecimal signature.');
     return Uint8Array.from(hex.match(/../g), x => parseInt(x, 16));
