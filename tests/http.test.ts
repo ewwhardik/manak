@@ -1125,3 +1125,61 @@ test("the guide page renders the evaluation map and platform sitemap", async () 
     r.close();
   }
 });
+
+test("the live ceremony leaderboard delivers real-time podium and plain-English explainers", async () => {
+  const r = rig();
+  try {
+    const slug = r.world.event.slug;
+    const orgToken = tokenFor(r.world, r.world.organizer.id);
+
+    // 1. Visitor before results published gets standby ceremony waiting room
+    const standbyRes = await r.get(`/events/${slug}/live`, { wants: "html" });
+    assert.equal(standbyRes.status, 200);
+    const standbyHtml = await standbyRes.text();
+    assert.match(standbyHtml, /BROADCAST STANDBY/);
+    assert.match(standbyHtml, /Ceremony waiting room/);
+    assert.match(standbyHtml, /How Manak Guarantees a Fair Hackathon/);
+
+    const standbyJson = await r.get(`/api/events/${slug}/live`);
+    assert.equal(standbyJson.status, 200);
+    const standbyData = (await standbyJson.json()) as Record<string, unknown>;
+    assert.equal(standbyData.live, false);
+    assert.equal(standbyData.state, "standby");
+
+    // 2. Organizer sees live ceremony preview with podium and explainers
+    const orgRes = await r.get(`/events/${slug}/live`, {
+      token: orgToken,
+      wants: "html",
+    });
+    assert.equal(orgRes.status, 200);
+    const orgHtml = await orgRes.text();
+    assert.match(orgHtml, /ORGANIZER PREVIEW|LIVE BROADCAST/);
+    assert.match(orgHtml, /live-masthead/);
+    assert.match(orgHtml, /live-podium|No projects scored yet/);
+    assert.match(orgHtml, /Understanding the Live Leaderboard \(In Plain English\)/);
+    assert.match(orgHtml, /http-equiv="refresh" content="5"/);
+
+    // 3. Paused mode suppresses meta-refresh
+    const pauseRes = await r.get(`/events/${slug}/live?pause=1`, {
+      token: orgToken,
+      wants: "html",
+    });
+    assert.equal(pauseRes.status, 200);
+    const pauseHtml = await pauseRes.text();
+    assert.doesNotMatch(pauseHtml, /http-equiv="refresh"/);
+    assert.match(pauseHtml, /Resume Live Feed/);
+
+    // 4. API endpoint returns live JSON with podium
+    const liveApi = await r.get(`/api/events/${slug}/live`, {
+      token: orgToken,
+    });
+    assert.equal(liveApi.status, 200);
+    const apiData = (await liveApi.json()) as Record<string, unknown>;
+    assert.equal(apiData.live, true);
+    assert.ok(typeof apiData.headHash === "string");
+    assert.ok(Array.isArray(apiData.podium));
+    assert.ok(Array.isArray(apiData.projects));
+  } finally {
+    r.close();
+  }
+});

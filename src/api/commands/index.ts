@@ -45,7 +45,7 @@ export {
 } from "./projects.ts";
 export { parseCriteria, RUBRIC_COMMANDS } from "./rubrics.ts";
 export { JUDGING_COMMANDS } from "./judging.ts";
-export { RESULTS_COMMANDS } from "./results.ts";
+export { RESULTS_COMMANDS, liveShow } from "./results.ts";
 export { VOTING_COMMANDS } from "./voting.ts";
 
 export const ALL_COMMANDS: readonly Command[] = [

@@ -52,6 +52,7 @@ import {
   RegistryError,
   SESSION_COOKIE,
   unauthenticated,
+  liveShow,
 } from "../api/index.ts";
 import type {
   Clock,
@@ -78,6 +79,7 @@ import {
   gatesFor,
   getOrCreateKeypair,
   grantRole,
+  headHash,
   isId,
   makeContext,
   MS,
@@ -91,8 +93,8 @@ import {
   touchSession,
   upsertAccount,
 } from "../db/index.ts";
-import type { View, ViewContext, Views } from "../view/index.ts";
-import { formPage, genericPage, guidePage, prefillFromRaw, STYLESHEET, STYLESHEET_PATH, verifyPage } from "../view/index.ts";
+import type { View, ViewContext, Views, LiveProject } from "../view/index.ts";
+import { formPage, genericPage, guidePage, liveLeaderboardPage, prefillFromRaw, STYLESHEET, STYLESHEET_PATH, verifyPage } from "../view/index.ts";
 import type { Extra, StreamEvent } from "./respond.ts";
 import {
   clearedCookie,
@@ -325,6 +327,7 @@ export function makeApp(options: AppOptions): Serve {
               rubric: "Rubric criteria weighting and scoring anchors (/events/:slug/rubric)",
               judges: "Judge roster management and single-use magic invitations (/events/:slug/judges)",
               auditLedger: "Tamper-evident CSV audit ledger (/api/events/:slug/results/audit.csv)",
+              liveLeaderboard: "Real-time auto-updating leaderboard with stage podium presentation (/events/:slug/live)",
             },
             verification: {
               verifier: "Offline Ed25519 certificate verifier (/verify)",
@@ -339,6 +342,127 @@ export function makeApp(options: AppOptions): Serve {
         "select slug, name from event where archived_at is null order by created_at asc",
       );
       return html(guidePage({ whoami, events: activeEvents }), 200);
+    }
+
+    const liveMatch = /^\/(api\/)?events\/([^/]+)\/live\/?$/.exec(target.pathname);
+    if (liveMatch) {
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        throw methodNotAllowed(request.method, ["GET"]);
+      }
+      const isApi = liveMatch[1] !== undefined || target.wants === "json";
+      const eventSlug = liveMatch[2] as string;
+      const event = resolveEvent(db, eventSlug);
+      if (!event) throw notFound("event", eventSlug);
+
+      trace.command = "results.live";
+      trace.path = target.pathname;
+
+      const presented = credentialFrom(request, SESSION_COOKIE);
+      const found = presented === null ? undefined : resolveSession(db, presented, now);
+      const accountId = found?.account.id ?? null;
+      const whoami = found?.account.display_name ?? null;
+      const founder = found !== undefined && founders.has(found.account.email);
+      const roles: readonly Role[] = accountId !== null ? rolesIn(db, event.id, accountId) : [];
+      const isOrganizer = roles.includes("organizer") || founder;
+
+      const ctx = makeContext(db, { clock: { now: () => now } });
+      const currentHead = headHash(db);
+      const gates = gatesFor(event, now);
+
+      const pause = url.searchParams.get("pause") === "1";
+      const refreshInterval = parseInt(url.searchParams.get("refresh") ?? "5", 10) || 5;
+      const mode = url.searchParams.get("mode") === "projector" ? "projector" : "standard";
+      const selectedTrack = url.searchParams.get("track") || null;
+
+      const published = event.results_public !== 0;
+
+      if (!published && !isOrganizer) {
+        if (isApi) {
+          return json({
+            live: false,
+            state: "standby",
+            message: "Judging in progress. Live standings will broadcast once published.",
+            event: { slug: event.slug, name: event.name },
+            headHash: currentHead,
+          }, 200);
+        }
+        return html(liveLeaderboardPage({
+          event: { slug: event.slug, name: event.name },
+          whoami,
+          isOrganizer,
+          published,
+          headHash: currentHead,
+          now,
+          pause,
+          refreshInterval,
+          mode,
+          selectedTrack,
+          projects: [],
+          state: "standby",
+        }), 200);
+      }
+
+      const liveData = liveShow.handler({
+        ctx,
+        event,
+        input: { event: event.slug },
+        roles,
+        accountId,
+        founder,
+        gates,
+        now,
+        registry,
+      } as any) as Record<string, unknown>;
+
+      const projects = (Array.isArray(liveData.projects) ? liveData.projects : []) as LiveProject[];
+      const panel = liveData.panel as any;
+      const warnings = Array.isArray(liveData.warnings) ? (liveData.warnings as string[]) : [];
+
+      if (isApi) {
+        return json({
+          live: true,
+          state: "broadcast",
+          event: { slug: event.slug, name: event.name },
+          headHash: currentHead,
+          updatedAt: now,
+          ballots: liveData.ballots,
+          comparisonsDecided: liveData.comparisonsDecided,
+          method: liveData.method,
+          converged: liveData.converged,
+          podium: projects.slice(0, 3).map((p, idx) => ({
+            place: idx + 1,
+            title: p.title,
+            trackKey: p.trackKey,
+            adjusted: p.adjusted,
+            tier: p.tier ?? 1,
+            rankMove: p.rankMove ?? 0,
+          })),
+          projects,
+          panel,
+          warnings,
+        }, 200);
+      }
+
+      return html(liveLeaderboardPage({
+        event: { slug: event.slug, name: event.name },
+        whoami,
+        isOrganizer,
+        published,
+        headHash: currentHead,
+        now,
+        pause,
+        refreshInterval,
+        mode,
+        selectedTrack,
+        method: String(liveData.method ?? "none"),
+        converged: liveData.converged === true,
+        ballots: Number(liveData.ballots ?? 0),
+        comparisonsDecided: Number(liveData.comparisonsDecided ?? 0),
+        projects,
+        panel,
+        warnings,
+        state: "live",
+      }), 200);
     }
 
     if (target.pathname === "/fast-login") {

@@ -64,6 +64,8 @@ export { dashboardPage, resultsPage, rubricPage } from "./results.ts";
 export { aboutPage } from "./about.ts";
 export { verifyPage } from "./verify.ts";
 export { guidePage } from "./guide.ts";
+export { liveLeaderboardPage } from "./live.ts";
+export type { LiveLeaderboardProps, LiveProject } from "./live.ts";
 
 export { VIEWS } from "./views.ts";
 

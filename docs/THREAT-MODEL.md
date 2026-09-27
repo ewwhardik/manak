@@ -14,7 +14,7 @@ the reason".
 
 Every claim below is one of three kinds, and the kind is stated.
 
-A claim that names a test is re-checked by `npm test`, all 567 of them, on every run. A claim that
+A claim that names a test is re-checked by `npm test`, all 568 of them, on every run. A claim that
 names a proof was executed against a server on a real socket and its output is committed:
 `npm run prove:isolation -- --check` re-sends all 828 requests and fails if a single byte of
 `docs/proof/isolation.md` no longer matches. A claim with neither is an argument, and it is marked

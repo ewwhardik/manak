@@ -705,7 +705,7 @@ function agreementJson(
  * `converged` with no fit at all is `true`: nothing ran, so nothing failed to converge. That reads
  * oddly on its own, which is why `warnings` carries a sentence saying the event has not been judged.
  */
-const liveShow = defineCommand({
+export const liveShow = defineCommand({
   name: "results.show",
   summary: "Show the ranking, once an organizer has published it.",
   method: "GET",

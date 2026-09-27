@@ -52,10 +52,12 @@ Open **<https://manak.up.railway.app>** and use the **"Fast login"** menu in the
 3. 🛠️ **Builder Persona (`Beatriz Lima`)**:
    - Browse the **Project Gallery** (`/events/sample-hack-2026/projects`) with 1-click track filter pills and demo video showcases.
    - Manage the **Team Workspace** (`/events/sample-hack-2026/teams`).
-4. 🔐 **Offline Cryptographic Verifier (`/verify`)**:
+4. 📺 **Real-Time Ceremony Leaderboard (`/events/sample-hack-2026/live`)**:
+   - Big-screen projector mode with 🥇 Gold, 🥈 Silver, and 🥉 Bronze podium presentation, native 5s auto-refreshing (zero client-side JavaScript), and plain-English explainers for judges and spectators.
+5. 🔐 **Offline Cryptographic Verifier (`/verify`)**:
    - Test the standalone Ed25519 certificate verifier powered by local WebCrypto. Auto-load the server's public key with 1 click to verify award certificates offline.
-5. 🗺️ **Platform Guide & Sitemap (`/guide`)**:
-   - Interactive platform roadmap and direct-jump directory covering all 22+ operational routes.
+6. 🗺️ **Platform Guide & Sitemap (`/guide`)**:
+   - Interactive platform roadmap and direct-jump directory covering all operational routes.
 
 ### Option B: Run Locally (One Command, Zero Package Installs)
 
@@ -105,6 +107,13 @@ Every issued certificate contains an Ed25519 digital signature generated with th
 ### 5. Community Choice Quadratic Voting (`/voting`)
 Community choice awards use quadratic voting with fixed credit budgets to mathematically dampen vote brigading and reflect genuine community consensus.
 
+### 6. Real-Time Ceremony Leaderboard & Stage Podium (`/live`)
+Built for auditorium projection during hackathon closing ceremonies:
+- **Finalist Podium**: 🥇 Gold, 🥈 Silver, and 🥉 Bronze cards with adjusted scores, confidence tiers, and rank shifts.
+- **Native 5s Auto-Refresh**: Natively refreshes every 5 seconds via HTTP `<meta http-equiv="refresh">` (zero client-side JS, zero tracking, strict CSP).
+- **Plain-English Explainer for Judges**: Translates Bayesian normalization, confidence tiers, and Merkle checkpoints into clear everyday language.
+- **Live Stream API (`/api/events/:slug/live`)**: High-throughput JSON endpoint for live OBS overlays, external projectors, and mobile apps.
+
 ---
 
 ## 🧪 Verification & Proof Harnesses
@@ -113,7 +122,7 @@ Run the complete verification pipeline locally:
 
 ```sh
 npm ci
-npm test       # 567 tests
+npm test       # 568 tests
 npm run typecheck
 npm run prove:normalization -- --check
 npm run prove:convergence -- --check

@@ -34,6 +34,7 @@ export function guidePage(props: GuideProps): string {
     [`/events/${esc(sampleEvent.slug)}/rubric`, "Organizers", "Configure evaluation criteria, scale ranges, and relative weights", `<a href="/events/${esc(sampleEvent.slug)}/rubric">Rubric editor</a>`],
     [`/events/${esc(sampleEvent.slug)}/judges`, "Organizers", "Judge roster management and single-use magic invitation links", `<a href="/events/${esc(sampleEvent.slug)}/judges">Judges roster</a>`],
     [`/events/${esc(sampleEvent.slug)}/results`, "Organizers & Public", "Final standings, 95% Bayesian confidence intervals, and certificates", `<a href="/events/${esc(sampleEvent.slug)}/results">Results & certificates</a>`],
+    [`/events/${esc(sampleEvent.slug)}/live`, "All roles", "Real-time auto-updating leaderboard with stage podium presentation", `<a href="/events/${esc(sampleEvent.slug)}/live">Live ceremony leaderboard</a>`],
     [`/events/${esc(sampleEvent.slug)}/results/confidence`, "Organizers", "In-depth statistical evidence, judge bias, and outlier analysis", `<a href="/events/${esc(sampleEvent.slug)}/results/confidence">Confidence analysis</a>`],
     [`/api/events/${esc(sampleEvent.slug)}/results/audit.csv`, "Organizers & Auditors", "Download immutable hash-chained event ledger as CSV", `<a href="/api/events/${esc(sampleEvent.slug)}/results/audit.csv">Download audit CSV</a>`],
     ["/verify", "Public", "Offline Ed25519 cryptographic certificate verifier using local WebCrypto", '<a href="/verify">Certificate verifier</a>'],
