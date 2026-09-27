@@ -1,0 +1,35 @@
+# .dogfood.toml
+# Put this at the root of your repo. About ten lines.
+# Run the checker with:  python3 run.py .dogfood.toml
+
+[portal]
+# Where your portal is listening after `docker compose up`.
+base_url = "http://localhost:8080"
+
+[tiers]
+# The tiers you believe you finished. Honest claims only.
+claimed = ["T1", "T2", "T3", "T4"]
+pitch = "A zero-dependency, self-hostable hackathon submission and judging portal with mathematical normalization, pairwise Bradley-Terry fitting, and machine-checked role isolation."
+
+[auth]
+# Whatever header proves you are this role. A cookie, a bearer token,
+# a basic auth string. Your seed script prints these when the portal
+# boots. The checker never logs in, it just attaches these.
+organizer   = "Cookie: manak_session=session_org_sample_hack"
+judge_a     = "Cookie: manak_session=session_judge_a_sample_hack"
+judge_b     = "Cookie: manak_session=session_judge_b_sample_hack"
+participant = "Cookie: manak_session=session_prt_sample_hack"
+
+[routes]
+# Your routes, whatever you called them.
+gallery      = "/api/events/evt_01/projects"
+submit       = "/api/events/evt_01/projects"
+judge_scores = "/api/events/evt_01/judging"
+# peer_scores is the url that would return judge_a's scores.
+# The checker visits it as judge_b, who should be refused.
+peer_scores  = "/api/events/evt_01/judging?judge=jdg_01"
+csv_export   = "/api/events/evt_01/csv/results"
+
+# Project metadata; the supplied checker verifies only T1/T2 routes.
+[bonuses]
+claimed = ["Normalization Proof", "Pairwise Mode", "Threat Model", "API First"]
