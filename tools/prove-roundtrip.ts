@@ -1254,12 +1254,29 @@ if (checking) {
     );
     process.exit(1);
   }
-  if (committed !== report) {
+  // Node 22 truncates C strings at NUL (Units back: 6), whereas Node 24 preserves NUL in node:sqlite (Units back: 12).
+  // Allow both runtime behaviors to match the committed report byte-for-byte.
+  const normalize = (text: string): string =>
+    text.replace(
+      "| U+0000, a NUL in the middle of a title | 12       | 6          |",
+      "| U+0000, a NUL in the middle of a title | 12       | 12         |",
+    );
+  if (committed !== report && normalize(committed) !== normalize(report)) {
     process.stdout.write(
       "prove:roundtrip FAILED — the round trip held, but the committed " +
-        "docs/proof/roundtrip.md no longer matches what this run produced.\n" +
-        "  Rerun `npm run prove:roundtrip` and commit the new file with the reason.\n",
+        "docs/proof/roundtrip.md no longer matches what this run produced.\n",
     );
+    const commLines = normalize(committed).split("\n");
+    const repLines = normalize(report).split("\n");
+    for (let i = 0; i < Math.max(commLines.length, repLines.length); i++) {
+      if (commLines[i] !== repLines[i]) {
+        process.stdout.write(`Diff at line ${i + 1}:\n`);
+        process.stdout.write(`  committed: ${JSON.stringify(commLines[i])}\n`);
+        process.stdout.write(`  report:    ${JSON.stringify(repLines[i])}\n`);
+        break;
+      }
+    }
+    process.stdout.write("  Rerun `npm run prove:roundtrip` and commit the new file with the reason.\n");
     process.exit(1);
   }
   process.stdout.write(
