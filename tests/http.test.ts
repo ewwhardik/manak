@@ -1071,3 +1071,37 @@ test("the pages nobody wrote still print a time as a time", async () => {
     r.close();
   }
 });
+
+test("fast-login grants an instant session without email delivery", async () => {
+  const r = rig();
+  try {
+    const postRefusal = await r.post("/fast-login", {});
+    assert.equal(postRefusal.status, 405);
+
+    const orgRes = await r.get("/fast-login?as=organizer");
+    assert.equal(orgRes.status, 303);
+    const orgCookie = orgRes.headers.get("set-cookie");
+    assert.ok(orgCookie !== null && orgCookie.includes("manak_session="));
+
+    const tokenMatch = /manak_session=([^;]+)/.exec(orgCookie);
+    assert.ok(tokenMatch !== null);
+    const orgPage = await (await r.get(orgRes.headers.get("location") as string, {
+      token: tokenMatch[1],
+      wants: "html",
+    })).text();
+    assert.match(orgPage, /Rosa Iyer/);
+
+    const judgeRes = await r.get("/fast-login?as=judge_a");
+    assert.equal(judgeRes.status, 303);
+    const judgeCookie = judgeRes.headers.get("set-cookie");
+    const judgeTokenMatch = /manak_session=([^;]+)/.exec(judgeCookie ?? "");
+    assert.ok(judgeTokenMatch !== null);
+    const judgePage = await (await r.get(judgeRes.headers.get("location") as string, {
+      token: judgeTokenMatch[1],
+      wants: "html",
+    })).text();
+    assert.match(judgePage, /Nils Berg/);
+  } finally {
+    r.close();
+  }
+});

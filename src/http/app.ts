@@ -67,14 +67,17 @@ import type {
 } from "../db/index.ts";
 import {
   assertGate,
+  createSession,
   CSV_STAGES,
   DatabaseError,
   enforce,
   exportCsv,
+  findAccountByEmail,
   findEvent,
   findEventBySlug,
   gatesFor,
   getOrCreateKeypair,
+  grantRole,
   isId,
   makeContext,
   MS,
@@ -86,6 +89,7 @@ import {
   sessionsOf,
   systemClock,
   touchSession,
+  upsertAccount,
 } from "../db/index.ts";
 import type { View, ViewContext, Views } from "../view/index.ts";
 import { formPage, genericPage, prefillFromRaw, STYLESHEET, STYLESHEET_PATH, verifyPage } from "../view/index.ts";
@@ -291,6 +295,43 @@ export function makeApp(options: AppOptions): Serve {
             "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
         },
       });
+    }
+
+    if (target.pathname === "/fast-login") {
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        throw methodNotAllowed(request.method, ["GET"]);
+      }
+      const as = url.searchParams.get("as") ?? "organizer";
+      const defaultPersona = { email: "rosa@example.com", name: "Rosa Iyer", role: "organizer" as Role };
+      const personas: Record<string, { email: string; name: string; role?: Role }> = {
+        organizer: defaultPersona,
+        judge: { email: "nils@example.com", name: "Nils Berg", role: "judge" },
+        judge_a: { email: "nils@example.com", name: "Nils Berg", role: "judge" },
+        judge_b: { email: "amara@example.com", name: "Amara Osei", role: "judge" },
+        participant: { email: "beatriz@example.com", name: "Beatriz Lima", role: "participant" },
+        builder: { email: "beatriz@example.com", name: "Beatriz Lima", role: "participant" },
+      };
+      const persona = personas[as] ?? defaultPersona;
+      const ctx = makeContext(db, { clock: { now: () => now } });
+      const secure = options.secure ?? isSecure(request, url, trustProxy);
+      const minted = db.tx(() => {
+        let account = findAccountByEmail(db, persona.email);
+        if (account === undefined) {
+          account = upsertAccount(ctx, persona.email, persona.name);
+        }
+        const event = resolveEvent(db, "dogfood");
+        if (event !== undefined && persona.role !== undefined) {
+          grantRole(ctx, event.id, account.id, persona.role);
+        }
+        return createSession(ctx, account.id, { userAgent: "Hackathon Fast Login" });
+      });
+      const cookie = sessionCookie(SESSION_COOKIE, minted.token, {
+        maxAge: Math.max(0, Math.ceil((minted.expiresAt - now) / 1000)),
+        secure,
+      });
+      const event = resolveEvent(db, "dogfood") ?? db.get<{ slug: string }>("select slug from event order by created_at desc limit 1");
+      const destination = event !== undefined ? `/events/${event.slug}` : "/";
+      return seeOther(destination, { cookies: [cookie] });
     }
 
     const method = request.method === "HEAD" ? "GET" : request.method;

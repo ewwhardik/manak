@@ -53,7 +53,7 @@ The [architecture](docs/ARCHITECTURE.md) explains the layers and tradeoffs. [DAT
 
 ```sh
 npm ci
-npm test       # 565 tests
+npm test       # 566 tests
 npm run typecheck
 npm run prove:normalization -- --check
 npm run prove:convergence -- --check
