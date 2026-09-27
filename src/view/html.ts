@@ -141,17 +141,17 @@ ${
       : `<span>${esc(options.whoami)}</span> <form method="post" action="/signout" class="inline">` +
         '<button class="quiet" type="submit">Sign out</button></form>'
   }<details class="fast-login">
-<summary class="fast-login-btn" title="Quick sign-in for hackathon judges">⚡ Fast Login</summary>
+<summary class="fast-login-btn">Fast login</summary>
 <div class="fast-login-menu">
 <div class="fast-login-header">
-<span class="role-badge">Judge Evaluation Mode</span>
+<span class="role-badge">Judge evaluation mode</span>
 <p>This is only for hackathon judges to test the website cleanly and with ease.</p>
 </div>
 <div class="fast-login-list">
-<a href="/fast-login?as=organizer" class="fast-login-item">👑 <strong>Sign in as Organizer</strong> <span>Rosa Iyer (Event admin & results)</span></a>
-<a href="/fast-login?as=judge_a" class="fast-login-item">⚖️ <strong>Sign in as Judge (Nils)</strong> <span>Nils Berg (Scoring & duels)</span></a>
-<a href="/fast-login?as=judge_b" class="fast-login-item">⚖️ <strong>Sign in as Judge (Amara)</strong> <span>Amara Osei (Active rubric review)</span></a>
-<a href="/fast-login?as=participant" class="fast-login-item">🚀 <strong>Sign in as Builder</strong> <span>Beatriz Lima (Team Saffron owner)</span></a>
+<a href="/fast-login?as=organizer" class="fast-login-item"><strong>Sign in as Organizer</strong> <span>Rosa Iyer &middot; Event controls &amp; results</span></a>
+<a href="/fast-login?as=judge_a" class="fast-login-item"><strong>Sign in as Judge (Nils)</strong> <span>Nils Berg &middot; Scoring &amp; duels</span></a>
+<a href="/fast-login?as=judge_b" class="fast-login-item"><strong>Sign in as Judge (Amara)</strong> <span>Amara Osei &middot; Rubric review</span></a>
+<a href="/fast-login?as=participant" class="fast-login-item"><strong>Sign in as Builder</strong> <span>Beatriz Lima &middot; Team Saffron (Lintwright)</span></a>
 </div>
 </div>
 </details></nav>
