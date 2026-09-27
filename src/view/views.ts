@@ -118,7 +118,7 @@ function eventsPage(context: ViewContext, title: string): string {
     headingActions: `<div class="hero-actions"><a class="button" href="#events">Explore the events <span aria-hidden="true">↗</span></a><a class="text-link" href="${context.whoami ? "/mine" : "/signin"}">${context.whoami ? "Open my workspace" : "Enter your workspace"} <span aria-hidden="true">→</span></a></div>`,
     body: `<div class="principles"><span><b>01</b> Built in the open</span><span><b>02</b> Judged with context</span><span><b>03</b> Every decision, traceable</span></div>
 <section id="events"><div class="section-heading"><div><p class="eyebrow">Discover what’s happening</p><h2>The event collection<span class="count-label">${rows(context.result, "events").length}</span></h2></div><a href="/events">All events <span aria-hidden="true">↗</span></a></div>${eventList(rows(context.result, "events"))}</section>
-<section class="start-here" id="start-here"><div><p class="eyebrow">Find your starting point</p><h2>Different roles.<br>A clear next step.</h2><p>Choose an event first. Your workspace shows the tools available to you.</p></div><div class="role-routes"><a href="#events"><span class="route-number">01 / BUILDERS</span><h3>Bring your idea to the arena <span aria-hidden="true">↗</span></h3><p>Join an event, form your team, and submit your project before the deadline.</p></a><a href="${context.whoami ? "/mine" : "/guide#judges"}"><span class="route-number">02 / JUDGES</span><h3>Give great work a fair review <span aria-hidden="true">↗</span></h3><p>Sign in with your invited email or fast-login. Open your queue, save drafts, or compare duels.</p></a><a href="${context.whoami ? "/mine" : "/guide#organizers"}"><span class="route-number">03 / ORGANIZERS</span><h3>See what needs your attention <span aria-hidden="true">↗</span></h3><p>Set up the event, track live review coverage, and publish signed Ed25519 certificates.</p></a><a href="/guide"><span class="route-number">04 / SITEMAP</span><h3>Evaluation Guide &amp; Full Sitemap <span aria-hidden="true">↗</span></h3><p>Explore the complete platform guide, access controls, and direct-jump sitemap directory.</p></a></div></section>
+<section class="start-here" id="start-here"><div><p class="eyebrow">Find your starting point</p><h2>Different roles.<br>A clear next step.</h2><p>Choose an event first. Your workspace shows the tools available to you.</p></div><div class="role-routes"><a href="/fast-login?as=participant_sample"><span class="route-number">01 / BUILDERS</span><h3>Bring your idea to the arena <span aria-hidden="true">↗</span></h3><p>Sign in as builder. Form your team, and submit your project before the deadline.</p></a><a href="/fast-login?as=judge_sample"><span class="route-number">02 / JUDGES</span><h3>Give great work a fair review <span aria-hidden="true">↗</span></h3><p>Sign in as judge. Open your scoring queue, save drafts, or compare duels.</p></a><a href="/fast-login?as=organizer"><span class="route-number">03 / ORGANIZERS</span><h3>See what needs your attention <span aria-hidden="true">↗</span></h3><p>Sign in as organizer. Track live review coverage, and publish signed Ed25519 certificates.</p></a><a href="/guide"><span class="route-number">04 / SITEMAP</span><h3>Evaluation Guide &amp; Full Sitemap <span aria-hidden="true">↗</span></h3><p>Explore the complete platform guide, access controls, and direct-jump sitemap directory.</p></a></div></section>
 ${createForm(context)}
 <section class="method-strip"><div><p class="eyebrow">Behind every result</p><h2>Fairness is a process.<br>Make yours visible.</h2></div><div><p>Weighted rubrics. Independent reviews. Judge-effect normalization. A record of what changed, and why.</p><a class="text-link" href="/about">Explore the judging method <span aria-hidden="true">→</span></a><details class="motion-film"><summary>Watch the 3D motion study</summary><p class="detail">An original geometric study of connected perspectives. Decorative artwork, not event data.</p><video controls loop muted playsinline preload="none" poster="/assets/judging-orbit.webp" aria-label="Rotating three-dimensional knot"><source src="/assets/judging-orbit.webm" type="video/webm">Your browser does not support this video. <a href="/assets/judging-orbit.gif">View the animated study</a>.</video></details></div></section>`,
   });
@@ -162,7 +162,9 @@ function eventPage(context: ViewContext): string {
     links.unshift(`<a href="/events/${slug}/dashboard">Organizer dashboard</a>`);
     links.push(`<a href="/events/${slug}/rubric">Scoring rubric</a>`);
     links.push(`<a href="/events/${slug}/judges">Judges and invitations</a>`);
+    links.push(`<a href="/events/${slug}/tie-breaker">Tie-breaker assistant</a>`);
   }
+  links.push(`<a href="/events/${slug}/live">Live leaderboard</a>`);
   links.push(`<a href="/verify">Certificate verifier</a>`);
   const nextStep = roles.includes("organizer")
     ? ["Your event control room", "Check review coverage, resolve missing evidence, and inspect close results before publishing.", "Open organizer dashboard", "dashboard"]
@@ -177,7 +179,7 @@ function eventPage(context: ViewContext): string {
     whoami: context.whoami,
     notice: gatesNotice(context.gates),
     lead: "Everything your event needs, from the first idea to the final results.",
-    body: `${eventJourney(clock, context.now)}<section class="next-action"><div><p class="eyebrow">Start here</p><h2>${esc(nextStep[0])}</h2><p>${esc(nextStep[1])}</p></div><a class="button" href="/events/${slug}/${nextStep[3]}">${esc(nextStep[2])} →</a></section><nav class="workspace-nav" aria-label="Event navigation">${links.join("")}</nav><div class="section-heading"><h2>Event at a glance</h2>${tag(phaseLabel(at(event, "phase")), "plain")}</div>${definitions([
+    body: `${eventJourney(clock, context.now)}<div class="role-switcher-bar"><span class="role-switcher-label">Sample login switcher:</span><a href="/fast-login?as=organizer&amp;event=${slug}" class="role-switch-btn${roles.includes("organizer") ? " role-switch-active" : ""}">👑 Organizer</a><a href="/fast-login?as=judge_sample&amp;event=${slug}" class="role-switch-btn${roles.includes("judge") ? " role-switch-active" : ""}">⚖️ Judge</a><a href="/fast-login?as=participant_sample&amp;event=${slug}" class="role-switch-btn${roles.includes("participant") ? " role-switch-active" : ""}">🚀 Builder</a></div><section class="next-action"><div><p class="eyebrow">Start here</p><h2>${esc(nextStep[0])}</h2><p>${esc(nextStep[1])}</p></div><a class="button" href="/events/${slug}/${nextStep[3]}">${esc(nextStep[2])} →</a></section><nav class="workspace-nav" aria-label="Event navigation">${links.join("")}</nav><div class="section-heading"><h2>Event at a glance</h2>${tag(phaseLabel(at(event, "phase")), "plain")}</div>${definitions([
       ["Phase", String(at(event, "phase") ?? "-")],
       ["Submissions open", when(at(clock, "submissionsOpenAt"), timezone)],
       ["Submissions close", when(at(clock, "submissionsCloseAt"), timezone)],
@@ -317,13 +319,15 @@ function signinPage(context: ViewContext): string {
 </div>`,
     });
   }
-  return formPage({
+  const pageHtml = formPage({
     command: request,
     formAction: "/signin",
     title: "Sign in",
     whoami: context.whoami,
-    intro: "Enter your email address to receive a single-use sign-in link, or use Fast login above for immediate testing.",
+    intro: "Enter your email address to receive a single-use sign-in link, or use the 1-click evaluator logins below.",
   });
+  const fastLoginHtml = `<section class="fast-login-box"><h2>1-Click evaluator access</h2><p>Sign in instantly with seeded sample personas across all roles:</p><div class="fast-login-grid"><a href="/fast-login?as=organizer" class="role-card"><strong>👑 Organizer</strong><span>Rosa Iyer &middot; Full admin control, dashboard &amp; rubric</span></a><a href="/fast-login?as=judge_sample" class="role-card"><strong>⚖️ Judge (Sample Hack)</strong><span>Tomas Varga &middot; Scored queue, rubric evaluation &amp; duels</span></a><a href="/fast-login?as=judge_a" class="role-card"><strong>⚖️ Judge (Dogfood)</strong><span>Nils Berg &middot; Active queue &amp; comparisons</span></a><a href="/fast-login?as=participant_sample" class="role-card"><strong>🚀 Builder (Sample Hack)</strong><span>Priya Nair &middot; Team NorthKiln workspace</span></a><a href="/fast-login?as=participant_dogfood" class="role-card"><strong>🚀 Builder (Dogfood)</strong><span>Beatriz Lima &middot; Team Saffron workspace</span></a></div></section>`;
+  return pageHtml.replace("</main>", `${fastLoginHtml}\n</main>`);
 }
 
 /**

@@ -95,9 +95,8 @@ import {
   touchSession,
   upsertAccount,
 } from "../db/index.ts";
-import type { View, ViewContext, Views, LiveProject, PersonaKey, TieBreakerFinalist } from "../view/index.ts";
+import type { View, ViewContext, Views, LiveProject, TieBreakerFinalist } from "../view/index.ts";
 import {
-  fairnessSimulatorPage,
   formPage,
   genericPage,
   guidePage,
@@ -478,51 +477,6 @@ export function makeApp(options: AppOptions): Serve {
       }), 200);
     }
 
-    const simMatch = /^\/(api\/)?(events\/([^/]+)\/)?simulator\/?$/.exec(target.pathname);
-    if (simMatch) {
-      if (request.method !== "GET" && request.method !== "HEAD") {
-        throw methodNotAllowed(request.method, ["GET"]);
-      }
-      const isApi = simMatch[1] !== undefined || target.wants === "json";
-      const slugParam = simMatch[3];
-      const event = slugParam
-        ? resolveEvent(db, slugParam)
-        : resolveEvent(db, "sample-hack-2026") ?? resolveEvent(db, "evt_01") ?? db.get<{ slug: string; name: string }>("select slug, name from event order by created_at desc limit 1");
-      if (slugParam && !event) throw notFound("event", slugParam);
-
-      trace.command = "results.simulator";
-      trace.path = target.pathname;
-
-      const presented = credentialFrom(request, SESSION_COOKIE);
-      const found = presented === null ? undefined : resolveSession(db, presented, now);
-      const whoami = found?.account.display_name ?? null;
-
-      const persona = (url.searchParams.get("persona") ?? "flat_three") as PersonaKey;
-      const slug = event?.slug ?? "sample-hack-2026";
-      const eventName = event?.name ?? "Sample Hack 2026";
-
-      if (isApi) {
-        return json({
-          simulator: "Manak Interactive Fairness Simulator",
-          event: { slug, name: eventName },
-          activePersona: persona,
-          questionPlanted: "Tell us what you did about the judge who marks everything a 3",
-          defense: [
-            "Scale shrinkage prevents zero-division",
-            "Hard clamp floor at 0.35 of pool variance",
-            "Information weighting downs flat judge to ~0.12 weight",
-            "Diagnostic flag alerts organizer to σ = 0.0 uncalibrated judge",
-          ],
-        }, 200);
-      }
-
-      return html(fairnessSimulatorPage({
-        slug,
-        eventName,
-        whoami,
-        activePersona: persona,
-      }), 200);
-    }
 
     const tieMatch = /^\/(api\/)?events\/([^/]+)\/tie-breaker\/?$/.exec(target.pathname);
     if (tieMatch) {
@@ -682,6 +636,14 @@ export function makeApp(options: AppOptions): Serve {
         throw methodNotAllowed(request.method, ["GET"]);
       }
       const as = url.searchParams.get("as") ?? "organizer";
+      const sampleEvent = resolveEvent(db, "sample-hack-2026") ?? resolveEvent(db, "evt_01");
+      const dogfoodEvent = resolveEvent(db, "dogfood");
+      const eventParam = url.searchParams.get("event");
+      const chosenEvent = eventParam ? resolveEvent(db, eventParam) : undefined;
+      const wantsDogfood = as === "judge_a" || as === "judge_nils" || as.includes("dogfood");
+      const targetEvent = chosenEvent ?? (wantsDogfood ? dogfoodEvent ?? sampleEvent : sampleEvent ?? dogfoodEvent) ?? db.get<{ slug: string }>("select slug from event order by created_at desc limit 1");
+      const isDogfood = targetEvent?.slug === "dogfood";
+
       const defaultPersona: { email: string; name: string; role?: Role; targetId?: string } = {
         email: "rosa@example.com",
         name: "Rosa Iyer",
@@ -694,8 +656,16 @@ export function makeApp(options: AppOptions): Serve {
         judge_a: { email: "nils@example.com", name: "Nils Berg", role: "judge" },
         judge_nils: { email: "nils@example.com", name: "Nils Berg", role: "judge" },
         judge_b: { email: "amara@example.com", name: "Amara Osei", role: "judge" },
-        participant: { email: "beatriz@example.com", name: "Beatriz Lima", role: "participant" },
-        builder: { email: "beatriz@example.com", name: "Beatriz Lima", role: "participant" },
+        participant: isDogfood
+          ? { email: "beatriz@example.com", name: "Beatriz Lima", role: "participant" }
+          : { email: "priya1@example.org", name: "Priya Nair", role: "participant" },
+        participant_sample: { email: "priya1@example.org", name: "Priya Nair", role: "participant" },
+        participant_dogfood: { email: "beatriz@example.com", name: "Beatriz Lima", role: "participant" },
+        builder: isDogfood
+          ? { email: "beatriz@example.com", name: "Beatriz Lima", role: "participant" }
+          : { email: "priya1@example.org", name: "Priya Nair", role: "participant" },
+        builder_sample: { email: "priya1@example.org", name: "Priya Nair", role: "participant" },
+        builder_dogfood: { email: "beatriz@example.com", name: "Beatriz Lima", role: "participant" },
       };
       const persona = personas[as] ?? defaultPersona;
       const ctx = makeContext(db, { clock: { now: () => now } });
@@ -717,11 +687,15 @@ export function makeApp(options: AppOptions): Serve {
         maxAge: Math.max(0, Math.ceil((minted.expiresAt - now) / 1000)),
         secure,
       });
-      const sampleEvent = resolveEvent(db, "sample-hack-2026") ?? resolveEvent(db, "evt_01");
-      const dogfoodEvent = resolveEvent(db, "dogfood");
-      const wantsDogfood = as === "judge_a" || as === "judge_nils" || as.includes("dogfood");
-      const targetEvent = (wantsDogfood ? dogfoodEvent ?? sampleEvent : sampleEvent ?? dogfoodEvent) ?? db.get<{ slug: string }>("select slug from event order by created_at desc limit 1");
-      const destination = targetEvent !== undefined ? `/events/${targetEvent.slug}` : "/";
+
+      let destination = targetEvent !== undefined ? `/events/${targetEvent.slug}` : "/";
+      if (targetEvent !== undefined) {
+        if (as.startsWith("judge")) {
+          destination = `/events/${targetEvent.slug}/judging`;
+        } else if (as.startsWith("participant") || as.startsWith("builder")) {
+          destination = `/events/${targetEvent.slug}/teams`;
+        }
+      }
       return seeOther(destination, { cookies: [cookie] });
     }
 

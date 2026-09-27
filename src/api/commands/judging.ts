@@ -314,8 +314,17 @@ export const queue = defineCommand({
     }
     const judge = requestedJudge;
     const version = publishedVersion(ctx.db, row.id);
-    const projects = assignmentsOf(ctx.db, row.id, judge)
-      .map((assignment) => findProjectIn(ctx.db, row.id, assignment.project_id))
+    const assignedRows = assignmentsOf(ctx.db, row.id, judge);
+    const projectIds = new Set(assignedRows.map((a) => a.project_id));
+    const ballotRows = ctx.db.all<{ project_id: string }>(
+      "select distinct project_id from ballot where event_id = :e and judge_id = :j",
+      { e: row.id, j: judge },
+    );
+    for (const b of ballotRows) {
+      projectIds.add(b.project_id);
+    }
+    const projects = Array.from(projectIds)
+      .map((pid) => findProjectIn(ctx.db, row.id, pid))
       .filter((project): project is ProjectRow => project !== undefined)
       .map((project) => queueRow(ctx, row, judge, project));
     const filed = projects.filter((p) => {

@@ -80,9 +80,9 @@ before the socket opens.
 | --- | --- | --- | --- |
 | `src/judging` | 7,423 | nothing | the arithmetic: normalization, reliability, per-criterion analysis, pairwise fitting, bootstrap intervals, judge calibration, assignment |
 | `src/db` | 6,286 | `node:*`, the engine's types | schema, migrations, repositories, ledger, limiter |
-| `src/api` | 9,313 | `src/db/index.ts` | the declarations, capability, schema, errors, OpenAPI |
-| `src/view` | 6,691 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
-| `src/http` | 2,176 | everything below | the dispatcher, the responses, the socket |
+| `src/api` | 9,322 | `src/db/index.ts` | the declarations, capability, schema, errors, OpenAPI |
+| `src/view` | 6,263 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
+| `src/http` | 2,150 | everything below | the dispatcher, the responses, the socket |
 | `src/mail` | 1,058 | `node:*`, one erased type | RFC 5322 composition, an SMTP client, the outbox |
 | `bin/manak.ts` | 580 | everything | the environment, migration, signals, the process |
 | `tools` | 5,970 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
@@ -564,7 +564,7 @@ database, exports again and compares the bytes. All three are committed, re-exec
 run as tests by `tests/proof.test.ts`, so a change that quietly invalidates one fails
 `npm test` rather than waiting to be noticed.
 
-The 570 tests are Node's own runner with no framework. Three files in there are load-bearing in
+The 569 tests are Node's own runner with no framework. Three files in there are load-bearing in
 a way the rest are not: `tests/source.test.ts` holds every layer and source rule described
 above,
 `tests/api.test.ts` asserts that every refusal the published document describes is one the

@@ -149,10 +149,11 @@ ${
 <a href="/guide" class="fast-login-guide-link">Platform guide &amp; sitemap &rarr;</a>
 </div>
 <div class="fast-login-list">
-<a href="/fast-login?as=organizer" class="fast-login-item"><strong>Sign in as Organizer</strong> <span>Rosa Iyer &middot; Admin on Sample Hack &amp; Dogfood</span></a>
-<a href="/fast-login?as=judge_sample" class="fast-login-item"><strong>Sign in as Judge (Sample Hack)</strong> <span>Tomas Varga &middot; Judge on Sample Hack &amp; Dogfood</span></a>
-<a href="/fast-login?as=judge_a" class="fast-login-item"><strong>Sign in as Judge (Dogfood)</strong> <span>Nils Berg &middot; Judge on Dogfood &amp; Sample Hack</span></a>
-<a href="/fast-login?as=participant" class="fast-login-item"><strong>Sign in as Builder</strong> <span>Beatriz Lima &middot; Participant on both events</span></a>
+<a href="/fast-login?as=organizer" class="fast-login-item"><strong>👑 Sign in as Organizer</strong> <span>Rosa Iyer &middot; Admin on Sample Hack &amp; Dogfood</span></a>
+<a href="/fast-login?as=judge_sample" class="fast-login-item"><strong>⚖️ Sign in as Judge (Sample Hack)</strong> <span>Tomas Varga &middot; Review queue &amp; duels</span></a>
+<a href="/fast-login?as=judge_a" class="fast-login-item"><strong>⚖️ Sign in as Judge (Dogfood)</strong> <span>Nils Berg &middot; Active queue &amp; duels</span></a>
+<a href="/fast-login?as=participant_sample" class="fast-login-item"><strong>🚀 Sign in as Builder (Sample Hack)</strong> <span>Priya Nair &middot; Team NorthKiln workspace</span></a>
+<a href="/fast-login?as=participant_dogfood" class="fast-login-item"><strong>🚀 Sign in as Builder (Dogfood)</strong> <span>Beatriz Lima &middot; Team Saffron workspace</span></a>
 </div>
 </div>
 </details></nav>

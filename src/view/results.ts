@@ -1015,7 +1015,6 @@ page yet.`
   </div>
   <div class="live-controls">
     <a class="button" href="/events/${encodeURIComponent(slug)}/live">📺 Launch Live Ceremony Leaderboard</a>
-    <a class="button" href="/events/${encodeURIComponent(slug)}/simulator">⚖️ Fairness Simulator</a>
     <a class="button" href="/events/${encodeURIComponent(slug)}/tie-breaker">🎯 Tie-Breaker Assistant</a>
   </div>
 </div>

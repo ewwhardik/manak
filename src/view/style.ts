@@ -1193,15 +1193,19 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--accent); }
 .live-standby { color: #e67e22; border-color: rgba(230, 126, 34, .4); background: rgba(230, 126, 34, .12); }
 .live-preview { color: #f39c12; border-color: rgba(243, 156, 18, .4); background: rgba(243, 156, 18, .15); }
 .podium-unit { font-size: .5em; color: var(--muted); font-weight: 400; }
-/* Fairness Simulator & Tie-Breaker Assistant */
-.sim-hero { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; background: var(--glass-high); border: 1px solid rgba(94, 200, 216, .3); border-radius: var(--radius); margin-bottom: 2rem; box-shadow: 0 4px 20px rgba(0, 0, 0, .15); }
-.sim-preset-bar { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.25rem 0 2rem; }
-.sim-preset-btn { display: inline-flex; align-items: center; gap: .5rem; padding: .6rem 1.1rem; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); color: var(--ink); text-decoration: none; transition: transform var(--quick) var(--ease), border-color var(--quick) var(--ease); }
-.sim-preset-btn:hover { border-color: rgba(94, 200, 216, .5); transform: translateY(-1px); }
-.sim-active { border-color: rgba(94, 200, 216, .8); background: rgba(94, 200, 216, .15); box-shadow: 0 0 12px rgba(94, 200, 216, .2); }
-.sim-tag-error { color: #e74c3c; font-weight: 700; }
-.sim-tag-ok { color: #2ecc71; font-weight: 700; }
-.sim-explainer { margin: 3rem 0; padding: 1.75rem; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+/* Role Switcher & Fast Login Cards */
+.role-switcher-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; margin: 1.5rem 0 1.25rem; padding: .6rem 1rem; background: var(--glass-high); border: 1px solid var(--line); border-radius: 999px; }
+.role-switcher-label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-right: .25rem; }
+.role-switch-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .35rem .85rem; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); color: var(--ink); text-decoration: none; font-size: .84rem; font-weight: 500; transition: all var(--quick) var(--ease); }
+.role-switch-btn:hover { border-color: rgba(94, 200, 216, .5); background: rgba(94, 200, 216, .08); transform: translateY(-1px); }
+.role-switch-active { border-color: rgba(94, 200, 216, .8); background: rgba(94, 200, 216, .18); box-shadow: 0 0 12px rgba(94, 200, 216, .25); color: #5EC8D8; font-weight: 600; }
+.fast-login-box { margin-top: 2.5rem; padding: 1.75rem; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.fast-login-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .85rem; margin-top: 1rem; }
+.role-card { display: flex; flex-direction: column; gap: .25rem; padding: 1rem 1.15rem; border-radius: var(--radius-sm); background: var(--glass-high); border: 1px solid var(--line); text-decoration: none; transition: all var(--quick) var(--ease); }
+.role-card:hover { border-color: rgba(94, 200, 216, .5); background: rgba(94, 200, 216, .08); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0, 0, 0, .2); }
+.role-card strong { font-size: .92rem; color: var(--ink); font-weight: 600; }
+.role-card span { font-size: .76rem; color: var(--muted); line-height: 1.35; }
+/* Tie-Breaker Assistant */
 .tie-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; background: var(--glass-high); border: 1px solid rgba(243, 156, 18, .4); border-radius: var(--radius); margin-bottom: 2rem; box-shadow: 0 4px 20px rgba(243, 156, 18, .1); }
 .tie-grid { display: grid; grid-template-columns: minmax(260px, 1fr) auto minmax(260px, 1fr); align-items: center; gap: 1.5rem; margin: 2rem 0; }
 .tie-card { padding: 1.75rem; border-radius: var(--radius); background: var(--glass); border: 1px solid var(--line); box-shadow: var(--shadow); backdrop-filter: var(--blur); }

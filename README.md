@@ -54,15 +54,12 @@ Open **<https://manak.up.railway.app>** and use the **"Fast login"** menu in the
    - Manage the **Team Workspace** (`/events/sample-hack-2026/teams`).
 4. 📺 **Real-Time Ceremony Leaderboard (`/events/sample-hack-2026/live`)**:
    - Big-screen projector mode with 🥇 Gold, 🥈 Silver, and 🥉 Bronze podium presentation, native 5s auto-refreshing (zero client-side JavaScript), and plain-English explainers for judges and spectators.
-5. ⚖️ **Interactive Fairness Simulator (`/events/sample-hack-2026/simulator` or `/simulator`)**:
-   - Directly answers Hackathon Raptors' planted question: *"Tell us what you did about the judge who marks everything a 3"*.
-   - Live interactive sandbox with 5 behavioral presets: **The 3-Spammer**, **The Grinch (Harsh)**, **The Santa (Generous)**, **The Noisy Judge**, and **The Calibrated Panel**. Demonstrates Bayesian scale shrinkage, the 0.35 floor clamp, and ~0.12 downweighting with sub-0.05 recovery error.
-6. 🎯 **Finalist Tie-Breaker Assistant (`/events/sample-hack-2026/tie-breaker`)**:
+5. 🎯 **Finalist Tie-Breaker Assistant (`/events/sample-hack-2026/tie-breaker`)**:
    - Solves the critical 72-hour online hackathon dilemma when top finalists share Tier 1 (e.g. 4.92 vs 4.86).
    - Side-by-side matchup cards, Bradley-Terry pairwise win probability ($P(A \succ B)$), criterion-by-criterion deep dive, and 3 defensible resolution pathways (lightning tie-break duel, split prize co-champions, or audited organizer judgment).
-7. 🔐 **Offline Cryptographic Verifier (`/verify`)**:
+6. 🔐 **Offline Cryptographic Verifier (`/verify`)**:
    - Test the standalone Ed25519 certificate verifier powered by local WebCrypto. Auto-load the server's public key with 1 click to verify award certificates offline.
-8. 🗺️ **Platform Guide & Sitemap (`/guide`)**:
+7. 🗺️ **Platform Guide & Sitemap (`/guide`)**:
    - Interactive platform roadmap and direct-jump directory covering all operational routes.
 
 ### Option B: Run Locally (One Command, Zero Package Installs)
@@ -120,13 +117,7 @@ Built for auditorium projection during hackathon closing ceremonies:
 - **Plain-English Explainer for Judges**: Translates Bayesian normalization, confidence tiers, and Merkle checkpoints into clear everyday language.
 - **Live Stream API (`/api/events/:slug/live`)**: High-throughput JSON endpoint for live OBS overlays, external projectors, and mobile apps.
 
-### 7. Interactive Fairness Simulator ("Judge Bias Sandbox") (`/simulator`)
-Directly addresses the classic hackathon problem: *"What happens when an unmotivated judge gives flat 3.0s to every submission?"*
-- **4 Defense Layers**: Scale shrinkage bounds fitted variance away from zero; hard clamp floor at 0.35 of pool variance; information downweighting reduces flat judge influence to ~0.12; organizer dashboard flags $\sigma = 0.0$ uncalibrated reviewers.
-- **5 Behavioral Presets**: Live interactive comparison proving sub-0.05 true quality recovery under flat-3 spammers, harsh Grinches, generous Santas, and noisy raters.
-- **100% Server-Rendered**: Zero client-side JavaScript, zero inline styles, instant response under strict CSP.
-
-### 8. Finalist Tie-Breaker Assistant (`/events/:slug/tie-breaker`)
+### 7. Finalist Tie-Breaker Assistant (`/events/:slug/tie-breaker`)
 Tailored for 72-hour online hackathons where top finalists often score within hundredths of a point (e.g. 4.92 vs 4.86) and deciding grand prize winners on raw decimal differences is statistical nonsense:
 - **Head-to-Head Finalist Matchup**: Side-by-side shootout cards comparing 95% confidence intervals, ballot counts, and tracks.
 - **Bradley-Terry Win Probability**: Computes exact pairwise likelihood $P(A \succ B) = \frac{1}{1 + e^{-(\theta_A - \theta_B)}}$.
@@ -143,7 +134,7 @@ Run the complete verification pipeline locally:
 
 ```sh
 npm ci
-npm test       # 570 tests
+npm test       # 569 tests
 npm run typecheck
 npm run prove:normalization -- --check
 npm run prove:convergence -- --check
