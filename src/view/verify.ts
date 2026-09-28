@@ -76,9 +76,16 @@ export function verifyPage(): string {
       if (der.length < 32) throw new Error('Invalid Ed25519 public key.');
       const rawKey = der.slice(-32);
       const keyId = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', rawKey)));
-      if (cert.certificateVersion === 2) {
+      if (cert.certificateVersion === 2 || cert.certificateVersion === 3) {
         if (cert.issuerKeyId !== keyId) throw new Error('The certificate key ID does not match the trusted key.');
-        fields.push(2, cert.issuerKeyId, cert.publicationRevision ?? null, cert.publicationDigest ?? null);
+        fields.push(cert.certificateVersion, cert.issuerKeyId, cert.publicationRevision ?? null, cert.publicationDigest ?? null);
+        if (cert.certificateVersion === 3) {
+          const p = cert.presentation;
+          if (!p || typeof p.heading !== 'string' || typeof p.body !== 'string' ||
+            typeof p.footer !== 'string' || typeof p.signatory !== 'string' ||
+            (p.logoSha256 !== null && !/^[0-9a-f]{64}$/.test(p.logoSha256))) throw new Error('Invalid signed certificate design.');
+          fields.push(p.heading, p.body, p.footer, p.signatory, p.logoSha256);
+        }
       } else if (cert.certificateVersion !== undefined) throw new Error('Unsupported certificate version.');
       const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(fields)));
       const key = await crypto.subtle.importKey('spki', der, { name: 'Ed25519' }, false, ['verify']);
