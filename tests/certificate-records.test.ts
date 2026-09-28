@@ -97,12 +97,13 @@ test("signed certificate corrections survive archive restore and old records ver
     storePublication(w.asOrganizer, w.event.id, { method: "none", rubricVersion: 1, projects: [] }, "Initial publication");
     const report = persistEventCertificates(w.db, w.event.slug, w.clock.now(), oldDir);
     const original = report.certificates[0]!;
-    assert.equal(original.certificateVersion, 2);
+    assert.equal(original.certificateVersion, 3);
     assert.equal(original.publicationRevision, 1);
     const changed = correctCertificate(w.asOrganizer, w.event.id, original.serial, "supersede",
       "Corrected the recipient display name", { recipientName: "Corrected Recipient",
         recipientEmail: "corrected@example.test", category: original.category, detail: original.detail }, oldDir);
     assert.ok(changed.replacement);
+    assert.deepEqual(changed.replacement!.presentation, original.presentation);
     assert.equal(changed.record.replacementSerial, changed.replacement!.serial);
     assert.ok(verifyCertificateCorrection(changed.record, report.publicKeyPem));
     assert.ok(verifyCertificate(changed.replacement!, report.publicKeyPem));

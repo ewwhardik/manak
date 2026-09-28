@@ -19,7 +19,7 @@
  * the two branches worthless.
  */
 
-import { createSession, gatesFor, grantRole, upsertAccount } from "../../src/db/index.ts";
+import { createSession, gatesFor, grantRole, upsertAccount, persistEventCertificates } from "../../src/db/index.ts";
 import { recordComparison, saveBallot } from "../../src/db/repo/judging.ts";
 import { ALL_COMMANDS } from "../../src/api/commands/index.ts";
 import { publish } from "../../src/api/commands/results.ts";
@@ -62,6 +62,8 @@ const PROFILE = [
 export type JudgedOptions = {
   /** Publish a rubric and file ballots against it. `false` leaves the event pairwise-only. */
   rubric?: boolean;
+  /** Issue signed certificates for the event. */
+  certificates?: boolean;
 };
 
 export function judged(options: JudgedOptions = {}): Judged {
@@ -117,6 +119,12 @@ export function judged(options: JudgedOptions = {}): Judged {
   };
   publish.handler(publicationCall);
 
+  let sampleSerial = "CERT-SAMPLE-01";
+  if (options.certificates) {
+    const report = persistEventCertificates(w.db, w.event.slug, w.clock.now());
+    if (report.certificates[0]) sampleSerial = report.certificates[0].serial;
+  }
+
   const member = upsertAccount(w.system, "builder0@example.test");
   const stranger = upsertAccount(w.system, "stranger@example.test", "Sam Stranger");
   grantRole(w.system, w.event.id, stranger.id, "participant");
@@ -164,6 +172,7 @@ export function judged(options: JudgedOptions = {}): Judged {
       account: w.organizer.id,
       version: "1",
       token: "x".repeat(43),
+      serial: sampleSerial,
     },
     get,
     json: async (path, principal) => {

@@ -28,7 +28,7 @@ import { judged, readableCommands, route } from "./support/judged.ts";
 import { schemaProblems } from "./support/schema.ts";
 
 test("every GET response matches the schema its command publishes", async () => {
-  const rig = judged();
+  const rig = judged({ certificates: true });
   try {
     const failures: string[] = [];
     const covered = new Set<string>();

@@ -207,7 +207,9 @@ test("every keyframe the sheet defines is played, and every animation it plays i
   // makes a typo here indistinguishable from a design decision.
   const defined = [...STYLESHEET.matchAll(/@keyframes\s+([A-Za-z][\w-]*)/g)].map((m) => m[1]);
   const played = new Set(
-    [...STYLESHEET.matchAll(/animation:\s*([A-Za-z][\w-]*)/g)].map((m) => m[1] as string),
+    [...STYLESHEET.matchAll(/animation:\s*([A-Za-z][\w-]*)/g)]
+      .map((m) => m[1] as string)
+      .filter((name) => name !== "none"),
   );
   assert.ok(defined.length >= 3, `expected the motion block to exist, found ${defined.length}`);
   assert.deepEqual(
