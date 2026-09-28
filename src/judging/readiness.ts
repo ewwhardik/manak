@@ -9,6 +9,7 @@ export type ReadinessCheck = {
   status: "pass" | "review" | "missing";
   title: string;
   detail: string;
+  projects?: readonly { id: string; title: string; status: "draft" | "submitted" }[];
 };
 
 export function judgingReadiness(input: {
@@ -18,6 +19,8 @@ export function judgingReadiness(input: {
   rubric: NormalizationResult | null;
   pairwise: BradleyTerryResult | null;
   pairwiseEnabled: boolean;
+  duplicates?: readonly { title: string; ids: readonly string[];
+    projects: readonly { id: string; title: string; status: "draft" | "submitted" }[] }[];
 }) {
   const checks: ReadinessCheck[] = [];
   const add = (code: string, status: ReadinessCheck["status"], title: string, detail: string) =>
@@ -34,6 +37,18 @@ export function judgingReadiness(input: {
   }
   add("field", pool.size ? "pass" : "missing", "Eligible project field",
     `${pool.size} eligible projects. Withdrawn and disqualified entries are excluded.`);
+  if (input.duplicates) {
+    if (input.duplicates.length > 0) {
+      const count = input.duplicates.reduce((acc, d) => acc + d.projects.length, 0);
+      checks.push({ code: "submissions.duplicates", status: "review", title: "Repeated project titles",
+        detail: `${count} draft or submitted projects share titles after case and whitespace normalization. A title match does not prove duplicate work. Review each project before finalizing awards; drafts are not eligible submissions.`,
+        projects: input.duplicates.flatMap((group) => group.projects),
+      });
+    } else {
+      add("submissions.duplicates", "pass", "Repeated project titles",
+        "No repeated titles detected among draft or submitted projects.");
+    }
+  }
   const rubricMode = input.rubric !== null || !input.pairwiseEnabled;
   if (rubricMode) {
     const short = [...pool].filter((id) => (reviewers.get(id)?.size ?? 0) < input.reviewsPerProject);

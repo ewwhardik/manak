@@ -494,12 +494,28 @@ export function disqualifyProject(
  * over a title collision is worse than the confusion — so the organizer dashboard
  * shows them instead, before judges have to guess which one they are scoring.
  */
-export function duplicateTitles(db: Db, eventId: string): { title: string; ids: string[] }[] {
-  const rows = db.all<{ title: string; ids: string }>(
-    `select title, group_concat(id) as ids from project
+export type DuplicateTitleGroup = {
+  title: string;
+  ids: string[];
+  projects: { id: string; title: string; status: "draft" | "submitted" }[];
+};
+
+export function duplicateTitles(db: Db, eventId: string): DuplicateTitleGroup[] {
+  const rows = db.all<{ id: string; title: string; status: "draft" | "submitted" }>(
+    `select id, title, status from project
       where event_id = :e and status in ('submitted', 'draft')
-      group by title having count(*) > 1 order by title`,
+      order by title, id`,
     { e: eventId },
   );
-  return rows.map((row) => ({ title: row.title, ids: row.ids.split(",") }));
+  // Compare presentation differences without rewriting the names people entered.
+  // Punctuation remains significant; SQLite's lower() does not fold Unicode case.
+  const groups = new Map<string, DuplicateTitleGroup>();
+  for (const row of rows) {
+    const key = row.title.normalize("NFC").trim().replace(/\s+/gu, " ").toLowerCase();
+    const group = groups.get(key) ?? { title: row.title, ids: [], projects: [] };
+    group.ids.push(row.id);
+    group.projects.push(row);
+    groups.set(key, group);
+  }
+  return [...groups.values()].filter((group) => group.ids.length > 1);
 }

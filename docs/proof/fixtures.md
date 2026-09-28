@@ -61,6 +61,7 @@ Fixtures have no known true ordering. Rank movement demonstrates the adjustment;
 ## Evidence checks
 
 - **pass: Eligible project field.** 41 eligible projects. Withdrawn and disqualified entries are excluded.
+- **review: Repeated project titles.** 2 draft or submitted projects share titles after case and whitespace normalization. A title match does not prove duplicate work. Review each project before finalizing awards; drafts are not eligible submissions.
 - **missing: Independent review coverage.** 8 projects below the target of 3 distinct reviewers. Drafts do not count.
 - **pass: Shared rubric evidence.** 1 review groups. Separate groups cannot distinguish project quality from panel generosity; assign a shared reviewer across groups.
 - **review: Independent panel connections.** 7 reviewers individually hold the review network together. Add overlapping independent reviews before relying on cross-panel adjustments. This is a structural risk, not evidence of misconduct.
