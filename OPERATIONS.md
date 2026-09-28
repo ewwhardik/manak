@@ -1,4 +1,101 @@
-# Operations
+# Production Operations & Deployment Guide
+
+<p align="center">
+  <img src="docs/images/7.png" width="96" alt="Cryptographic Trust Mascot" />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/images/1.png" width="96" alt="Organizer Command Mascot" />
+</p>
+<p align="center">
+  <i>Maintained by the Tamper-Evident Cryptographic Verifier &amp; Organizer Command</i>
+</p>
+
+---
+
+## Visual Operations: Certificate Studio & Public Verification
+
+Manak pairs back-office operational controls with high-fidelity certificate generation and trustless offline verification:
+
+### 1. Certificate Studio & Custom Vector Art
+Organizers design visual certificates with real-time SVG previews, mathematical guilloche vector borders, customizable titles/signatories, and strict image asset binding (logos verified under 96 KiB and bound by SHA-256 digest).
+
+<p align="center">
+  <img src="docs/images/certificate_studio.png" width="90%" alt="Certificate Studio" /><br>
+  <i>Figure 1: Certificate Studio (/events/:slug/certificates/studio) with real-time vector layout editor and standalone SVG download.</i>
+</p>
+
+### 2. Client-Side Offline WebCrypto Verification
+Recipients and employers verify certificates offline in any modern browser without trusting the Manak server. The verification page runs purely client-side using native WebCrypto Ed25519 routines.
+
+<p align="center">
+  <img src="docs/images/certificate_verify.png" width="90%" alt="Offline Certificate Verification" /><br>
+  <i>Figure 2: Public verification terminal (/verify) parsing signed JSON payloads and validating Ed25519 signatures against the pinned issuer public key.</i>
+</p>
+
+---
+
+## Cryptographic Award Verification Lifecycle
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant O as Organizer
+  participant M as Manak Core (Ed25519)
+  participant L as SHA-256 Ledger
+  participant R as Recipient
+  participant V as Offline Browser (/verify)
+
+  O->>M: 1. Configure Template & Upload Logo in Studio
+  M->>M: 2. Compute SHA-256 Digest of Logo + Event Metadata
+  O->>M: 3. Publish Frozen Results & Trigger Issue Batch
+  M->>M: 4. Sign Payload with Server Ed25519 Private Key
+  M->>L: 5. Append Issuance Event to SHA-256 Hash Chain
+  M->>R: 6. Deliver Standalone Signed SVG / JSON Payload
+  R->>V: 7. Open Standalone /verify HTML in Offline Browser
+  V->>V: 8. Execute window.crypto.subtle.verify(Ed25519, key, sig, data)
+  Note over V: Validated Offline without Server Contact
+```
+
+---
+
+## Production Deployment & Hosting
+
+### Railway Deployment (Zero-Downtime, Persistent SQLite)
+
+Manak is engineered to run in a single container with a mounted persistent volume for the SQLite database and Ed25519 cryptographic keypair:
+
+```sh
+# Deploy directly to Railway production environment
+railway up -s manak -e production
+```
+
+Recommended Environment Configuration:
+- `MANAK_DATABASE=/data/manak.db` (Mapped to persistent Railway Volume at `/data`)
+- `MANAK_KEY_DIR=/data/keys` (Persistent Ed25519 key storage)
+- `MANAK_PUBLIC_ORIGIN=https://manak.up.railway.app`
+- `MANAK_PORT=8080`
+- `MANAK_FOUNDERS=organizer@example.com`
+- `MANAK_RESEND_API_KEY=re_...` (Optional transactional mail delivery)
+
+### Health Check & Ledger Integrity Inspection
+
+Inspect container health, SQLite connectivity, and SHA-256 ledger integrity via `/api/healthz`:
+
+```sh
+curl -s https://manak.up.railway.app/api/healthz | jq .
+```
+
+Expected Response:
+```json
+{
+  "status": "ok",
+  "database": "connected",
+  "ledger_head": "019234a5-...",
+  "operations": 82,
+  "dependencies": 0
+}
+```
+
+---
 
 ## Boot
 
