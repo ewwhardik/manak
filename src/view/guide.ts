@@ -61,6 +61,7 @@ export function guidePage(props: GuideProps): string {
 
 <section class="guide-hub" id="judges">
 <div class="section-heading">
+<img src="/assets/mascot-3.png" alt="Judge mascot" class="guide-mascot">
 <div>
 <p class="eyebrow">Evaluation Workflow</p>
 <h2>Judges' Evaluation Hub</h2>
@@ -122,6 +123,7 @@ export function guidePage(props: GuideProps): string {
 
 <section class="guide-hub" id="organizers">
 <div class="section-heading">
+<img src="/assets/mascot-1.png" alt="Organizer mascot" class="guide-mascot">
 <div>
 <p class="eyebrow">Event Operations</p>
 <h2>Organizers' Control Room</h2>
@@ -202,6 +204,7 @@ export function guidePage(props: GuideProps): string {
 
 <section class="guide-hub" id="builders">
 <div class="section-heading">
+<img src="/assets/mascot-2.png" alt="Builder mascot" class="guide-mascot">
 <div>
 <p class="eyebrow">Participant Experience</p>
 <h2>Builders' Workspace</h2>
@@ -233,6 +236,7 @@ export function guidePage(props: GuideProps): string {
 
 <section class="guide-hub" id="verification">
 <div class="section-heading">
+<img src="/assets/mascot-7.png" alt="Verification mascot" class="guide-mascot">
 <div>
 <p class="eyebrow">Cryptographic Integrity</p>
 <h2>Trust, Verification &amp; Ed25519 Certificates</h2>
@@ -265,6 +269,7 @@ export function guidePage(props: GuideProps): string {
 
 <section class="guide-hub" id="sitemap">
 <div class="section-heading">
+<img src="/assets/mascot-4.png" alt="Navigator mascot" class="guide-mascot">
 <div>
 <p class="eyebrow">Platform Directory</p>
 <h2>Complete Platform Sitemap</h2>

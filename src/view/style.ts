@@ -1134,6 +1134,7 @@ details.fast-login:hover > .fast-login-menu, details.fast-login[open] > .fast-lo
 .guide-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: auto; }
 .guide-actions a { display: inline-flex; align-items: center; padding: .45rem .85rem; font-size: .8rem; font-weight: 500; color: #5EC8D8; background: var(--glass-high); border: 1px solid rgba(94, 200, 216, .25); border-radius: 999px; text-decoration: none; transition: all var(--quick) var(--ease); }
 .guide-actions a:hover { border-color: #E8A548; color: #E8A548; background: rgba(232, 165, 72, .12); }
+.guide-mascot { width: 5.5rem; height: 5.5rem; object-fit: contain; margin-bottom: .8rem; filter: drop-shadow(0 4px 12px rgba(0, 0, 0, .35)); }
 .sitemap-table { margin-top: 1.5rem; }
 main { padding-top: 2.4rem; }
 .home main { padding-top: 2.6rem; }

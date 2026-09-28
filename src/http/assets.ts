@@ -8,6 +8,13 @@ const manifest = new Map([
   ["/assets/judging-orbit.gif", "image/gif"],
   ["/assets/judging-orbit.webm", "video/webm"],
   ["/assets/favicon.svg", "image/svg+xml"],
+  ["/assets/mascot-1.png", "image/png"],
+  ["/assets/mascot-2.png", "image/png"],
+  ["/assets/mascot-3.png", "image/png"],
+  ["/assets/mascot-4.png", "image/png"],
+  ["/assets/mascot-5.png", "image/png"],
+  ["/assets/mascot-6.png", "image/png"],
+  ["/assets/mascot-7.png", "image/png"],
 ]);
 const loaded = new Map<string, { bytes: Uint8Array; etag: string }>();
 

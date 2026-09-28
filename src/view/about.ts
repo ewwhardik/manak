@@ -51,7 +51,8 @@ export function aboutPage(context: ViewContext): string {
     title: `About ${title}`,
     trail: [{ label: "About" }],
     whoami: context.whoami, demoMode: context.demoMode,
-    body: `<p>${esc(title)} runs a hackathon end to end: teams register, submit a project against
+    body: `<div class="about-hero"><img src="/assets/mascot-5.png" alt="Zen engineering mascot" class="guide-mascot"></div>
+<p>${esc(title)} runs a hackathon end to end: teams register, submit a project against
 a deadline, judges score what they are assigned against a published rubric, and the organizer
 gets a ranking that has been corrected for the fact that judges are not calibrated to each
 other. One container, one port, one file on disk.</p>
