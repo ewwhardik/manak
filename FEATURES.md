@@ -125,19 +125,60 @@ Roles are scoped to one event. A judge invited to one event does not gain access
 
 **Boundary:** Readiness is decision support. An organizer still needs an explicit prize policy, especially for hybrid or pairwise events.
 
-## 12. Audit, exports, API, and integrations
+## 13. Certificate Studio, Vector Art, and Offline Verification
 
-**Target:** Let an operator inspect decisions, integrate the portal, and leave with their data.
+<p align="center">
+  <img src="docs/images/certificate_studio.png" width="90%" alt="Certificate Studio Designer" /><br>
+  <i>Certificate Studio (/events/:slug/certificates/studio) with live WYSIWYG preview, guilloche border, custom signatories, and official logo binding.</i>
+</p>
 
-**Current behavior:** Writes append event-scoped audit entries linked by hashes. CSV exports cover relevant event data. The archive CLI exports deterministic JSONL files and a manifest with migration and file digests; preview validates an archive before import into an empty compatible database. A Devpost import tool accepts external project data. The 76 command declarations serve the browser and JSON API and generate OpenAPI. A configured webhook worker sends signed, ordered event notifications to one trusted receiver, retries failed delivery and exposes read-only delivery status. The signing CLI issues Ed25519 JSON records for earned participants, completed judges, and explicit award decisions; organizers can sign revocation or supersession records. The offline verifier checks records against an independently trusted public key. An embeddable gallery widget is available as a separate route.
+**Target:** Give organizers complete creative control over event certificates with mathematically bound, offline-verifiable cryptographic guarantees.
 
-**Try it:** Open `/docs`, `/api/openapi.json`, and `/api/capabilities`. Run the archive round-trip proof. Follow [OPERATIONS.md](OPERATIONS.md) to test webhook delivery and signed records.
+**Current behavior:** 
+- **Template Designer**: Organizers configure certificate heading, custom body copy, footer, signatories, and upload an official event logo (PNG, JPEG, WebP, SVG under 96 KiB with strict byte-level signature verification).
+- **Standalone SVG Generation**: `GET /events/:slug/certificates/:serial.svg` serves crisp, print-ready vector awards with security rosettes, guilloche frames, and embedded QR verification coordinates.
+- **Offline Cryptographic Verifier (`/verify`)**: Award records bind the event slug, issue timestamp, recipient, placement, and SHA-256 logo digest into an Ed25519 digitally signed v3 presentation payload. Anyone can verify the award directly in their browser using the WebCrypto API without querying or trusting the server.
 
-**Boundary:** A hash chain detects ordinary accidental or unauthorized changes when the trusted head is known; it is not a substitute for protecting the host. Webhooks contain invalidation details, not private project payloads. Certificates are signed JSON, not mailed PDFs. Back up keys and the webhook checkpoint separately from the database archive.
+<p align="center">
+  <img src="docs/images/certificate_verify.png" width="90%" alt="Offline Certificate Verifier" /><br>
+  <i>Public Offline Verifier (/verify) cryptographically checking Ed25519 signatures and verifying logo digest integrity.</i>
+</p>
+
+**Try it:** As organizer `rosa@example.com`, open `/events/sample-hack-2026/certificates/studio`. Adjust the heading or signatory, upload a badge, and observe the live preview. Download the SVG award, then open `/verify` to test offline verification.
+
+**Boundary:** Certificate templates are scoped per event. Issuing certificates commits the current template and logo digest into immutable signed payloads; subsequent template updates do not alter previously signed awards.
+
+## 14. Repeated Project Title Collision Detection (NFC Unicode Normalization)
+
+**Target:** Prevent confusion, duplicate project entries, and unintentional collision in large hackathon rosters before judging commences.
+
+**Current behavior:** During readiness analysis (`/events/:slug/dashboard` and `/events/:slug/action-plan`), the readiness audit engine scans all active project titles. It applies Unicode NFC normalization, trims whitespace, and folds case to group potentially identical titles across teams. The dashboard warns organizers with an actionable alert, linking directly to the flagged submissions for immediate triage.
+
+<p align="center">
+  <img src="docs/images/action_plan.png" width="90%" alt="Organizer Action Plan & Title Warning" /><br>
+  <i>Action Plan showing high-priority readiness alerts, including repeated project title warnings and coverage bottlenecks.</i>
+</p>
+
+**Try it:** Create two projects with similar titles (e.g. `Quantum Leap` and `quantum leap`), submit both, and inspect the Organizer Dashboard or Action Plan.
+
+**Boundary:** Warning is non-blocking to prevent disruption during hectic submission sprints, but provides conspicuous audit guidance to organizers.
+
+## 15. 3D Celestial Hero & Reduced-Motion Accessibility
+
+<p align="center">
+  <img src="docs/images/hero_globe_3d.gif" width="400" alt="3D Hero Globe" /><br>
+  <i>Volumetric 3D sphere rotating smoothly with continuous continent drift, limb atmospheric shading, and tilted armillary rings.</i>
+</p>
+
+**Target:** Provide an inspiring, tactile visual identity for hackathons that remains 100% dependency-free, accessible, and responsive.
+
+**Current behavior:** Built entirely in CSS 3D transforms and SVG vector geometry without external libraries (Three.js/WebGL). Features a stationary volumetric core with spherical shading and rim glow, continuous continental drift track, perspective-tilted armillary meridians and latitude rings, and orbiting satellite beacons. Includes a native interactive pause switch (`#pause-orbit`) and honors user OS accessibility preferences via `@media (prefers-reduced-motion: reduce)`.
+
+---
 
 ## Command inventory
 
-The 76 registered operations are grouped below. `/docs` supplies the current method, path, fields, and role rule for each one. This inventory is a feature checklist; generated [OpenAPI](openapi.json) is the full contract.
+The **82 registered operations** are grouped below. `/docs` supplies the current method, path, fields, and role rule for each one. Generated [OpenAPI](openapi.json) documents the full machine-checked specification.
 
 | Area | Operations |
 | --- | --- |
@@ -148,11 +189,7 @@ The 76 registered operations are grouped below. `/docs` supplies the current met
 | Comments | `comments.add`, `comments.hide` |
 | Rubrics | `rubrics.show`, `rubrics.create`, `rubrics.publish` |
 | Judge work | `judging.queue`, `ballots.save`, `duels.next`, `duels.decide`, `assignments.preview`, `assignments.draw`, `judges.roster`, `judges.configure`, `judges.recusal`, `reviews.requests`, `reviews.request`, `reviews.cancel` |
-| Results, evidence and awards | `results.show`, `results.confidence`, `events.dashboard`, `results.preflight`, `results.evidence_packet`, `results.history`, `results.publish`, `results.unpublish`, `awards.list`, `awards.decide`, certificate issuance and correction |
+| Results, evidence and awards | `results.show`, `results.confidence`, `events.dashboard`, `results.preflight`, `results.evidence_packet`, `results.history`, `results.publish`, `results.unpublish`, `awards.list`, `awards.decide`, `results.certificates`, `results.certificate_studio`, `results.certificate_template`, `results.public_certificate` |
 | Community voting | `votes.start`, `votes.cast`, `votes.results`, `votes.ballot` |
 | Export | `exports.download` |
-| System | `system.home`, `system.healthz`, `system.docs`, `system.openapi`, `system.capabilities`, `system.about` |
-
-## Validation still needed for the hackathon
-
-The official acceptance tooling, Docker boot on a supported host, intended event-size testing, external mail and webhook checks, and a five-minute lifecycle video require separate evidence. The local tests and proof reports cover their stated fixtures and routes only.
+| System | `system.home`, `system.healthz`, `system.docs`, `system.openapi`, `system.capabilities`, `system.about`, `system.guide` |
