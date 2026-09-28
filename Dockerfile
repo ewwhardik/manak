@@ -65,6 +65,7 @@ COPY --chown=node:node src ./src
 COPY --chown=node:node tools ./tools
 COPY --chown=node:node tests ./tests
 COPY --chown=node:node docs ./docs
+COPY --chown=node:node logs ./logs
 COPY --chown=node:node README.md LICENSE tsconfig.json fixtures.json OPERATIONS.md JUDGING.md DATA-MODEL.md TIER-MATRIX.md ./
 
 USER root
