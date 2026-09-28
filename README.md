@@ -13,7 +13,7 @@
   <a href="https://github.com/ewwhardik/manak"><img src="https://img.shields.io/badge/GitHub-ewwhardik%2Fmanak-181717?style=flat-square&logo=github" alt="GitHub Repo" /></a>
   <img src="https://img.shields.io/badge/Version-0.1.0-blue?style=flat-square" alt="Version 0.1.0" />
   <img src="https://img.shields.io/badge/Node.js-22%20%7C%2024-green?style=flat-square&logo=node.js" alt="Node Version" />
-  <img src="https://img.shields.io/badge/Tests-584%20passed-brightgreen?style=flat-square" alt="Tests" />
+  <img src="https://img.shields.io/badge/Tests-590%20passed%20%7C%201%20skipped-brightgreen?style=flat-square" alt="Tests" />
   <img src="https://img.shields.io/badge/Dependencies-0%20runtime%20npm%20packages-success?style=flat-square" alt="0 Dependencies" />
   <img src="https://img.shields.io/badge/Storage-Native%20SQLite%20(1%20File)-orange?style=flat-square&logo=sqlite" alt="Native SQLite" />
   <img src="https://img.shields.io/badge/Cryptography-Ed25519%20%2B%20SHA--256%20Hash%20Chain-purple?style=flat-square" alt="Cryptography" />
@@ -48,11 +48,11 @@ Open **<https://manak.up.railway.app>** and use the **"Fast login"** menu in the
 | 1. Explore | Visitor | Open `/events`, choose Sample Hack 2026 or Dogfood, browse the project gallery and event schedule. |
 | 2. Submit | Builder (`Priya Nair` / `Beatriz Lima`) | Open **My workspace** or team pages. See saved drafts, required submission fields, track filters, and server-enforced deadlines. |
 | 3. Review | Judge (`Tomas Varga` / `Nils Berg`) | Open the judging queue, inspect the published rubric, save a draft, submit a ballot, or decide an eligible pairwise duel (`/duel`). Track limits, capacity, and recusal are strictly enforced. |
-| 4. Decide | Organizer (`Rosa Iyer`) | Inspect the real-time **Organizer Dashboard** (`/events/sample-hack-2026/dashboard`), coverage diagnostics, judge progress, model caveats, and the assignment reconciliation preview. |
+| 4. Decide | Organizer (`Rosa Iyer`) | Inspect the real-time **Organizer Dashboard** (`/events/sample-hack-2026/dashboard`), coverage diagnostics, judge progress, repeated title checks, and the assignment reconciliation preview. |
 | 5. Finalist Shootout | Organizer | Open the **Finalist Tie-Breaker Assistant** (`/events/sample-hack-2026/tie-breaker`) to compare overlapping 95% confidence intervals and Bradley-Terry win probabilities. |
 | 6. Stage Ceremony | Public / Stage | Open the **Live Ceremony Leaderboard** (`/events/sample-hack-2026/live`) for big-screen podium presentation with native 5s auto-refresh. |
 | 7. Publish & Appeal | Organizer & Builder | Publish a frozen results revision. File a private team appeal (`/appeals`), review it as an organizer, and publish a corrected result revision. |
-| 8. Award & Verify | Organizer & Recipient | Record explicit award decisions against the current publication revision, issue Ed25519 certificates, and verify signed JSON offline at `/verify`. |
+| 8. Award & Verify | Organizer & Recipient | Design and customize certificates in the **Certificate Studio** (`/events/sample-hack-2026/certificates/studio`). Issue Ed25519 signed batches, download standalone SVGs (`.svg`), and verify signed records offline at `/verify`. |
 
 The [evaluation guide](https://manak.up.railway.app/guide) in the running app links to each event surface. The [feature guide](FEATURES.md) and [tier evidence matrix](TIER-MATRIX.md) map the implementation to the challenge requirements.
 
@@ -84,11 +84,11 @@ Set `MANAK_FOUNDERS` to the founder email list, `MANAK_PUBLIC_ORIGIN` to the HTT
 | Metric | Value | Verification Source |
 | :--- | :--- | :--- |
 | **Production npm dependencies** | **0** | `package.json` (zero runtime dependencies) |
-| **Automated test suite** | **584** tests | `npm test` on native `node:test`; Windows skips one SIGTERM case |
-| **Command declarations** | **79 operations** | `src/api/commands/index.ts` & `/api/openapi.json` |
-| **Route inventory** | **79 operations** | Declared commands plus transport exceptions in `docs/ROUTES.md` |
+| **Automated test suite** | **591** tests declared | `npm test` on native `node:test`; 590 passed and one SIGTERM case skipped on Windows |
+| **Command declarations** | **82 operations** | `src/api/commands/index.ts` & `/api/openapi.json` |
+| **Route inventory** | **82 operations** | Declared commands plus transport exceptions in `docs/ROUTES.md` |
 | **Process architecture** | **1 process** | `bin/manak.ts` (single Node process, single SQLite writer) |
-| **Database file** | **1 file** | Native Node SQLite (`data/manak.db`), strict schema, 31 tables, 13 migrations |
+| **Database file** | **1 file** | Native Node SQLite (`data/manak.db`), strict schema, 32 tables, 14 migrations |
 | **Cryptographic keys** | **Ed25519** | Elliptic-curve signed award records (`/.well-known/manak-key.pub`) |
 | **Audit integrity** | **SHA-256** | Append-only hash-chained event ledger (`/api/healthz`) |
 
@@ -106,8 +106,8 @@ Human judges vary widely in calibration: some rate generously while others grade
 ### 3. Tamper-Evident SHA-256 Hash-Chain Audit Ledger
 Every single mutation—ballot submission, score edit, rubric adjustment, invitation issuance, and results publication—appends a record to an immutable SHA-256 hash chain. Organizers and auditors can download the complete event ledger at any time as CSV (`/api/events/:slug/csv/audit`).
 
-### 4. Offline Cryptographic Certificates (`/verify`)
-Every issued certificate contains an Ed25519 digital signature generated with the organizer's private key. The in-browser verifier (`/verify`) executes local WebCrypto verification in offline mode without pinging or trusting the server.
+### 4. Certificate Studio & Offline Cryptographic Verification (`/verify`)
+Organizers design certificates with customizable headings, message bodies, signatories, and uploaded event logos (PNG/JPEG under 96 KiB with strict byte/dimension validation). Upon results publication, issuing certificates freezes the design and recipient roster into Ed25519 digitally signed records with standalone SVG artwork and offline WebCrypto verification (`/verify`).
 
 ### 5. Community Choice Quadratic Voting (`/voting`)
 Community choice awards use quadratic voting with fixed credit budgets to mathematically dampen vote brigading and reflect genuine community consensus.
@@ -147,7 +147,7 @@ The [judging guide](JUDGING.md) describes the models and limits. [Proof reports]
 
 ## Architecture and Access
 
-Manak has **79 operations** in the command registry. The same declarations drive API dispatch, access checks, browser forms, and OpenAPI generation. A few transport routes, including the guide, ceremony, verifier, widget, and demo shortcut, are separately covered by tests in the [route inventory](docs/ROUTES.md). JSON API routes live under `/api`; most browser pages use the corresponding path without that prefix. See [the architecture](docs/ARCHITECTURE.md), [threat model](docs/THREAT-MODEL.md), and `/api/openapi.json`.
+Manak has **82 operations** in the command registry. The same declarations drive API dispatch, access checks, browser forms, and OpenAPI generation. A few transport routes, including the guide, ceremony, verifier, widget, and demo shortcut, are separately covered by tests in the [route inventory](docs/ROUTES.md). JSON API routes live under `/api`; most browser pages use the corresponding path without that prefix. See [the architecture](docs/ARCHITECTURE.md), [threat model](docs/THREAT-MODEL.md), and `/api/openapi.json`.
 
 | Layer | Responsibility |
 | --- | --- |
@@ -168,7 +168,7 @@ Run the complete verification pipeline locally:
 
 ```sh
 npm ci
-npm test       # 584 tests
+npm test       # 591 tests
 npm run typecheck
 npm run prove:normalization -- --check
 npm run prove:convergence -- --check
@@ -181,13 +181,19 @@ npm run verify:workflow
 - `npm ci` installs development types and TypeScript for `typecheck`; `npm start` does not install packages.
 - The proof scripts compare mathematical convergence, isolation, and round trips against committed evidence in `docs/proof/`.
 - One process-signal test is skipped on Windows; see the final test output for the exact count.
-- The registry currently declares **79 operations**. Generated [OpenAPI](openapi.json) and the [browser API reference](https://manak.up.railway.app/docs) expose their current contracts. Run `npm run docs:generate` after adding commands or changing measured source counts.
+- The registry currently declares **82 operations**. Generated [OpenAPI](openapi.json) and the [browser API reference](https://manak.up.railway.app/docs) expose their current contracts. Run `npm run docs:generate` after adding commands or changing measured source counts.
 
 ---
 
 ## Deployment and Limits
 
 `Dockerfile`, `compose.yaml`, and `railway.json` describe a one-port deployment. Persist the database and certificate key directory together. The Docker container runs securely with persistent volume permissions handled via `su-exec` to drop privileges to `node`.
+
+For strict air-gapped or offline deployment without external network access, overlay `compose.offline.yaml` to enforce container network isolation (`internal: true`):
+
+```sh
+docker compose -f compose.yaml -f compose.offline.yaml up -d
+```
 
 The current UI uses linked HTTPS media rather than storing uploads. Search is case-insensitive substring matching. The organizer dashboard refreshes on reload; the ceremony page auto-refreshes. Large synchronous model fits may delay requests, so benchmark at the intended event size. Community abuse signals require human review. Certificate corrections are signed, append-only records; a verifier needs the trusted public key and current correction status.
 

@@ -24,15 +24,19 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run Test Suite (565 tests)
+      - name: Run Test Suite
         run: |
           npm test
+          npm run typecheck
 
-      - name: Verify Mathematical Proofs
+      - name: Verify Mathematical & Operational Proofs
         run: |
+          npm run prove:isolation -- --check
+          npm run prove:roundtrip -- --check
+          npm run prove:fixtures -- --check
           npm run prove:normalization -- --check
           npm run prove:convergence -- --check
-          npm run prove:fixtures -- --check
+          npm run verify:workflow
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

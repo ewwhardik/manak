@@ -4,6 +4,7 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ALL_COMMANDS, PRODUCT } from "../src/api/commands/index.ts";
 import { makeRegistry, openapiDocument } from "../src/api/index.ts";
+import { VIEWS } from "../src/view/index.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const sources: { path: string; text: string }[] = [];
@@ -21,6 +22,7 @@ const ops = ALL_COMMANDS.length;
 const gets = ALL_COMMANDS.filter((c) => c.method === "GET").length;
 const posts = ops - gets;
 const probes = ops * 6 * 2;
+const pages = Object.keys(VIEWS).length;
 
 for (const path of ["README.md", "docs/ARCHITECTURE.md", "docs/THREAT-MODEL.md"]) {
   let text = readFileSync(join(root, path), "utf8");
@@ -34,7 +36,8 @@ for (const path of ["README.md", "docs/ARCHITECTURE.md", "docs/THREAT-MODEL.md"]
     .replace(/all \d+ requests\b/g, `all ${probes} requests`)
     .replace(/across all \d+\b/g, `across all ${probes}`)
     .replace(/\d+ are `GET`/g, `${gets} are \`GET\``)
-    .replace(/\d+ are `POST`/g, `${posts} are \`POST\``);
+    .replace(/\d+ are `POST`/g, `${posts} are \`POST\``)
+    .replace(/\d+ have a hand-written page/g, `${pages} have a hand-written page`);
   text = text.replace(/^\| `([^`]+)` \| [\d,]+ \|/gm, (row, prefix: string) => {
     const n = sources.filter((s) => s.path !== "tests/source.test.ts" && (s.path === prefix || s.path.startsWith(`${prefix}/`))).reduce((n, s) => n + s.text.split("\n").length - 1, 0);
     return n ? `| \`${prefix}\` | ${n.toLocaleString("en-US")} |` : row;

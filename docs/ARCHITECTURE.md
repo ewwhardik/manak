@@ -1,6 +1,6 @@
 # How Manak is built
 
-Manak is 79 operations with 30 archived tables, no production npm
+Manak is 82 operations with 30 archived tables, no production npm
 dependencies, no build step and one process. That combination is not a boast; it is the
 constraint that decided nearly every other question in this repository, and this file is
 where those decisions are written down with their costs attached rather than left for a
@@ -50,7 +50,7 @@ None of the five is written by hand and none of them can omit an operation, beca
 one is a `map` over the same array. A feature that exists in the browser and not in the
 API is not something this codebase makes difficult; it is something it has nowhere to put.
 
-The 79 operations are declared once: 38 are `GET` and 41 are `POST`.
+The 82 operations are declared once: 40 are `GET` and 42 are `POST`.
 The isolation proof exercises every declaration through JSON and browser rendering.
 
 **Only `GET` and `POST`, and this is the price paid for the table above.** An HTML form can
@@ -78,14 +78,14 @@ before the socket opens.
 
 | | Lines | May import | Owns |
 | --- | --- | --- | --- |
-| `src/judging` | 7,494 | nothing | the arithmetic: normalization, reliability, per-criterion analysis, pairwise fitting, bootstrap intervals, judge calibration, assignment |
-| `src/db` | 6,338 | `node:*`, the engine's types | schema, migrations, repositories, ledger, limiter |
-| `src/api` | 9,834 | `src/db/index.ts` | the declarations, capability, schema, errors, OpenAPI |
-| `src/view` | 6,115 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
-| `src/http` | 2,070 | everything below | the dispatcher, the responses, the socket |
+| `src/judging` | 7,509 | nothing | the arithmetic: normalization, reliability, per-criterion analysis, pairwise fitting, bootstrap intervals, judge calibration, assignment |
+| `src/db` | 6,552 | `node:*`, the engine's types | schema, migrations, repositories, ledger, limiter |
+| `src/api` | 9,943 | `src/db/index.ts` | the declarations, capability, schema, errors, OpenAPI |
+| `src/view` | 6,294 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
+| `src/http` | 2,157 | everything below | the dispatcher, the responses, the socket |
 | `src/mail` | 1,179 | `node:*`, one erased type | RFC 5322 composition, an SMTP client, the outbox |
 | `bin/manak.ts` | 554 | everything | the environment, migration, signals, the process |
-| `tools` | 6,009 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
+| `tools` | 6,085 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
 
 `src/mail` is the one entry that is not part of the stack, and the shape of its row is the
 reason. It sits beside the layers rather than on top of them: it imports `node:*` and one
@@ -455,7 +455,7 @@ it puts HTML in the file the OpenAPI document is generated from, and then the cl
 JSON API is not the second-class rendering becomes a matter of discipline rather than of
 structure.
 
-A missing view is not an error. Of the 79 operations, 21 have a hand-written page and
+A missing view is not an error. Of the 82 operations, 23 have a hand-written page and
 three of the remaining GETs, the OpenAPI document, the capability matrix and the health check -
 render through a generic renderer that shows the same data as a definition list. The other twenty
 are POSTs, which never render at all: a browser that posts one gets a 303 to the page that shows
@@ -527,7 +527,7 @@ fails the suite rather than review.
 
 It owns three things nothing above it does. It reads the environment, every option `makeApp`
 takes is a value somebody has to supply, and doing it in one file is most of what keeps
-`process.env` out of 79 handlers. Anything that is not plainly a boolean is refused rather
+`process.env` out of 82 handlers. Anything that is not plainly a boolean is refused rather
 than read as false, because `MANAK_TRUST_PROXY=maybe` meaning "off" is a misconfiguration
 that never announces itself. It migrates before serving, which is a deliberate trade in favour
 of a one-command boot and is safe only because `planMigrations` refuses a divergent history:
@@ -557,14 +557,14 @@ of it is checkable from outside the source. `/api/capabilities` publishes the ac
 computed from the same declarations the dispatcher enforces, so every refusal this deployment
 intends to make can be read before a single request is sent, and then
 `npm run prove:isolation` sends
-79 × 6 × 2 = 948 requests over a real socket and compares every answer to it.
+82 × 6 × 2 = 984 requests over a real socket and compares every answer to it.
 `npm run prove:normalization` re-derives the engine's numbers from a seed.
 `npm run prove:roundtrip` exports 159 rows through 30 files, imports them into an empty
 database, exports again and compares the bytes. All three are committed, re-executable, and
 run as tests by `tests/proof.test.ts`, so a change that quietly invalidates one fails
 `npm test` rather than waiting to be noticed.
 
-The 584 tests are Node's own runner with no framework. Three files in there are load-bearing in
+The 591 tests are Node's own runner with no framework. Three files in there are load-bearing in
 a way the rest are not: `tests/source.test.ts` holds every layer and source rule described
 above,
 `tests/api.test.ts` asserts that every refusal the published document describes is one the

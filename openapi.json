@@ -15501,6 +15501,27 @@
                     "publicKeyPem": {
                       "type": "string"
                     },
+                    "issuerKeyId": {
+                      "type": "string"
+                    },
+                    "publicationRevision": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "publicationDigest": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "logoDataUrl": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "certificates": {
                       "type": "array",
                       "items": {
@@ -15799,6 +15820,618 @@
           "certificate.issued"
         ],
         "x-manak-limit": "organize"
+      }
+    },
+    "/api/events/{event}/certificates/studio": {
+      "get": {
+        "operationId": "results_certificate_studio",
+        "summary": "Design certificates and view the issued recipient roster.",
+        "description": "Callable by a organizer of the event.",
+        "tags": [
+          "results"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event",
+            "in": "path",
+            "required": true,
+            "description": "The event's slug or id, as it appears in the URL.",
+            "schema": {
+              "description": "The event's slug or id, as it appears in the URL.",
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Design certificates and view the issued recipient roster.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "event": {
+                      "type": "string"
+                    },
+                    "eventSlug": {
+                      "type": "string"
+                    },
+                    "totalIssued": {
+                      "type": "integer"
+                    },
+                    "participants": {
+                      "type": "integer"
+                    },
+                    "judges": {
+                      "type": "integer"
+                    },
+                    "winners": {
+                      "type": "integer"
+                    },
+                    "publicKeyPem": {
+                      "type": "string"
+                    },
+                    "issuerKeyId": {
+                      "type": "string"
+                    },
+                    "publicationRevision": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "publicationDigest": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "logoDataUrl": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "resultsPublic": {
+                      "type": "boolean"
+                    },
+                    "template": {
+                      "type": "object"
+                    },
+                    "certificates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "required": [
+                    "event",
+                    "eventSlug",
+                    "template",
+                    "certificates",
+                    "totalIssued"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request itself could not be read: a bad escape in the URL, or a body that is not the JSON it claims to be.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in. Sign in and retry.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, and a member of this event, but not with the role this needs.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing — or none that this caller is allowed to know exists.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The submission is malformed. Every problem is listed, not just the first.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. `Retry-After` says how long, and the window is fixed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds."
+              }
+            }
+          },
+          "500": {
+            "description": "A bug. The operator's log has the details; this response does not.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-manak-command": "results.certificate_studio",
+        "x-manak-capability": {
+          "audience": "organizer",
+          "scope": "event"
+        }
+      }
+    },
+    "/api/events/{event}/certificates/template": {
+      "post": {
+        "operationId": "results_configure_certificate_template",
+        "summary": "Save the event certificate design before issuance.",
+        "description": "Callable by a organizer of the event.",
+        "tags": [
+          "results"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event",
+            "in": "path",
+            "required": true,
+            "description": "The event's slug or id, as it appears in the URL.",
+            "schema": {
+              "description": "The event's slug or id, as it appears in the URL.",
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "The form encoding is the same operation and the same fields. It differs in one way: a URL-encoded body carries no types, so `3` and `true` arrive as text and are converted, while a JSON body of `\"3\"` for an integer is refused.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "heading": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 90
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 350
+                  },
+                  "footer": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 120
+                  },
+                  "signatory": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  }
+                },
+                "required": [
+                  "heading",
+                  "body",
+                  "footer",
+                  "signatory"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "heading": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 90
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 350
+                  },
+                  "footer": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 120
+                  },
+                  "signatory": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  }
+                },
+                "required": [
+                  "heading",
+                  "body",
+                  "footer",
+                  "signatory"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Save the event certificate design before issuance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "presentation": {
+                      "type": "object"
+                    },
+                    "logoDataUrl": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "presentation"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request itself could not be read: a bad escape in the URL, or a body that is not the JSON it claims to be.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in. Sign in and retry.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, and a member of this event, but not with the role this needs.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing — or none that this caller is allowed to know exists.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Well-formed, and refused: a deadline, a published rubric, a withdrawn project.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is larger than this deployment accepts.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Send `application/json` or `application/x-www-form-urlencoded`; nothing else is read.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The submission is malformed. Every problem is listed, not just the first.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. `Retry-After` says how long, and the window is fixed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds."
+              }
+            }
+          },
+          "500": {
+            "description": "A bug. The operator's log has the details; this response does not.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-manak-command": "results.configure_certificate_template",
+        "x-manak-capability": {
+          "audience": "organizer",
+          "scope": "event"
+        },
+        "x-manak-records": [
+          "certificate.template.updated"
+        ],
+        "x-manak-limit": "organize"
+      }
+    },
+    "/api/events/{event}/certificates/{serial}": {
+      "get": {
+        "operationId": "results_public_certificate",
+        "summary": "View an issued certificate and its current correction status.",
+        "description": "Callable by anyone, signed in or not.",
+        "tags": [
+          "results"
+        ],
+        "security": [
+          {}
+        ],
+        "parameters": [
+          {
+            "name": "event",
+            "in": "path",
+            "required": true,
+            "description": "The event's slug or id, as it appears in the URL.",
+            "schema": {
+              "description": "The event's slug or id, as it appears in the URL.",
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "serial",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 180
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "View an issued certificate and its current correction status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "serial": {
+                      "type": "string"
+                    },
+                    "eventName": {
+                      "type": "string"
+                    },
+                    "recipientName": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "issuedAt": {
+                      "type": "integer"
+                    },
+                    "issuerOrigin": {
+                      "type": "string"
+                    },
+                    "issuerKeyId": {
+                      "type": "string"
+                    },
+                    "publicationRevision": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "presentation": {
+                      "type": "object"
+                    },
+                    "logoDataUrl": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "correctionReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "replacementSerial": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "eventSlug": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "serial",
+                    "recipientName",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request itself could not be read: a bad escape in the URL, or a body that is not the JSON it claims to be.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing — or none that this caller is allowed to know exists.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The submission is malformed. Every problem is listed, not just the first.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. `Retry-After` says how long, and the window is fixed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds."
+              }
+            }
+          },
+          "500": {
+            "description": "A bug. The operator's log has the details; this response does not.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-manak-command": "results.public_certificate",
+        "x-manak-capability": {
+          "audience": "public",
+          "scope": "event"
+        }
       }
     },
     "/api/events/{event}/certificates/status": {
