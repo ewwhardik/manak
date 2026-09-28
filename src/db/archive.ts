@@ -108,6 +108,7 @@ export const ARCHIVE_TABLES: readonly string[] = [
   "award_decision",
   "appeal",
   "certificate_batch",
+  "certificate_template",
   "certificate_correction",
   "ledger",
 ];
