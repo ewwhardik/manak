@@ -1,0 +1,4 @@
+# Strict network air-gap: disables outbound internet egress from container runtime.
+networks:
+  default:
+    internal: true

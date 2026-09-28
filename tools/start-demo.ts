@@ -1,7 +1,7 @@
 /** Demo-only composition root. Seed once, never reconcile an existing deployment. */
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { openDatabase, migrate, makeContext, systemClock, findEvent } from "../src/db/index.ts";
+import { openDatabase, migrate, makeContext, systemClock, findEvent, saveCertificateTemplate } from "../src/db/index.ts";
 import { seed } from "./seed-demo.ts";
 import { seedFixtures, FIXTURE_AUTH } from "./seed-fixtures.ts";
 
@@ -32,6 +32,20 @@ if (process.env.MANAK_DEMO === "true") {
     if (existing?.total === 0) {
       db.tx(() => seed(makeContext(db), systemClock.now()));
       process.stdout.write("[demo] Seeded Dogfood Invitational. Organizer: rosa@example.com.\n");
+    }
+    // Seed Certificate Studio demo template if not present
+    const targetEvent = db.get<{ id: string; slug: string }>("select id, slug from event where slug in ('dogfood', 'sample-hack-2026') order by id desc limit 1");
+    if (targetEvent) {
+      const existingTemplate = db.get("select 1 from certificate_template where event_id = :event", { event: targetEvent.id });
+      if (!existingTemplate) {
+        saveCertificateTemplate(db, targetEvent.id, {
+          heading: "Certificate of Achievement",
+          body: "In recognition of outstanding dedication, creativity, and engineering craft.",
+          footer: "Issued by the Organizing Committee",
+          signatory: "Organizing Committee & Jury",
+        }, systemClock.now());
+        process.stdout.write(`[demo] Seeded Certificate Studio demo template for /events/${targetEvent.slug}/certificates/studio\n`);
+      }
     }
   } finally { db.close(); }
 }
