@@ -1,5 +1,57 @@
 # How Manak is built
 
+<p align="center">
+  <img src="images/5.png" width="96" alt="Zen Reliability Mascot" />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="images/7.png" width="96" alt="Cryptographic Trust Mascot" />
+</p>
+<p align="center">
+  <i>Zero-Runtime-Dependency Architecture &amp; Tamper-Evident Ledger Integrity</i>
+</p>
+
+---
+
+## High-Level System Architecture
+
+```mermaid
+flowchart TD
+  subgraph Client ["Client Presentation & Access"]
+    Browser["Zero-JS Browser Interface (HTML Forms & Semantic Views)"]
+    APIClient["REST / OpenAPI 3.1 Clients (curl, scripts, integrations)"]
+  end
+
+  subgraph PresentationLayer ["Transport & Presentation"]
+    HTTP["src/http (HTTP Server, Security Headers, Asset Pipeline)"]
+    VIEW["src/view (HTML Template Engines, Mascots, SVG Assets)"]
+  end
+
+  subgraph APILayer ["API Contract & Commands"]
+    API["src/api (82 Operation Declarations, OpenAPI, Access Matrix)"]
+    CAP["Capability & Rate Limiting (Role Audience, Windows, Buckets)"]
+  end
+
+  subgraph StorageLayer ["Persistence & Ledger"]
+    DB["src/db (Native SQLite, 32 Tables, 14 Migrations)"]
+    LEDGER["Append-Only SHA-256 Hash Chain (Audited Mutations)"]
+  end
+
+  subgraph EngineLayer ["Deterministic Math Core (0 Imports)"]
+    JUDGE["src/judging (Bayesian Normalization, Bradley-Terry, Hodge Curl)"]
+  end
+
+  Browser --> HTTP
+  APIClient --> HTTP
+  HTTP --> API
+  HTTP --> VIEW
+  API --> CAP
+  API --> DB
+  DB --> LEDGER
+  JUDGE -.->|"Pure Math Calculation"| API
+  JUDGE -.->|"Statistical Diagnostics"| VIEW
+```
+
+---
+
 Manak is 82 operations with 30 archived tables, no production npm
 dependencies, no build step and one process. That combination is not a boast; it is the
 constraint that decided nearly every other question in this repository, and this file is
@@ -81,8 +133,8 @@ before the socket opens.
 | `src/judging` | 7,509 | nothing | the arithmetic: normalization, reliability, per-criterion analysis, pairwise fitting, bootstrap intervals, judge calibration, assignment |
 | `src/db` | 6,552 | `node:*`, the engine's types | schema, migrations, repositories, ledger, limiter |
 | `src/api` | 9,943 | `src/db/index.ts` | the declarations, capability, schema, errors, OpenAPI |
-| `src/view` | 6,298 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
-| `src/http` | 2,157 | everything below | the dispatcher, the responses, the socket |
+| `src/view` | 6,305 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
+| `src/http` | 2,164 | everything below | the dispatcher, the responses, the socket |
 | `src/mail` | 1,179 | `node:*`, one erased type | RFC 5322 composition, an SMTP client, the outbox |
 | `bin/manak.ts` | 554 | everything | the environment, migration, signals, the process |
 | `tools` | 6,085 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
@@ -128,6 +180,27 @@ crash the first time that module loads, and only erasable syntax is allowed, sin
 produce. Both mistakes were made here before they were checked.
 
 ## The request, in the order its refusals happen
+
+```mermaid
+flowchart TD
+  R1["1. Read Wire (size, UTF-8, media type)"] -->|413 / 415| Refusal["Refusal Response"]
+  R1 -->|Valid| R2["2. Route (path & method matching)"]
+  R2 -->|404 / 405| Refusal
+  R2 -->|Valid| R3["3. Authenticate (session token hash)"]
+  R3 --> R4["4. Refuse Stranger Early (public audience check)"]
+  R4 -->|401 / 404| Refusal
+  R4 -->|Permitted| R5["5. Parse (input validation & schema)"]
+  R5 -->|422 Unprocessable| Refusal
+  R5 -->|Valid| R6["6. Resolve Scope (event slug/id mapping)"]
+  R6 -->|404 Not Found| Refusal
+  R6 -->|Found| R7["7. Meter (rate-limit quota bucket)"]
+  R7 -->|429 Rate Limited| Refusal
+  R7 -->|Within Quota| R8["8. Decide (role authorization & isolation)"]
+  R8 -->|403 Forbidden / 404 Hidden| Refusal
+  R8 -->|Authorized| R9["9. Gate (event lifecycle & window)"]
+  R9 -->|409 Window Closed| Refusal
+  R9 -->|Open| R10["10. Invoke & Render (JSON / HTML / 303 PRG)"]
+```
 
 `src/http/app.ts` is ten steps, and the order is a design decision rather than an
 implementation detail: every step is a refusal waiting to happen, and the order decides
