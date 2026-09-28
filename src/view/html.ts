@@ -122,6 +122,11 @@ export function page(options: PageOptions): string {
   const trail = options.trail ?? [];
   const heading = trail.length > 0 ? (trail[trail.length - 1] as Breadcrumb).label : options.title;
   const crumbs = trail.slice(0, -1);
+  const activeNav = options.layout === "home" ? "events"
+    : options.title === "Your events" ? "mine"
+    : options.title === "Platform Guide & Evaluation Sitemap" ? "guide"
+    : options.title.startsWith("About ") ? "about"
+    : trail.some((crumb) => crumb.href?.startsWith("/events/")) || trail[0]?.label === "Events" ? "event" : "";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -140,7 +145,7 @@ ${
 <a class="skip" href="#main">Skip to content</a>
 <header class="bar">
 <a class="mark" href="/" aria-label="Manak home"><span class="brand-symbol" aria-hidden="true">m</span>manak<span class="brand-period">.</span></a>
-<nav class="primary-nav" aria-label="Main navigation"><a href="/events"${options.layout === "home" ? ' aria-current="page"' : ""}>Explore events</a>${options.whoami == null ? "" : '<a href="/mine">My workspace</a>'}<a href="/guide">Evaluation guide</a><a href="/about">The method</a></nav>
+<nav class="primary-nav" aria-label="Main navigation"><a href="/events"${activeNav === "events" ? ' aria-current="page"' : activeNav === "event" ? ' aria-current="location"' : ""}>Explore events</a>${options.whoami == null ? "" : `<a href="/mine"${activeNav === "mine" ? ' aria-current="page"' : ""}>My workspace</a>`}<a href="/guide"${activeNav === "guide" ? ' aria-current="page"' : ""}>Evaluation guide</a><a href="/about"${activeNav === "about" ? ' aria-current="page"' : ""}>The method</a></nav>
 <nav class="who" aria-label="Account">${
     options.whoami == null
       ? '<a href="/signin">Sign in</a>'
