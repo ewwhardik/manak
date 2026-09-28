@@ -81,7 +81,7 @@ before the socket opens.
 | `src/judging` | 7,509 | nothing | the arithmetic: normalization, reliability, per-criterion analysis, pairwise fitting, bootstrap intervals, judge calibration, assignment |
 | `src/db` | 6,552 | `node:*`, the engine's types | schema, migrations, repositories, ledger, limiter |
 | `src/api` | 9,943 | `src/db/index.ts` | the declarations, capability, schema, errors, OpenAPI |
-| `src/view` | 6,294 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
+| `src/view` | 6,298 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
 | `src/http` | 2,157 | everything below | the dispatcher, the responses, the socket |
 | `src/mail` | 1,179 | `node:*`, one erased type | RFC 5322 composition, an SMTP client, the outbox |
 | `bin/manak.ts` | 554 | everything | the environment, migration, signals, the process |
