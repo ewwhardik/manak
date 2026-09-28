@@ -212,6 +212,7 @@ export {
   certificateKeyDirectory,
   issuedEventCertificates,
   persistEventCertificates,
+  publicCertificate,
   verifyCertificate,
   verifyCertificateCorrection,
 } from "./cert.ts";
@@ -224,7 +225,11 @@ export type {
   KeypairConfig,
   SignedCertificate,
   SignedCertificateCorrection,
+  PublicCertificate,
 } from "./cert.ts";
+export { certificateTemplate, saveCertificateTemplate, saveCertificateLogo, clearCertificateLogo,
+  validateCertificateLogo, verifyCertificateLogo, DEFAULT_CERTIFICATE_PRESENTATION } from "./certificate-template.ts";
+export type { CertificatePresentation, CertificateTemplate } from "./certificate-template.ts";
 
 export {
   CSV_STAGES,
