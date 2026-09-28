@@ -1288,6 +1288,60 @@ test("duplicate titles are reported rather than refused", () => {
   h.close();
 });
 
+test("duplicate title query folds case and whitespace but respects punctuation, status and event", () => {
+  const h = world();
+  try {
+    h.clock.set(h.event.submissions_close_at - MS.hour);
+    const make = (name: string, title: string, submit = true) => {
+      const team = createTeamAt(h, h.clock.now(), name);
+      const draft = createProject(h.system, h.event, team, { title, summary: "A project." });
+      return submit ? submitProject(h.system, h.event, draft) : draft;
+    };
+    const draft = make("Whitespace", "project\t 0", false);
+    const upper = make("Case", "PROJECT 0");
+    const punctuated = make("Punctuation", "Project 0!");
+    const composed = make("Accented", "Café");
+    const decomposed = make("Decomposed", "Cafe\u0301", false);
+    const withdrawn = make("Withdrawn", "project 0");
+    withdrawProject(h.system, h.event, withdrawn);
+    const disqualified = make("Disqualified", "PROJECT 0");
+    disqualifyProject(h.asOrganizer, h.event, disqualified, "Duplicate entry");
+
+    // Normal project writes trim the outside; preserve a legacy/imported title to
+    // exercise the query's outer-whitespace comparison as well.
+    h.system.recorded({ action: "project.updated", eventId: h.event.id, subject: upper.id }, () =>
+      h.system.write("update project set title = :title where id = :id", { title: "  PROJECT 0  ", id: upper.id }));
+    const other = createEvent(h.system, {
+      slug: "another-event", name: "Another event",
+      submissionsOpenAt: h.event.submissions_open_at,
+      submissionsCloseAt: h.event.submissions_close_at,
+      judgingOpenAt: h.event.judging_open_at,
+      judgingCloseAt: h.event.judging_close_at,
+      reviewsPerProject: 2, pairwiseEnabled: false,
+    });
+    const otherTeam = createTeam(h.system, other.id, "Other team");
+    submitProject(h.system, other, createProject(h.system, other, otherTeam,
+      { title: "project 0", summary: "Other event." }));
+
+    const groups = duplicateTitles(h.db, h.event.id);
+    assert.equal(groups.length, 2);
+    const projectZero = groups.find((group) => group.ids.includes(h.projects[0]!.id));
+    assert.equal(projectZero?.title, "  PROJECT 0  ");
+    assert.deepEqual(new Set(projectZero?.ids), new Set([h.projects[0]!.id, draft.id, upper.id]));
+    assert.deepEqual(projectZero?.projects.map((p) => [p.id, p.title, p.status]), [
+      [upper.id, "  PROJECT 0  ", "submitted"],
+      [h.projects[0]!.id, "Project 0", "submitted"],
+      [draft.id, "project\t 0", "draft"],
+    ]);
+    assert.deepEqual(new Set(groups.find((group) => group.ids.includes(composed.id))?.ids),
+      new Set([composed.id, decomposed.id]));
+    assert.ok(groups.every((group) => !group.ids.includes(punctuated.id)));
+    assert.ok(groups.every((group) => !group.ids.includes(withdrawn.id)));
+    assert.ok(groups.every((group) => !group.ids.includes(disqualified.id)));
+    assert.deepEqual(duplicateTitles(h.db, other.id), []);
+  } finally { h.close(); }
+});
+
 // ---------------------------------------------------------------------------
 // Rubrics, which are versioned rather than edited.
 // ---------------------------------------------------------------------------
