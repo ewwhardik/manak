@@ -26,6 +26,8 @@ import type { Db } from "./open.ts";
 import { RuleError } from "./context.ts";
 import { assertVotingClosed, findEventBySlug } from "./repo/events.ts";
 import { latestPublication } from "./publication.ts";
+import { certificateTemplate, verifyCertificateLogo } from "./certificate-template.ts";
+import type { CertificatePresentation } from "./certificate-template.ts";
 
 export type CertificateCategory = "participation" | "judge" | "placement";
 
@@ -43,6 +45,7 @@ export type CertificatePayload = {
   issuerKeyId?: string;
   publicationRevision?: number;
   publicationDigest?: string;
+  presentation?: CertificatePresentation;
 };
 
 export type SignedCertificate = CertificatePayload & {
@@ -74,6 +77,10 @@ export function certDigest(payload: CertificatePayload): Buffer {
   ];
   if (payload.certificateVersion === 2) fields.push(2, payload.issuerKeyId,
     payload.publicationRevision ?? null, payload.publicationDigest ?? null);
+  if (payload.certificateVersion === 3) fields.push(3, payload.issuerKeyId,
+    payload.publicationRevision ?? null, payload.publicationDigest ?? null,
+    payload.presentation?.heading, payload.presentation?.body, payload.presentation?.footer,
+    payload.presentation?.signatory, payload.presentation?.logoSha256);
   return createHash("sha256").update(JSON.stringify(fields), "utf8").digest();
 }
 
@@ -143,6 +150,13 @@ export function verifyCertificate(
   cert: SignedCertificate,
   publicKey: KeyObject | string,
 ): boolean {
+  if (cert.certificateVersion !== undefined && cert.certificateVersion !== 2 && cert.certificateVersion !== 3) return false;
+  if (cert.certificateVersion === 3 && !cert.presentation) return false;
+  if ((cert.certificateVersion === 2 || cert.certificateVersion === 3) && cert.issuerKeyId) {
+    const key = typeof publicKey === "string" ? createPublicKey(publicKey) : publicKey;
+    const der = key.export({ type: "spki", format: "der" });
+    if (issuerKeyId(der.subarray(der.length - 32).toString("hex")) !== cert.issuerKeyId) return false;
+  }
   const digest = certDigest(cert);
   const sigBuffer = Buffer.from(cert.signature, "hex");
   return verify(null, digest, publicKey, sigBuffer);
@@ -200,6 +214,43 @@ export function certificateCorrections(db: Db, eventId: string): {
     row.replacement_certificate ? [JSON.parse(row.replacement_certificate) as SignedCertificate] : []) };
 }
 
+export type PublicCertificate = {
+  serial: string; eventName: string; recipientName: string; category: CertificateCategory;
+  detail: string; issuedAt: number; issuerOrigin: string; issuerKeyId: string | null;
+  publicationRevision: number | null; presentation: CertificatePresentation | null;
+  logoDataUrl: string | null; status: "active" | "revoked" | "superseded";
+  correctionReason: string | null; replacementSerial: string | null;
+};
+
+/** Read an issued record only from its frozen batch or signed replacement log. */
+export function publicCertificate(db: Db, eventId: string, serial: string): PublicCertificate | undefined {
+  const batch = issuedEventCertificates(db, eventId);
+  if (!batch) return undefined;
+  const rows = db.all<CorrectionRow>("select * from certificate_correction where event_id = :event order by issued_at, id", { event: eventId });
+  const cert = batch.certificates.find((item) => item.serial === serial) ?? rows.flatMap((row) =>
+    row.replacement_certificate ? [JSON.parse(row.replacement_certificate) as SignedCertificate] : []).find((item) => item.serial === serial);
+  if (!cert) return undefined;
+  const keyPem = batch.certificates.some((item) => item.serial === serial) ? batch.publicKeyPem :
+    rows.find((row) => row.replacement_serial === serial)?.public_key_pem;
+  if (!keyPem || !verifyCertificate(cert, keyPem)) throw new Error("Stored certificate signature is invalid.");
+  for (const row of rows) {
+    if (!verifyCertificateCorrection(publicCorrection(row), row.public_key_pem)) throw new Error("Stored certificate correction signature is invalid.");
+    const der = createPublicKey(row.public_key_pem).export({ type: "spki", format: "der" });
+    if (issuerKeyId(der.subarray(der.length - 32).toString("hex")) !== row.issuer_key_id) throw new Error("Stored certificate correction key ID is invalid.");
+  }
+  const latest = rows.filter((row) => row.serial === serial).at(-1);
+  const logoDataUrl = cert.presentation?.logoSha256 ? batch.logoDataUrl ?? null : null;
+  if (cert.presentation && !verifyCertificateLogo(logoDataUrl, cert.presentation.logoSha256)) throw new Error("Stored certificate logo is invalid.");
+  return {
+    serial: cert.serial, eventName: cert.eventName, recipientName: cert.recipientName,
+    category: cert.category, detail: cert.detail, issuedAt: cert.issuedAt,
+    issuerOrigin: cert.issuerOrigin, issuerKeyId: cert.issuerKeyId ?? null,
+    publicationRevision: cert.publicationRevision ?? null, presentation: cert.presentation ?? null,
+    logoDataUrl, status: latest?.action === "revoke" ? "revoked" : latest?.action === "supersede" ? "superseded" : "active",
+    correctionReason: latest?.reason ?? null, replacementSerial: latest?.replacement_serial ?? null,
+  };
+}
+
 export function correctCertificate(ctx: Ctx, eventId: string, serial: string,
   action: "revoke" | "supersede", reason: string,
   replacement?: Pick<CertificatePayload, "recipientName" | "recipientEmail" | "category" | "detail">,
@@ -220,8 +271,9 @@ export function correctCertificate(ctx: Ctx, eventId: string, serial: string,
     serial: `CERT-R-${eventId}-${id}`, eventId, eventName: prior.eventName,
     recipientName: replacement.recipientName, recipientEmail: replacement.recipientEmail,
     category: replacement.category, detail: replacement.detail, issuedAt: at,
-    issuerOrigin: prior.issuerOrigin, certificateVersion: 2, issuerKeyId: key.keyId,
+    issuerOrigin: prior.issuerOrigin, certificateVersion: prior.certificateVersion === 3 ? 3 : 2, issuerKeyId: key.keyId,
     publicationRevision: publication.revision, publicationDigest: publication.evidence_digest,
+    ...(prior.certificateVersion === 3 ? { presentation: prior.presentation } : {}),
   }, key.privateKey) : undefined;
   const payload = { id, eventId, serial, action, replacementSerial: newCert?.serial ?? null,
     publicationRevision: publication.revision, publicationDigest: publication.evidence_digest,
@@ -254,6 +306,7 @@ export type IssueCertsReport = {
   issuerKeyId?: string;
   publicationRevision?: number;
   publicationDigest?: string;
+  logoDataUrl?: string | null;
   certificates: SignedCertificate[];
 };
 
@@ -316,9 +369,12 @@ export function mintEventCertificates(
 
   const { privateKey, publicKey, publicKeyPem, keyId } = getOrCreateKeypair(keyDir);
   const boundPublication = latestPublication(db, event.id);
-  const binding = { certificateVersion: 2, issuerKeyId: keyId,
+  const template = certificateTemplate(db, event.id);
+  if (!verifyCertificateLogo(template.logoDataUrl, template.presentation.logoSha256)) throw new Error("Certificate logo digest does not match the saved image.");
+  const binding = { certificateVersion: 3, issuerKeyId: keyId,
     publicationRevision: boundPublication?.revision,
-    publicationDigest: boundPublication?.evidence_digest };
+    publicationDigest: boundPublication?.evidence_digest,
+    presentation: template.presentation };
 
   const certificates: SignedCertificate[] = [];
   let participantsCount = 0;
@@ -435,6 +491,7 @@ export function mintEventCertificates(
     issuerKeyId: keyId,
     publicationRevision: boundPublication?.revision,
     publicationDigest: boundPublication?.evidence_digest,
+    logoDataUrl: template.logoDataUrl,
     certificates,
   };
 }
