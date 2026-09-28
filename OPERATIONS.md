@@ -6,17 +6,17 @@
   <img src="docs/images/1.png" width="96" alt="Organizer Command Mascot" />
 </p>
 <p align="center">
-  <i>Maintained by the Tamper-Evident Cryptographic Verifier &amp; Organizer Command</i>
+  <i>Maintained by Security &amp; Organizer Role Guides</i>
 </p>
 
 ---
 
 ## Visual Operations: Certificate Studio & Public Verification
 
-Manak pairs back-office operational controls with high-fidelity certificate generation and trustless offline verification:
+Manak pairs back-office controls with customizable certificate generation and offline verification:
 
 ### 1. Certificate Studio & Custom Vector Art
-Organizers design visual certificates with real-time SVG previews, mathematical guilloche vector borders, customizable titles/signatories, and strict image asset binding (logos verified under 96 KiB and bound by SHA-256 digest).
+Organizers design visual certificates with real-time SVG previews, clean borders, customizable titles/signatories, and logo uploads (logos verified under 96 KiB and bound by SHA-256 digest).
 
 <p align="center">
   <img src="docs/images/certificate_studio.png" width="90%" alt="Certificate Studio" /><br>
@@ -24,7 +24,7 @@ Organizers design visual certificates with real-time SVG previews, mathematical 
 </p>
 
 ### 2. Client-Side Offline WebCrypto Verification
-Recipients and employers verify certificates offline in any modern browser without trusting the Manak server. The verification page runs purely client-side using native WebCrypto Ed25519 routines.
+Recipients and employers verify certificates offline in any modern browser without needing server access. The verification page runs purely client-side using native WebCrypto Ed25519 routines.
 
 <p align="center">
   <img src="docs/images/certificate_verify.png" width="90%" alt="Offline Certificate Verification" /><br>

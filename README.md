@@ -4,8 +4,8 @@
 
 <h1 align="center">Manak (मानक)</h1>
 <p align="center">
-  <b>Architected &amp; Built from Scratch by Sai Ram Dash (Hardik)</b><br>
-  <i>The Standard for Fair Hackathon Submissions, Calibrated Judging &amp; Verifiable Results</i>
+  <b>Built by Sai Ram Dash (Hardik)</b><br>
+  <i>Fair Hackathon Submissions, Calibrated Judging &amp; Verifiable Results</i>
 </p>
 
 <p align="center">
@@ -22,16 +22,16 @@
 
 ---
 
-## Executive Summary for Evaluators
+## Overview for Evaluators
 
-**Manak** (Sanskrit मानक, *"The Standard / Criterion / Benchmark"*) is a self-hostable, zero-runtime-dependency workspace for hackathon project submissions, calibrated peer/panel judging, and cryptographically verifiable results.
+**Manak** (Sanskrit मानक, *"The Standard"*) is a self-hosted platform for hackathon project submissions, balanced judging, and verifiable award certificates.
 
-Most hackathons suffer from structural evaluation failures: reviewers have disparate scoring standards (harsh vs. lenient), judging panels leave blind spots across tracks, and final results lack a verifiable audit trail. Manak solves this from first principles:
-- **0 runtime npm dependencies**: Built solely on Node.js built-ins and native Node SQLite.
-- **Mathematical Fairness**: Normalizes reviewer leniency and severity using Bayesian Bradley-Terry and empirical shrinkage models with explicit uncertainty and sparse-panel limitations.
-- **Cryptographic Trust**: Digitally signs awards with Ed25519 keys for offline browser verification (`/verify`), while a tamper-evident SHA-256 hash chain records every vote, score, and state change.
-- **Accessible Core**: Every primary page and form operates seamlessly without client-side JavaScript.
-- **Accountable Lifecycle**: From submission drafts to formal participant appeals with organizer review and frozen result republications.
+Most hackathons run into common judging issues: some reviewers grade much harsher than others, panels leave coverage gaps across tracks, and final winners lack a clear audit trail. Manak addresses these directly:
+- **Zero runtime npm dependencies**: Built entirely with Node.js built-ins and native SQLite.
+- **Fair scoring**: Normalizes harsh and lenient judges using standard statistical models so scores stay balanced across different reviewers.
+- **Signed certificates**: Issues certificates with Ed25519 digital signatures that can be verified offline in any browser (`/verify`).
+- **Works without client JavaScript**: Every main page and form works with plain HTML.
+- **Clear audit trail**: A tamper-evident SHA-256 hash chain logs every vote, score edit, and published result.
 
 ---
 
@@ -119,77 +119,72 @@ note: claimed but not verified: T3 T4
 
 ---
 
-## Visual Tour & Live Application Interface
+## Visual Tour & Application Interface
 
-Experience Manak's real user interface across critical evaluation surfaces:
+Here is a quick look at the live application interface:
 
-### 1. Interactive 3D Celestial Hero & Landing Portal
-An animated 3D celestial sphere with continuous continental drift, volumetric atmospheric shading, and perspective-tilted armillary rings—running entirely in vanilla CSS without external dependencies or WebGL libraries.
-
-<p align="center">
-  <img src="docs/images/hero_globe_3d.gif" width="480" alt="3D Celestial Hero Globe Animation" /><br>
-  <i>Figure 1: Smooth 3D spherical globe rotating with seamless land drift and reduced-motion controls.</i>
-</p>
+### 1. Landing Portal & Interactive 3D Globe
+A clean rotating 3D globe built entirely with pure CSS (no Three.js or canvas libraries), paired with quick one-click role logins for testing.
 
 <p align="center">
   <img src="docs/images/hero_landing.png" width="90%" alt="Manak Landing Portal" /><br>
-  <i>Figure 2: Manak landing page with Fast login persona selector, evaluation guide, and active event collection.</i>
+  <i>Figure 1: Landing page with one-click Fast Login, evaluation guide, and active events.</i>
 </p>
 
-### 2. Certificate Studio & Offline Cryptographic Verifier
-Organizers design high-fidelity awards with live previews, vector guilloche borders, custom signatories, and uploaded logos. Each issued certificate binds event metadata, placement, recipient, and the SHA-256 logo digest into an Ed25519 signed payload, verified offline in the browser via WebCrypto.
+### 2. Certificate Studio & Offline Verification
+Organizers can design awards with live SVG previews, custom signatories, and uploaded logos. Certificates are signed with Ed25519 and verified client-side in the browser via WebCrypto without contacting the server.
 
 <p align="center">
   <img src="docs/images/certificate_studio.png" width="90%" alt="Certificate Studio" /><br>
-  <i>Figure 3: Certificate Studio (/events/:slug/certificates/studio) with live layout editor and standalone SVG export.</i>
+  <i>Figure 2: Certificate Studio (/events/:slug/certificates/studio) with live layout editor and standalone SVG export.</i>
 </p>
 
 <p align="center">
-  <img src="docs/images/certificate_verify.png" width="90%" alt="Public Certificate Verification" /><br>
-  <i>Figure 4: Public verification terminal (/verify) performing client-side Ed25519 cryptographic verification without server trust.</i>
+  <img src="docs/images/certificate_verify.png" width="90%" alt="Certificate Verification" /><br>
+  <i>Figure 3: Public verification page (/verify) checking signatures offline in the browser.</i>
 </p>
 
-### 3. Real-Time Organizer Command Center & Audit Diagnostics
-Organizers monitor review completion heatmaps, evaluator leniency/severity offsets, panel reliability metrics, repeated project title collision alerts (via Unicode NFC normalization), and finalist triage candidate rankings.
+### 3. Organizer Dashboard & Health Diagnostics
+Organizers see reviewer progress, score adjustments, duplicate project title warnings, and tie-breaker candidates in one place.
 
 <p align="center">
   <img src="docs/images/organizer_dashboard.png" width="90%" alt="Organizer Dashboard" /><br>
-  <i>Figure 5: Real-time Organizer Dashboard (/events/:slug/dashboard) with mathematical normalization and coverage alerts.</i>
+  <i>Figure 4: Real-time dashboard showing score adjustments, judge progress, and panel coverage.</i>
 </p>
 
 <p align="center">
   <img src="docs/images/action_plan.png" width="90%" alt="Organizer Action Plan" /><br>
-  <i>Figure 6: Organizer Action Plan & Decision Support (/events/:slug/action-plan) prioritizing urgent panel interventions.</i>
+  <i>Figure 5: Action plan highlighting projects that need extra reviews or attention.</i>
 </p>
 
-### 4. Dual-Mode Judging Workspace & Public Leaderboards
-Judges review assigned projects with criteria-based rubric sliders, private draft saving, and side-by-side comparative duels. Results publish to an accessible public leaderboard with CSV export options.
+### 4. Rubric Judging & Ceremony Leaderboards
+Judges grade projects with simple criterion sliders, save private drafts, and decide head-to-head pairings. Final standings publish cleanly to a public leaderboard.
 
 <p align="center">
-  <img src="docs/images/judging_workspace.png" width="90%" alt="Judging Scoring Queue" /><br>
-  <i>Figure 7: Rubric evaluation queue (/events/:slug/judging) with weighted criteria and draft preservation.</i>
+  <img src="docs/images/judging_workspace.png" width="90%" alt="Judging Queue" /><br>
+  <i>Figure 6: Rubric scoring queue with sliders and draft autosaving.</i>
 </p>
 
 <p align="center">
-  <img src="docs/images/public_results.png" width="90%" alt="Public Ceremony Leaderboard" /><br>
-  <i>Figure 8: Public Results Leaderboard (/events/:slug/results) displaying adjusted scores, confidence intervals, and award badges.</i>
+  <img src="docs/images/public_results.png" width="90%" alt="Results Leaderboard" /><br>
+  <i>Figure 7: Public leaderboard with adjusted standings and award badges.</i>
 </p>
 
 ---
 
-## Meet the Mascots: Roles & Architecture Guides
+## Role Guides & Project Mascots
 
-Manak features dedicated dinosaur mascots representing each participant role and architectural pillar:
+Manak includes friendly mascot guides for each participant role:
 
-| Mascot | Role / Pillar | Responsibility in Manak |
+| Mascot | Role | What they do in Manak |
 | :---: | :--- | :--- |
-| <img src="docs/images/1.png" width="72" alt="Organizer Mascot" /> | **Organizer Command** | Orchestrate submission schedules, publish weighted rubrics, balance judge assignments, and review appeals. |
-| <img src="docs/images/2.png" width="72" alt="Builder Mascot" /> | **Builder Workspace** | Team formation, markdown story composition, demo video links, technology tags, and immutable submission gates. |
-| <img src="docs/images/3.png" width="72" alt="Judge Mascot" /> | **Judge Evaluation** | Objective rubric scoring, private draft ballots, recusal controls, and pairwise head-to-head duels. |
-| <img src="docs/images/4.png" width="72" alt="Navigator Mascot" /> | **Platform Navigator** | 1-click evaluation guide, complete sitemap directory, and instant persona switcher. |
-| <img src="docs/images/5.png" width="72" alt="Zen Mascot" /> | **Zen Reliability** | Zero runtime dependencies, native SQLite single-file storage, deterministic math, and pure Node.js execution. |
-| <img src="docs/images/6.png" width="72" alt="Community Mascot" /> | **Community Choice** | Quadratic voting credit budgets, token-bounded popularity signals, and transparent community awards. |
-| <img src="docs/images/7.png" width="72" alt="Security Mascot" /> | **Cryptographic Trust** | Asymmetric Ed25519 signatures, append-only SHA-256 audit ledger, and standalone vector SVG certificates. |
+| <img src="docs/images/1.png" width="72" alt="Organizer Mascot" /> | **Organizer** | Set up schedules, create weighted rubrics, balance judge assignments, and review appeals. |
+| <img src="docs/images/2.png" width="72" alt="Builder Mascot" /> | **Builder / Hacker** | Form teams, write project descriptions, add demo links, and submit before deadlines. |
+| <img src="docs/images/3.png" width="72" alt="Judge Mascot" /> | **Judge** | Score projects using rubrics, save private drafts, recuse from conflicts, and vote in head-to-head duels. |
+| <img src="docs/images/4.png" width="72" alt="Navigator Mascot" /> | **Navigator** | Fast login persona switcher, evaluation guide, and complete route directory. |
+| <img src="docs/images/5.png" width="72" alt="Zen Mascot" /> | **Reliability** | Zero npm dependencies, single-file SQLite database, deterministic math, and pure Node.js runtime. |
+| <img src="docs/images/6.png" width="72" alt="Community Mascot" /> | **Community Choice** | Quadratic voting credit budgets so the public can pick community favorites fairly. |
+| <img src="docs/images/7.png" width="72" alt="Security Mascot" /> | **Verifier** | Ed25519 signatures, append-only SHA-256 audit log, and standalone SVG certificates. |
 
 ---
 

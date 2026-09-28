@@ -163,16 +163,11 @@ Roles are scoped to one event. A judge invited to one event does not gain access
 
 **Boundary:** Warning is non-blocking to prevent disruption during hectic submission sprints, but provides conspicuous audit guidance to organizers.
 
-## 15. 3D Celestial Hero & Reduced-Motion Accessibility
+## 15. 3D CSS Hero Globe & Accessibility Controls
 
-<p align="center">
-  <img src="docs/images/hero_globe_3d.gif" width="400" alt="3D Hero Globe" /><br>
-  <i>Volumetric 3D sphere rotating smoothly with continuous continent drift, limb atmospheric shading, and tilted armillary rings.</i>
-</p>
+**Target:** Add a clean, lightweight visual element to the landing page without external libraries or WebGL.
 
-**Target:** Provide an inspiring, tactile visual identity for hackathons that remains 100% dependency-free, accessible, and responsive.
-
-**Current behavior:** Built entirely in CSS 3D transforms and SVG vector geometry without external libraries (Three.js/WebGL). Features a stationary volumetric core with spherical shading and rim glow, continuous continental drift track, perspective-tilted armillary meridians and latitude rings, and orbiting satellite beacons. Includes a native interactive pause switch (`#pause-orbit`) and honors user OS accessibility preferences via `@media (prefers-reduced-motion: reduce)`.
+**Current behavior:** Built entirely with pure CSS 3D transforms and SVG vector geometry (no Three.js, WebGL, or runtime dependencies). Features a rotating globe, longitude/latitude rings, and orbiting markers. Includes a pause toggle (`#pause-orbit`) and automatically respects OS accessibility settings via `@media (prefers-reduced-motion: reduce)`.
 
 ---
 

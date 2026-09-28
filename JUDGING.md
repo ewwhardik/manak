@@ -6,7 +6,7 @@
   <img src="docs/images/5.png" width="96" alt="Zen Reliability Mascot" />
 </p>
 <p align="center">
-  <i>Supervised by the Judge Evaluation Hub &amp; Zen Deterministic Math Core</i>
+  <i>Guided by Judge Evaluation &amp; Deterministic Math Core</i>
 </p>
 
 ---

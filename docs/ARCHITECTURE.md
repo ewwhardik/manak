@@ -6,7 +6,7 @@
   <img src="images/7.png" width="96" alt="Cryptographic Trust Mascot" />
 </p>
 <p align="center">
-  <i>Zero-Runtime-Dependency Architecture &amp; Tamper-Evident Ledger Integrity</i>
+  <i>Zero-Dependency Design &amp; Append-Only Audit Trail</i>
 </p>
 
 ---
@@ -16,7 +16,7 @@
 ```mermaid
 flowchart TD
   subgraph Client ["Client Presentation & Access"]
-    Browser["Zero-JS Browser Interface (HTML Forms & Semantic Views)"]
+    Browser["Browser Interface (Plain HTML Forms & Views)"]
     APIClient["REST / OpenAPI 3.1 Clients (curl, scripts, integrations)"]
   end
 
@@ -35,7 +35,7 @@ flowchart TD
     LEDGER["Append-Only SHA-256 Hash Chain (Audited Mutations)"]
   end
 
-  subgraph EngineLayer ["Deterministic Math Core (0 Imports)"]
+  subgraph EngineLayer ["Math & Judging Engine (0 Imports)"]
     JUDGE["src/judging (Bayesian Normalization, Bradley-Terry, Hodge Curl)"]
   end
 

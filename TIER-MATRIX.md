@@ -6,7 +6,7 @@
   <img src="docs/images/7.png" width="96" alt="Cryptographic Trust Mascot" />
 </p>
 <p align="center">
-  <i>Audited by Platform Navigator &amp; Cryptographic Trust Core</i>
+  <i>Verified with Platform Navigator &amp; Security Mascots</i>
 </p>
 
 ---
@@ -42,7 +42,7 @@ note: claimed but not verified: T3 T4
 | **T1** | <img src="docs/images/2.png" width="64" alt="Builder Mascot" /><br>Builder | <img src="docs/images/hero_landing.png" width="320" alt="Landing Portal" /> | Public project gallery, search/filter, team invites, markdown stories, deadline enforcement. Verified by official harness (`T1 gallery is public`, `T1 project from fixtures shown`, `T1 closed event refuses submissions`). |
 | **T2** | <img src="docs/images/3.png" width="64" alt="Judge Mascot" /><br>Judge | <img src="docs/images/judging_workspace.png" width="320" alt="Judging Workspace" /> | Private scoring queue, weighted rubric sliders, score secrecy, draft preservation, recusal filtering. Verified by official harness (`T2 judge sees own scores`, `T2 judge cannot see peer scores`, `T2 participant blocked`, `T2 csv export works`). |
 | **T3** | <img src="docs/images/1.png" width="64" alt="Organizer Mascot" /><br>Organizer | <img src="docs/images/organizer_dashboard.png" width="320" alt="Organizer Dashboard" /><br><img src="docs/images/action_plan.png" width="320" alt="Action Plan" /> | Bayesian judge leniency/severity normalization, repeated project title collision alerts (Unicode NFC normalization), quadratic community voting, frozen result republications, public live ceremony podium. |
-| **T4** | <img src="docs/images/7.png" width="64" alt="Security Mascot" /><br>Security | <img src="docs/images/certificate_studio.png" width="320" alt="Certificate Studio" /><br><img src="docs/images/certificate_verify.png" width="320" alt="Public Verification" /> | Certificate Studio with vector guilloche borders and logo digest binding, Ed25519 digital signatures, offline browser WebCrypto verification terminal (`/verify`), 82 OpenAPI operations, and durable webhooks. |
+| **T4** | <img src="docs/images/7.png" width="64" alt="Security Mascot" /><br>Security | <img src="docs/images/certificate_studio.png" width="320" alt="Certificate Studio" /><br><img src="docs/images/certificate_verify.png" width="320" alt="Public Verification" /> | Certificate Studio with vector borders and logo digest binding, Ed25519 digital signatures, offline browser WebCrypto verification terminal (`/verify`), 82 OpenAPI operations, and durable webhooks. |
 
 ---
 
