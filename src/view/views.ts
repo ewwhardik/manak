@@ -51,6 +51,7 @@ import {
 import type { ViewContext, Views } from "./pages.ts";
 import { confidencePage, dashboardPage, resultsPage, rubricPage } from "./results.ts";
 import { projectPage, projectsPage, teamsPage } from "./submit.ts";
+import { certificateStudioPage, publicCertificatePage } from "./certificates.ts";
 
 /**
  * One event, as a row in a list of them.
@@ -163,6 +164,7 @@ function eventPage(context: ViewContext): string {
     links.push(`<a href="/events/${slug}/rubric">Scoring rubric</a>`);
     links.push(`<a href="/events/${slug}/judges">Judges and invitations</a>`);
     links.push(`<a href="/events/${slug}/tie-breaker">Tie-breaker assistant</a>`);
+    links.push(`<a href="/events/${slug}/certificates/studio">Certificate studio</a>`);
   }
   links.push(`<a href="/events/${slug}/live">Live leaderboard</a>`);
   links.push(`<a href="/verify">Certificate verifier</a>`);
@@ -183,7 +185,7 @@ function eventPage(context: ViewContext): string {
     whoami: context.whoami, demoMode: context.demoMode,
     notice: gatesNotice(context.gates),
     lead: "Everything your event needs, from the first idea to the final results.",
-    body: `${eventJourney(clock, context.now)}${demoSwitcher}<section class="next-action"><div><p class="eyebrow">Start here</p><h2>${esc(nextStep[0])}</h2><p>${esc(nextStep[1])}</p></div><a class="button" href="/events/${slug}/${nextStep[3]}">${esc(nextStep[2])} →</a></section><nav class="workspace-nav" aria-label="Event navigation">${links.join("")}</nav><div class="section-heading"><h2>Event at a glance</h2>${tag(phaseLabel(at(event, "phase")), "plain")}</div>${definitions([
+    body: `${eventJourney(clock, context.now, { slug: String(at(event, "slug") ?? ""), roles, resultsPublic: at(event, "resultsPublic") === true })}${demoSwitcher}<section class="next-action"><div><p class="eyebrow">Your next step</p><h2>${esc(nextStep[0])}</h2><p>${esc(nextStep[1])}</p></div><a class="button" href="/events/${slug}/${nextStep[3]}">${esc(nextStep[2])} →</a></section><section class="event-tools" aria-labelledby="event-tools-title"><div class="section-heading"><div><p class="eyebrow">Go to</p><h2 id="event-tools-title">Your event tools</h2></div><span class="detail">Links follow your event role</span></div><nav class="workspace-nav" aria-label="Event navigation">${links.join("")}</nav></section><div class="section-heading"><h2>Event at a glance</h2>${tag(phaseLabel(at(event, "phase")), "plain")}</div>${definitions([
       ["Phase", String(at(event, "phase") ?? "-")],
       ["Submissions open", when(at(clock, "submissionsOpenAt"), timezone)],
       ["Submissions close", when(at(clock, "submissionsCloseAt"), timezone)],
@@ -449,6 +451,8 @@ export const VIEWS: Views = {
   "events.dashboard": dashboardPage,
   "rubrics.show": rubricPage,
   "results.show": resultsPage,
+  "results.certificate_studio": certificateStudioPage,
+  "results.public_certificate": publicCertificatePage,
   "results.confidence": confidencePage,
   // Submitting.
   "teams.list": teamsPage,
