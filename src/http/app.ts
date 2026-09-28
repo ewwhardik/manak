@@ -69,6 +69,10 @@ import type {
 } from "../db/index.ts";
 import {
   assertGate,
+  assertVotingClosed,
+  clearCertificateLogo,
+  publicCertificate,
+  saveCertificateLogo,
   createSession,
   criteriaOf,
   CSV_STAGES,
@@ -108,6 +112,7 @@ import {
   tieBreakerPage,
   verifyPage,
 } from "../view/index.ts";
+import { certificateSvg } from "../view/certificates.ts";
 import type { Extra, StreamEvent } from "./respond.ts";
 import {
   clearedCookie,
@@ -122,6 +127,7 @@ import {
   sessionCookie,
   stylesheet,
   textResponse,
+  SECURITY_HEADERS,
 } from "./respond.ts";
 import type { Target } from "./wire.ts";
 import { credentialFrom, negotiate, parseCookies, readSubmission } from "./wire.ts";
@@ -311,6 +317,62 @@ export function makeApp(options: AppOptions): Serve {
           "content-security-policy":
             "default-src 'none'; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
         },
+      });
+    }
+
+    // The logo is the only multipart write in the product. Parse it behind a strict
+    // byte cap, then use the same session, event role and rate-limit checks as writes.
+    const logoMatch = /^\/events\/([^/]+)\/certificates\/logo(\/remove)?$/.exec(target.pathname);
+    if (logoMatch) {
+      if (request.method !== "POST") throw methodNotAllowed(request.method, ["POST"]);
+      trace.command = logoMatch[2] ? "results.remove_certificate_logo" : "results.upload_certificate_logo";
+      const presented = credentialFrom(request, SESSION_COOKIE);
+      const found = presented === null ? undefined : resolveSession(db, presented, now);
+      if (!found) throw unauthenticated("Sign in as an event organizer.");
+      const event = resolveEvent(db, decodeURIComponent(logoMatch[1] as string));
+      if (!event || !rolesIn(db, event.id, found.account.id).includes("organizer")) throw notFound("event");
+      trace.accountId = found.account.id;
+      const requestOrigin = request.headers.get("origin");
+      if (requestOrigin !== null && requestOrigin !== publicOrigin.origin) throw forbidden("Logo upload requires the deployment origin.");
+      if (request.headers.get("sec-fetch-site") === "cross-site") throw forbidden("Cross-site logo upload is refused.");
+      const ctx = makeContext(db, { clock: { now: () => now } }).as(found.account.id);
+      enforce(ctx, "organize", event.id);
+      if (logoMatch[2]) {
+        ctx.recorded({ action: "certificate.logo.updated", eventId: event.id, payload: { removed: true } },
+          () => clearCertificateLogo(db, event.id, now));
+      } else {
+        const type = request.headers.get("content-type") ?? "";
+        if (!/^multipart\/form-data;\s*boundary=/i.test(type)) throw new RuleError("request.mediaType", "Upload a PNG or JPEG using the logo file field.");
+        const bytes = await boundedCertificateUpload(request, 112 * 1024);
+        const form = await new Response(bytes, { headers: { "content-type": type } }).formData();
+        const values = form.getAll("logo");
+        if (values.length !== 1 || !(values[0] instanceof File)) throw new RuleError("request.malformed", "Choose one logo file.");
+        const file = values[0];
+        const logo = new Uint8Array(await file.arrayBuffer());
+        ctx.recorded({ action: "certificate.logo.updated", eventId: event.id,
+          payload: { type: file.type, bytes: logo.byteLength } },
+          () => saveCertificateLogo(db, event.id, logo, file.type, now));
+      }
+      return seeOther(`/events/${encodeURIComponent(event.slug)}/certificates/studio`);
+    }
+
+    const svgMatch = /^\/events\/([^/]+)\/certificates\/([^/]+)\.svg$/.exec(target.pathname);
+    if (svgMatch) {
+      if (request.method !== "GET" && request.method !== "HEAD") throw methodNotAllowed(request.method, ["GET"]);
+      trace.command = "results.certificate_svg";
+      const event = resolveEvent(db, decodeURIComponent(svgMatch[1] as string));
+      if (!event) throw notFound("event");
+      assertVotingClosed(event, now);
+      assertGate(event, now, "results");
+      const serial = decodeURIComponent(svgMatch[2] as string);
+      const cert = publicCertificate(db, event.id, serial);
+      if (!cert || cert.status !== "active") throw notFound("certificate");
+      const path = `/events/${encodeURIComponent(event.slug)}/certificates/${encodeURIComponent(serial)}`;
+      const filename = serial.replace(/[^A-Za-z0-9._-]/g, "_");
+      return new Response(request.method === "HEAD" ? null : certificateSvg(cert, new URL(path, cert.issuerOrigin).href), {
+        headers: { ...SECURITY_HEADERS, "content-security-policy": "default-src 'none'; img-src data:; style-src 'none'; script-src 'none'; frame-ancestors 'none'",
+          "content-type": "image/svg+xml; charset=utf-8", "content-disposition": `attachment; filename="${filename}.svg"`,
+          "cache-control": "no-store" },
       });
     }
 
@@ -857,6 +919,12 @@ export function makeApp(options: AppOptions): Serve {
       return command.returns.kind === "empty" ? empty(204, extra) : json(result ?? null, 200, extra);
     }
 
+    if (command.name === "results.certificate_studio" || command.name === "results.public_certificate") {
+      return html(render(views, { ...seen, result }), 200, { ...extra, headers: {
+        "content-security-policy": "default-src 'none'; style-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+      } });
+    }
+
     // A browser that just wrote something is sent somewhere with GET, so the back button
     // and a reload cannot repeat the write. Where to is the command's own business when
     // it says so, and the event it belongs to otherwise.
@@ -1143,6 +1211,25 @@ function isUnexpected(error: unknown): boolean {
 }
 
 /** A command's own page, or the generic rendering. Looked up by name, never by a field. */
+async function boundedCertificateUpload(request: Request, limit: number): Promise<Uint8Array> {
+  const declared = Number(request.headers.get("content-length") ?? "");
+  if (Number.isFinite(declared) && declared > limit) throw new RuleError("request.tooLarge", "Logo upload is too large.");
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  const reader = request.body?.getReader();
+  while (reader) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > limit) { await reader.cancel(); throw new RuleError("request.tooLarge", "Logo upload is too large."); }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return bytes;
+}
+
 function render(views: Views, context: ViewContext): string {
   const view: View = views[context.command.name] ?? genericPage;
   return view(context);
