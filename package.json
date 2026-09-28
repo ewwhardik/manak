@@ -31,6 +31,12 @@
     "typecheck": "tsc --noEmit",
     "verify:workflow": "node --experimental-strip-types tools/verify-workflow.ts",
     "start:demo": "node --experimental-strip-types tools/start-demo.ts",
-    "docs:generate": "node --experimental-strip-types tools/refresh-evidence.ts"
+    "docs:generate": "node --experimental-strip-types tools/refresh-evidence.ts",
+    "docker:build": "docker compose build",
+    "docker:demo": "docker compose up -d",
+    "docker:test": "docker compose run --rm test",
+    "docker:test:all": "docker compose run --rm test-all",
+    "docker:offline": "docker compose -f compose.yaml -f compose.offline.yaml up -d",
+    "test:logs": "node --experimental-strip-types tools/generate-test-logs.ts"
   }
 }

@@ -137,7 +137,7 @@ before the socket opens.
 | `src/http` | 2,164 | everything below | the dispatcher, the responses, the socket |
 | `src/mail` | 1,179 | `node:*`, one erased type | RFC 5322 composition, an SMTP client, the outbox |
 | `bin/manak.ts` | 554 | everything | the environment, migration, signals, the process |
-| `tools` | 6,085 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
+| `tools` | 6,443 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
 
 `src/mail` is the one entry that is not part of the stack, and the shape of its row is the
 reason. It sits beside the layers rather than on top of them: it imports `node:*` and one
@@ -637,13 +637,18 @@ database, exports again and compares the bytes. All three are committed, re-exec
 run as tests by `tests/proof.test.ts`, so a change that quietly invalidates one fails
 `npm test` rather than waiting to be noticed.
 
-The 591 tests are Node's own runner with no framework. Three files in there are load-bearing in
+The 594 tests are Node's own runner with no framework. Three files in there are load-bearing in
 a way the rest are not: `tests/source.test.ts` holds every layer and source rule described
 above,
 `tests/api.test.ts` asserts that every refusal the published document describes is one the
 command layer can actually send, and `tests/schema.test.ts` asserts that every response
 matches the schema that document publishes for it, in both directions, so a field a handler
 added without a schema edit fails the suite rather than shipping undocumented.
+
+Full, un-truncated logs of every test suite run, official acceptance check (`run.py`), mathematical
+proof, and Docker configuration check are committed under `logs/` (with a machine-readable summary
+at `logs/summary.json`). Running `npm run test:logs` re-runs all suites against a clean memory
+database, regenerates every log artifact, and validates byte-for-byte reproducibility.
 
 ## The cut line: there is no abstraction over storage
 

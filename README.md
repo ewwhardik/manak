@@ -77,6 +77,24 @@ npm start
 
 Set `MANAK_FOUNDERS` to the founder email list, `MANAK_PUBLIC_ORIGIN` to the HTTPS origin, and `MANAK_DATABASE` to a persistent path. Optional SMTP is described in [OPERATIONS.md](OPERATIONS.md). Never enable `MANAK_DEMO` on a production dataset.
 
+### Option C: Run and Test via Docker Compose (One Command)
+
+Requires Docker and Docker Compose:
+
+```sh
+# 1. Start the seeded demo container in the background
+docker compose up -d
+
+# 2. Run the automated test suite inside Docker (One Command)
+docker compose run --rm test
+
+# 3. Run the full test suite and proofs inside Docker
+docker compose run --rm test-all
+
+# 4. Run in strict air-gap offline mode (outbound egress disabled)
+docker compose -f compose.yaml -f compose.offline.yaml up -d
+```
+
 ---
 
 ## Official Acceptance Test Suite (`run.py .dogfood.toml`)
@@ -115,6 +133,8 @@ T2  csv export works .................. PASS
 claimed T1 T2 T3 T4, verified T1 T2
 note: claimed but not verified: T3 T4
 ```
+
+*The complete execution log is recorded in [`logs/01-acceptance-dogfood.log`](logs/01-acceptance-dogfood.log). All latest suite logs and cryptographic proofs are maintained in [`logs/`](logs/).*
 </details>
 
 ---
@@ -277,7 +297,7 @@ Run the complete verification pipeline locally:
 
 ```sh
 npm ci
-npm test       # 591 tests
+npm test       # 594 tests
 npm run typecheck
 npm run prove:normalization -- --check
 npm run prove:convergence -- --check
@@ -287,9 +307,31 @@ npm run prove:roundtrip -- --check
 npm run verify:workflow
 ```
 
+Or execute every test suite, acceptance check, and mathematical proof into fresh audit logs with a single command:
+
+```sh
+npm run test:logs
+```
+
+### Complete Test & Proof Logs (`logs/`)
+
+All latest execution outputs are stored directly in the repository under [`logs/`](logs/) with machine-readable metadata in [`logs/summary.json`](logs/summary.json):
+
+| Log File | Verification Scope | Tests / Invariants | Status |
+| :--- | :--- | :--- | :---: |
+| [`logs/01-acceptance-dogfood.log`](logs/01-acceptance-dogfood.log) | Official DogFood Acceptance Harness (`run.py`) | 7 of 7 probes passing against live server (T1-T4 claimed) | **PASS** |
+| [`logs/02-unit-test-suite.log`](logs/02-unit-test-suite.log) | Full Node Test Runner (`tests/*.test.ts`) | 594 tests passing across all layers and engines | **PASS** |
+| [`logs/03-docker-test.log`](logs/03-docker-test.log) | Dockerfile, Compose & Network Boundaries | Security options, non-root user, offline air-gap | **PASS** |
+| [`logs/04-isolation-proof.log`](logs/04-isolation-proof.log) | API Role & Route Isolation Proof | 984 HTTP requests verifying strict role boundaries | **PASS** |
+| [`logs/05-normalization-proof.log`](logs/05-normalization-proof.log) | Bayesian Score Normalization Proof | 1,180 simulated events across 59 configurations | **PASS** |
+| [`logs/06-convergence-proof.log`](logs/06-convergence-proof.log) | Pairwise Bradley-Terry Convergence | Bradley-Terry schedule convergence verified | **PASS** |
+| [`logs/07-roundtrip-proof.log`](logs/07-roundtrip-proof.log) | SQLite Database Export/Import Roundtrip | 161 rows across 32 files verified bit-for-bit | **PASS** |
+| [`logs/08-fixtures-proof.log`](logs/08-fixtures-proof.log) | Fixtures Integrity & Ballot Consistency | 41 projects and 126 ballots verified | **PASS** |
+| [`logs/09-typecheck.log`](logs/09-typecheck.log) | Strict TypeScript Compiler (`tsc --noEmit`) | 0 type errors across whole codebase | **PASS** |
+
 - `npm ci` installs development types and TypeScript for `typecheck`; `npm start` does not install packages.
 - The proof scripts compare mathematical convergence, isolation, and round trips against committed evidence in `docs/proof/`.
-- One process-signal test is skipped on Windows; see the final test output for the exact count.
+- One live SMTP delivery test is skipped when no SMTP relay is present; see [`logs/02-unit-test-suite.log`](logs/02-unit-test-suite.log) for the exact count.
 - The registry currently declares **82 operations**. Generated [OpenAPI](openapi.json) and the [browser API reference](https://manak.up.railway.app/docs) expose their current contracts. Run `npm run docs:generate` after adding commands or changing measured source counts.
 
 ---

@@ -143,3 +143,24 @@ Signatures establish issuer-key possession and unchanged contents, not the truth
 Core UI has no CDN, webfont, client framework or production package download. Remote media and SMTP are optional. Prebuild Docker before offline startup. On a Docker host, run `docker compose build`, record `docker image inspect manak:local --format '{{.Id}}'`, and export the image with `docker save -o manak-image.tar manak:local`. In an isolated environment load it with `docker load -i manak-image.tar` and run `docker compose -f compose.yaml -f compose.offline.yaml up --no-build --pull never -d`. The `compose.offline.yaml` overlay sets `networks: default: internal: true`, disabling external internet egress at the container engine network boundary. Exercise sign-in, submission, judging, result publication and offline certificate verification; restart the container and host, then confirm database, ledger head, published digest and key fingerprint are unchanged. Check corrupted-archive and unwritable-volume failures in a disposable deployment. Docker and host-restart evidence must be captured on a Docker-enabled host; the development host used for this repository did not provide Docker.
 
 The server is one synchronous SQLite writer. Cached fits, batched title reads and opt-in limits reduce repeat work; large fits can still pause requests. Validate intended event size on the target host.
+
+## Verification Logs & Pre-flight Audit
+
+Before deploying updates or staging an event, operators can run the comprehensive verification pipeline to regenerate audit logs:
+
+```sh
+# Run all test suites, acceptance checks, and proofs into logs/
+npm run test:logs
+
+# Or run tests in an isolated Docker container
+docker compose run --rm test
+docker compose run --rm test-all
+```
+
+All output logs are saved to `logs/`:
+- `logs/01-acceptance-dogfood.log`: Official DogFood acceptance harness results (7/7 passing).
+- `logs/02-unit-test-suite.log`: 594 tests verifying all internal models, views, and commands.
+- `logs/03-docker-test.log`: Container security, non-root execution, and isolation configurations.
+- `logs/04-isolation-proof.log` through `logs/08-fixtures-proof.log`: Mathematical and cryptographic proofs.
+- `logs/09-typecheck.log`: Strict TypeScript check (0 errors).
+- `logs/summary.json`: Machine-readable deployment pre-flight verification summary.

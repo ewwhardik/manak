@@ -1,4 +1,4 @@
-# One command starts a seeded local demo. Existing databases are never reseeded.
+# One command starts a seeded local demo or executes the full test suite.
 services:
   manak:
     build: .
@@ -15,5 +15,25 @@ services:
     stop_grace_period: 10s
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
+
+  test:
+    build: .
+    image: manak:local
+    environment:
+      MANAK_DATABASE: ":memory:"
+    command: ["npm", "test"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+
+  test-all:
+    build: .
+    image: manak:local
+    environment:
+      MANAK_DATABASE: ":memory:"
+    command: ["sh", "-c", "npm test && node --experimental-strip-types tools/prove-isolation.ts -- --check && node --experimental-strip-types tools/prove-normalization.ts -- --check"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+
 volumes:
   manak-data:
+

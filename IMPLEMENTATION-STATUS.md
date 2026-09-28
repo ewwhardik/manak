@@ -28,4 +28,4 @@ This tracks the September 27 audit in the parent workspace. It distinguishes imp
 
 ## Reproduce local evidence
 
-From this repository root run `npm ci`, `npm test`, `npm run typecheck`, `npm run prove:isolation -- --check`, `npm run prove:roundtrip -- --check`, and `npm run verify:workflow`. The proof reports state precisely what was exercised. Demo mode and Fast login are for disposable data only.
+From this repository root run `npm ci`, `npm test`, `npm run typecheck`, `npm run prove:isolation -- --check`, `npm run prove:roundtrip -- --check`, and `npm run verify:workflow`. Alternatively, run `npm run test:logs` to execute all suites, acceptance harnesses, and proofs into `logs/`. The proof reports state precisely what was exercised. Demo mode and Fast login are for disposable data only.
