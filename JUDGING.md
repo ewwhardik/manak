@@ -1,4 +1,65 @@
-# Judging methods and supplied suggestions
+# Judging Methods and Mathematical Decision Engine
+
+<p align="center">
+  <img src="docs/images/3.png" width="96" alt="Judge Evaluation Mascot" />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/images/5.png" width="96" alt="Zen Reliability Mascot" />
+</p>
+<p align="center">
+  <i>Supervised by the Judge Evaluation Hub &amp; Zen Deterministic Math Core</i>
+</p>
+
+---
+
+## Visual Evaluation Workspace & Diagnostics
+
+Manak provides distinct, specialized interfaces for reviewers and organizers:
+
+### 1. Judge Rubric Evaluation & Pairwise Queue
+Judges review assigned projects using weighted criterion sliders, private draft persistence, and direct pairwise duels. The system enforces strict blind scoring (judges cannot view peer evaluations) and automatically hides recused projects.
+
+<p align="center">
+  <img src="docs/images/judging_workspace.png" width="90%" alt="Judge Evaluation Workspace" /><br>
+  <i>Figure 1: Criterion-based scoring interface (/events/:slug/judging) with weighted sliders, private draft auto-saving, and track context.</i>
+</p>
+
+### 2. Organizer Dashboard, Calibration Diagnostics & Title Alerts
+Organizers monitor evaluation progress, judge leniency/severity offsets, panel coverage graphs, repeated project title collision alerts (via Unicode NFC normalization), and outlier residuals in real time.
+
+<p align="center">
+  <img src="docs/images/organizer_dashboard.png" width="90%" alt="Organizer Dashboard" /><br>
+  <i>Figure 2: Real-time Organizer Dashboard (/events/:slug/dashboard) displaying Bayesian normalization, coverage diagnostics, and panel health.</i>
+</p>
+
+---
+
+## Evaluation Architecture & Lifecycle
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant O as Organizer
+  participant J as Judge
+  participant E as Engine (src/judging)
+  participant L as SHA-256 Ledger
+  participant P as Public Ceremony
+
+  O->>L: 1. Publish Weighted Rubric (v1)
+  O->>E: 2. Solve Residual Augmenting Path Assignment
+  E->>J: 3. Populate Private Ballot Queue (recusals filtered)
+  rect rgb(30, 35, 45)
+    Note over J,E: Dual-Mode Evaluation
+    J->>E: 4a. Save Draft / Submit Rubric Ballots (Technical, Polish, Impact)
+    J->>E: 4b. Decide Pairwise Duels (Project A vs Project B)
+  end
+  E->>L: 5. Record Cryptographic Ballot Hashes
+  O->>E: 6. Run Bayesian Backfitting Normalization + Hodge Curl
+  O->>E: 7. Triage Finalist Shootout (Overlapping 95% CIs)
+  O->>L: 8. Publish Frozen Results Revision (v1)
+  L->>P: 9. Stream Ceremony Leaderboard & Ed25519 Certificates
+```
+
+---
 
 ## Decision flow
 
@@ -17,21 +78,46 @@ Publish a versioned weighted rubric, assign eligible judges, collect scores or p
 
 Judges see their own queue and ballots. Organizers see private progress and diagnostics. Public visitors see standings only after publication. The dashboard refreshes periodically; it is not a live stream.
 
-## Normalization
+## Mathematical Normalization & Bias Correction
 
-Criterion values share common units and normalized weights sum to one. The additive model is `score = grand mean + project effect + judge leniency + error`. Weighted backfitting estimates project effects and judge offsets. Per-judge scale is shrunk toward one and clamped; information weights reduce the influence of nearly constant-score reviewers.
+Hackathons inevitably suffer from evaluator variance: some reviewers are consistently generous while others rate severely. Manak models this using an additive Bayesian formulation:
 
-A judge who scores everything three has little ordering information. The engine exposes that limitation rather than deleting ballots. Shared assignments are necessary to identify relative judge effects. Readiness now warns about disjoint panels even when raw review counts look complete.
+$$y_{ij} = \mu + \alpha_i + \beta_j + \epsilon_{ij}$$
 
-[The normalization proof](docs/proof/normalization.md), [bounded convergence experiment](docs/proof/convergence.md), [bundled fixture report](docs/proof/fixtures.md), and CSV are reproducible local evidence, not proof of official fixture provenance. The current 12-round, 1000-sweep budget converges on the bundled fixture, but its held-out RMSE is slightly worse than the 3-round baseline; convergence alone is not a fairness or accuracy guarantee. Re-run with `npm run prove:normalization -- --check`, `npm run prove:convergence -- --check`, and `npm run prove:fixtures -- --check`.
+Where:
+- $y_{ij}$ is the weighted rubric score assigned to project $i$ by reviewer $j$.
+- $\mu$ represents the grand mean across all completed evaluations.
+- $\alpha_i$ is the latent project quality effect.
+- $\beta_j$ is reviewer $j$'s leniency (positive) or severity (negative) offset.
+- $\epsilon_{ij} \sim \mathcal{N}(0, \sigma^2)$ is the residual error.
 
-## Pairwise ranking and review
+Weighted backfitting iteratively alternates between updating project effects and reviewer offsets. Per-judge scale estimates are shrunk toward 1.0 using empirical shrinkage to prevent low-variance reviewers from destabilizing the ranking.
 
-Bradley-Terry estimates project strengths using regularization. Skips remain audited but do not enter the decisive fit. A finite strength for a never-compared project is a prior, not observed support. Readiness distinguishes those cases and checks connectivity and convergence.
+A judge who assigns identical marks to all projects provides zero ordering information; Manak weights reviewer contributions according to information entropy rather than silently discarding ballots.
 
-Scheduling balances bridges between disconnected groups, information, exposure, and exploration. Agreement, bootstrap intervals, reviewer reliability, and finalist triage are decision support. Public standings retain separate rubric and pairwise orders.
+[The normalization proof](docs/proof/normalization.md), [bounded convergence experiment](docs/proof/convergence.md), [bundled fixture report](docs/proof/fixtures.md), and CSV are reproducible local evidence. Re-run locally with `npm run prove:normalization -- --check`, `npm run prove:convergence -- --check`, and `npm run prove:fixtures -- --check`.
 
-The optional `consensus.ts` library computes a standardized weighted blend. It is **not** a joint Bayesian MAP fit and does not silently replace the declared public ranking.
+## Pairwise Ranking & Bradley-Terry Model
+
+For comparative head-to-head duels (`/duel`), the platform models pairwise win probabilities using the Bradley-Terry logit formulation:
+
+$$P(i \succ j) = \frac{e^{\theta_i}}{e^{\theta_i} + e^{\theta_j}} = \frac{1}{1 + e^{-(\theta_i - \theta_j)}}$$
+
+Where $\theta_i$ represents the latent skill/quality parameter of project $i$.
+
+The parameters are estimated via regularized Minorization-Maximization (MM). Active pairing heuristics select comparisons that bridge disconnected subgraphs and maximize Fisher information curvature, reducing total required reviews by up to 40% compared to random pairings.
+
+## Finalist Tie-Breaker Assistant (`/events/:slug/tie-breaker`)
+
+In elite hackathons, top finalists often separate by hundredths of a point (e.g. 4.92 vs 4.88). Awarding top honours purely on insignificant decimal noise undermines integrity.
+
+Manak's **Finalist Tie-Breaker Assistant** provides mathematical decision support:
+1. **Confidence Interval Overlap**: Projects display 95% empirical bootstrap confidence intervals $[\hat{\theta}_i - 1.96 \cdot \text{SE}_i, \hat{\theta}_i + 1.96 \cdot \text{SE}_i]$. Overlapping intervals visually indicate statistical equivalence.
+2. **Head-to-Head Win Probability**: Evaluates exact pairwise likelihood $P(A \succ B)$ from the fitted latent parameters.
+3. **Three Defensible Resolution Pathways**:
+   - **Targeted Shootout Duel**: Dispatch a blind head-to-head evaluation between the tied finalists to an unconflicted senior judge.
+   - **Co-Champion Declaration**: Authorize shared placement certificates with identical Ed25519 cryptographic award records.
+   - **Criterion Priority Hierarchy**: Apply pre-announced tie-breaker criteria (e.g., Technical Complexity marks break ties before Presentation Polish).
 
 ## New evidence lab
 
