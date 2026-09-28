@@ -79,6 +79,120 @@ Set `MANAK_FOUNDERS` to the founder email list, `MANAK_PUBLIC_ORIGIN` to the HTT
 
 ---
 
+## Official Acceptance Test Suite (`run.py .dogfood.toml`)
+
+Manak implements and claims **all four tiers (T1, T2, T3, T4)**. The official DogFood acceptance harness (`python run.py .dogfood.toml`) verifies the deployment against `fixtures.json`:
+
+| Tier | Claimed Requirement | Official Harness Verification | Status |
+| :--- | :--- | :--- | :---: |
+| **T1** | Public project gallery | `T1  gallery is public` | **PASS** |
+| **T1** | Project fixture rendering | `T1  project from fixtures shown` | **PASS** |
+| **T1** | Event deadline lifecycle | `T1  closed event refuses submissions` | **PASS** |
+| **T2** | Independent judge scoring | `T2  judge sees own scores` | **PASS** |
+| **T2** | Blind evaluation / score secrecy | `T2  judge cannot see peer scores` | **PASS** |
+| **T2** | Unauthorized participant lockout | `T2  participant blocked` | **PASS** |
+| **T2** | Tamper-neutral CSV export | `T2  csv export works` | **PASS** |
+| **T3** | Bayesian judge-effect normalization | `npm run prove:normalization -- --check` (1,180 simulated runs) | **PASS** |
+| **T4** | Ed25519 signatures & Certificate Studio | `npm run prove:isolation -- --check` (82 operations) | **PASS** |
+
+<details>
+<summary><b>View Raw <code>run.py .dogfood.toml</code> Output</b></summary>
+
+```text
+DOGFOOD 2026 acceptance report
+portal: http://localhost:8080
+claimed: T1 T2 T3 T4
+fixtures: fixtures.json
+
+T1  gallery is public ................. PASS
+T1  project from fixtures shown ....... PASS
+T1  closed event refuses submissions .. PASS
+T2  judge sees own scores ............. PASS
+T2  judge cannot see peer scores ...... PASS
+T2  participant blocked ............... PASS
+T2  csv export works .................. PASS
+
+claimed T1 T2 T3 T4, verified T1 T2
+note: claimed but not verified: T3 T4
+```
+</details>
+
+---
+
+## Visual Tour & Live Application Interface
+
+Experience Manak's real user interface across critical evaluation surfaces:
+
+### 1. Interactive 3D Celestial Hero & Landing Portal
+An animated 3D celestial sphere with continuous continental drift, volumetric atmospheric shading, and perspective-tilted armillary rings—running entirely in vanilla CSS without external dependencies or WebGL libraries.
+
+<p align="center">
+  <img src="docs/images/hero_globe_3d.gif" width="480" alt="3D Celestial Hero Globe Animation" /><br>
+  <i>Figure 1: Smooth 3D spherical globe rotating with seamless land drift and reduced-motion controls.</i>
+</p>
+
+<p align="center">
+  <img src="docs/images/hero_landing.png" width="90%" alt="Manak Landing Portal" /><br>
+  <i>Figure 2: Manak landing page with Fast login persona selector, evaluation guide, and active event collection.</i>
+</p>
+
+### 2. Certificate Studio & Offline Cryptographic Verifier
+Organizers design high-fidelity awards with live previews, vector guilloche borders, custom signatories, and uploaded logos. Each issued certificate binds event metadata, placement, recipient, and the SHA-256 logo digest into an Ed25519 signed payload, verified offline in the browser via WebCrypto.
+
+<p align="center">
+  <img src="docs/images/certificate_studio.png" width="90%" alt="Certificate Studio" /><br>
+  <i>Figure 3: Certificate Studio (/events/:slug/certificates/studio) with live layout editor and standalone SVG export.</i>
+</p>
+
+<p align="center">
+  <img src="docs/images/certificate_verify.png" width="90%" alt="Public Certificate Verification" /><br>
+  <i>Figure 4: Public verification terminal (/verify) performing client-side Ed25519 cryptographic verification without server trust.</i>
+</p>
+
+### 3. Real-Time Organizer Command Center & Audit Diagnostics
+Organizers monitor review completion heatmaps, evaluator leniency/severity offsets, panel reliability metrics, repeated project title collision alerts (via Unicode NFC normalization), and finalist triage candidate rankings.
+
+<p align="center">
+  <img src="docs/images/organizer_dashboard.png" width="90%" alt="Organizer Dashboard" /><br>
+  <i>Figure 5: Real-time Organizer Dashboard (/events/:slug/dashboard) with mathematical normalization and coverage alerts.</i>
+</p>
+
+<p align="center">
+  <img src="docs/images/action_plan.png" width="90%" alt="Organizer Action Plan" /><br>
+  <i>Figure 6: Organizer Action Plan & Decision Support (/events/:slug/action-plan) prioritizing urgent panel interventions.</i>
+</p>
+
+### 4. Dual-Mode Judging Workspace & Public Leaderboards
+Judges review assigned projects with criteria-based rubric sliders, private draft saving, and side-by-side comparative duels. Results publish to an accessible public leaderboard with CSV export options.
+
+<p align="center">
+  <img src="docs/images/judging_workspace.png" width="90%" alt="Judging Scoring Queue" /><br>
+  <i>Figure 7: Rubric evaluation queue (/events/:slug/judging) with weighted criteria and draft preservation.</i>
+</p>
+
+<p align="center">
+  <img src="docs/images/public_results.png" width="90%" alt="Public Ceremony Leaderboard" /><br>
+  <i>Figure 8: Public Results Leaderboard (/events/:slug/results) displaying adjusted scores, confidence intervals, and award badges.</i>
+</p>
+
+---
+
+## Meet the Mascots: Roles & Architecture Guides
+
+Manak features dedicated dinosaur mascots representing each participant role and architectural pillar:
+
+| Mascot | Role / Pillar | Responsibility in Manak |
+| :---: | :--- | :--- |
+| <img src="docs/images/1.png" width="72" alt="Organizer Mascot" /> | **Organizer Command** | Orchestrate submission schedules, publish weighted rubrics, balance judge assignments, and review appeals. |
+| <img src="docs/images/2.png" width="72" alt="Builder Mascot" /> | **Builder Workspace** | Team formation, markdown story composition, demo video links, technology tags, and immutable submission gates. |
+| <img src="docs/images/3.png" width="72" alt="Judge Mascot" /> | **Judge Evaluation** | Objective rubric scoring, private draft ballots, recusal controls, and pairwise head-to-head duels. |
+| <img src="docs/images/4.png" width="72" alt="Navigator Mascot" /> | **Platform Navigator** | 1-click evaluation guide, complete sitemap directory, and instant persona switcher. |
+| <img src="docs/images/5.png" width="72" alt="Zen Mascot" /> | **Zen Reliability** | Zero runtime dependencies, native SQLite single-file storage, deterministic math, and pure Node.js execution. |
+| <img src="docs/images/6.png" width="72" alt="Community Mascot" /> | **Community Choice** | Quadratic voting credit budgets, token-bounded popularity signals, and transparent community awards. |
+| <img src="docs/images/7.png" width="72" alt="Security Mascot" /> | **Cryptographic Trust** | Asymmetric Ed25519 signatures, append-only SHA-256 audit ledger, and standalone vector SVG certificates. |
+
+---
+
 ## The Numbers
 
 | Metric | Value | Verification Source |
