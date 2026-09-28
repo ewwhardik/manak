@@ -44,6 +44,7 @@
  * `tests/http.test.ts` and `tests/db.test.ts`; this file is about who gets in at all.
  */
 
+import { generateKeyPairSync } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
@@ -83,8 +84,11 @@ import {
   startVoter,
   upsertAccount,
   verifyLedger,
+  issueCertificate,
+  issuerKeyId,
+  DEFAULT_CERTIFICATE_PRESENTATION,
 } from "../src/db/index.ts";
-import type { Ctx, Db } from "../src/db/index.ts";
+import type { CertificatePayload, Ctx, Db, IssueCertsReport } from "../src/db/index.ts";
 import { browserPath, listen } from "../src/http/index.ts";
 import { VIEWS } from "../src/view/index.ts";
 
@@ -203,6 +207,7 @@ type Planted = {
   readonly rubric: number;
   readonly criteria: Readonly<Record<string, number>>;
   readonly voterHash: string;
+  readonly certSerial: string;
 };
 
 type Fixture = {
@@ -331,6 +336,39 @@ function plant(): Fixture {
   publishRubric(system, here.id, rubric);
   const voterHash = hashToken(startVoter(system, here, { fingerprint: "isolation-voter", accountId: null }).token);
 
+  const key = generateKeyPairSync("ed25519");
+  const pubDer = key.publicKey.export({ type: "spki", format: "der" });
+  const pubHex = pubDer.subarray(pubDer.length - 32).toString("hex");
+  const kid = issuerKeyId(pubHex);
+  const certSerial = `CERT-P-${here.id}-${participant}`;
+  const certPayload: CertificatePayload = {
+    serial: certSerial,
+    eventId: here.id,
+    eventName: here.name,
+    recipientName: "Cy Builder",
+    recipientEmail: WITNESS_EMAIL.participant as string,
+    category: "participation",
+    detail: "Official Participant in Dogfood 2026",
+    issuedAt: AT,
+    issuerOrigin: "https://portal.test",
+    certificateVersion: 3,
+    issuerKeyId: kid,
+    presentation: DEFAULT_CERTIFICATE_PRESENTATION,
+  };
+  const signed = issueCertificate(certPayload, key.privateKey);
+  const report: IssueCertsReport = {
+    event: here.name,
+    totalIssued: 1,
+    participants: 1,
+    judges: 0,
+    winners: 0,
+    publicKeyPem: key.publicKey.export({ type: "spki", format: "pem" }) as string,
+    issuerKeyId: kid,
+    certificates: [signed],
+  };
+  db.run(`insert into certificate_batch (event_id, issued_at, report) values (:event, :at, :report)`,
+    { event: here.id, at: AT, report: JSON.stringify(report) });
+
   const accountOf: Record<Witness, string | null> = {
     anonymous: null,
     stranger,
@@ -354,6 +392,7 @@ function plant(): Fixture {
       rubric,
       criteria,
       voterHash,
+      certSerial,
     },
     accountOf,
     sessionFor: (witness) => {
@@ -426,7 +465,7 @@ function valuesFor(
       return { event: SCOPED, judge: fixture.accountOf.judge,
         decision: "include", reason: "Isolation proof read only outcome" };
     case "results.correct_cert":
-      return { event: SCOPED, serial: "CERT-P-isolation-missing", action: "revoke",
+      return { event: SCOPED, serial: planted.certSerial, action: "revoke",
         reason: "Isolation probe has no issued certificate" };
     case "reviews.request":
       return { event: SCOPED, project: planted.left, reasonCode: "coverage",
@@ -551,12 +590,23 @@ function valuesFor(
     case "results.unpublish":
     case "results.certificates":
     case "results.certificate_status":
+    case "results.certificate_studio":
     case "results.issue_certs":
     case "events.clock":
     case "events.webhooks":
     case "votes.ballot":
     case "votes.abuse":
       return { event: SCOPED };
+    case "results.configure_certificate_template":
+      return {
+        event: SCOPED,
+        heading: "Certificate of Achievement",
+        body: "In recognition of outstanding dedication and craft.",
+        footer: "Issued by the Organizers",
+        signatory: "Organizing Committee",
+      };
+    case "results.public_certificate":
+      return { event: SCOPED, serial: planted.certSerial };
     case "awards.decide":
       return { event: SCOPED, project: planted.left, awardKey: `Grand prize ${tag}`,
         type: "placement", place: 1,

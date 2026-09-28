@@ -14,11 +14,11 @@ produces.
 
 | Measured                                                | Count |
 | ------------------------------------------------------- | ----- |
-| Tables exported                                         | 31    |
-| Rows exported                                           | 160   |
-| Bytes of JSONL written                                  | 47385 |
+| Tables exported                                         | 32    |
+| Rows exported                                           | 161   |
+| Bytes of JSONL written                                  | 47689 |
 | Tables the export leaves behind                         | 2     |
-| Rows after the import                                   | 160   |
+| Rows after the import                                   | 161   |
 | Files differing between the first export and the second | 0     |
 | Claims asserted in this run                             | 24    |
 | Damaged archives offered to the import                  | 11    |
@@ -58,9 +58,10 @@ produces.
 | `award_decision`         | 1       | 377       |
 | `appeal`                 | 1       | 502       |
 | `certificate_batch`      | 0       | 0         |
+| `certificate_template`   | 1       | 304       |
 | `certificate_correction` | 1       | 526       |
 | `ledger`                 | 72      | 27497     |
-| **total**                | **160** | **47385** |
+| **total**                | **161** | **47689** |
 
 Two tables are not rows in an archive, and the manifest says which and why rather than leaving
 a restorer to notice:
@@ -80,10 +81,10 @@ two runs are not the same file.
 
 Every line below ran in this session. A single failure and no report is written.
 
-- all 30 core tables hold rows; signed certificate snapshots have a separate cryptographic roundtrip test.
+- all 31 core tables hold rows; signed certificate snapshots have a separate cryptographic roundtrip test.
 - the handle the export reads through refuses writes.
-- the export wrote 31 files and a manifest, 160 rows in all.
-- the import reported 160 rows in 31 tables, which are the manifest's own totals.
+- the export wrote 32 files and a manifest, 161 rows in all.
+- the import reported 161 rows in 32 tables, which are the manifest's own totals.
 - the ledger head after the import is the one the manifest recorded.
 - the hash chain verifies against the imported rows, which is nine columns of `ledger` checking themselves.
 - `integrity_check` and `foreign_key_check` are clean on the target.
@@ -97,7 +98,7 @@ Every line below ran in this session. A single failure and no report is written.
 - a session minted before the export still authenticates after the import, so a restore does not sign every judge out mid-event.
 - and a session revoked before the export is still refused, which is `revoked_at` proving itself.
 - a criterion weighted 1/3 came back as exactly 1/3, printed as 0.3333333333333333.
-- the archive exported from the imported database is byte for byte the archive that went into it: 31 files and a manifest, compared as text.
+- the archive exported from the imported database is byte for byte the archive that went into it: 32 files and a manifest, compared as text.
 - an entry appended after the import lands at seq 73, one past the archive's last, so autoincrement resumed from the rows and not from a counter table.
 - and the chain still verifies with that entry on the end.
 - 11 damaged archives were each refused, and with the error the reason names.

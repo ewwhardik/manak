@@ -606,6 +606,14 @@ function plant(path: string): Planted {
       ["correction-sentinel", main.id, "CERT-SENTINEL", "revoke", null, null, 1,
       "b".repeat(64), "Archive format sentinel for corrected certificates", AT,
       "c".repeat(64), "archive-only-key", "archive-only-signature"]);
+    db.run(`insert into certificate_template(event_id,presentation,logo_data_url,updated_at)
+      values(?,?,?,?)`, [main.id, JSON.stringify({
+        heading: "Certificate of Achievement",
+        body: "Archive format sentinel for certificate template",
+        footer: "Issued by Manak",
+        signatory: "Organizing Committee",
+        logoSha256: null,
+      }), null, AT]);
 
     return {
       eventId: main.id,
