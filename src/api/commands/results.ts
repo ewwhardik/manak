@@ -85,6 +85,9 @@ import {
   correctCertificate,
   issuedEventCertificates,
   persistEventCertificates,
+  certificateTemplate,
+  saveCertificateTemplate,
+  publicCertificate,
   assertGate,
   coverageGaps,
   findProjectIn,
@@ -102,6 +105,7 @@ import {
   abusePolicy,
   abuseSignalKey,
   abuseReview,
+  duplicateTitles,
   RuleError,
   latestPublication,
   publicationHistory,
@@ -1490,7 +1494,8 @@ export const dashboard = defineCommand({
       })),
       readiness: judgingReadiness({ projects: pool, ballots: fit.input?.ballots ?? [],
         reviewsPerProject: row.reviews_per_project, rubric: fit.rubric,
-        pairwise: fit.pairwise, pairwiseEnabled: row.pairwise_enabled === 1 }),
+        pairwise: fit.pairwise, pairwiseEnabled: row.pairwise_enabled === 1,
+        duplicates: duplicateTitles(ctx.db, row.id) }),
       decisionSupport: {
         target: finalistReport.targetK, decisive: finalistReport.isCutDecisive,
         candidates: [...finalistReport.guaranteed, ...finalistReport.bubble, ...finalistReport.eliminated]
@@ -1748,6 +1753,10 @@ export const certificates = defineCommand({
         judges: { type: "integer" },
         winners: { type: "integer" },
         publicKeyPem: { type: "string" },
+        issuerKeyId: { type: "string" },
+        publicationRevision: { type: ["integer", "null"] },
+        publicationDigest: { type: ["string", "null"] },
+        logoDataUrl: { type: ["string", "null"] },
         certificates: { type: "array", items: { type: "object" } },
       },
       required: ["event", "totalIssued", "participants", "judges", "winners", "publicKeyPem", "certificates"],
@@ -1759,6 +1768,103 @@ export const certificates = defineCommand({
     const report = issuedEventCertificates(ctx.db, row.id);
     return report ?? { event: row.name, totalIssued: 0, participants: 0, judges: 0,
       winners: 0, publicKeyPem: "", certificates: [] };
+  },
+});
+
+export const certificateStudio = defineCommand({
+  name: "results.certificate_studio",
+  summary: "Design certificates and view the issued recipient roster.",
+  method: "GET",
+  path: "/api/events/:event/certificates/studio",
+  capability: { audience: "organizer", scope: "event" },
+  input: { event: EVENT_REF },
+  returns: { kind: "json", schema: { type: "object", properties: {
+    event: { type: "string" },
+    eventSlug: { type: "string" },
+    totalIssued: { type: "integer" },
+    participants: { type: "integer" },
+    judges: { type: "integer" },
+    winners: { type: "integer" },
+    publicKeyPem: { type: "string" },
+    issuerKeyId: { type: "string" },
+    publicationRevision: { type: ["integer", "null"] },
+    publicationDigest: { type: ["string", "null"] },
+    logoDataUrl: { type: ["string", "null"] },
+    resultsPublic: { type: "boolean" },
+    template: { type: "object" },
+    certificates: { type: "array", items: { type: "object" } },
+  }, required: ["event", "eventSlug", "template", "certificates", "totalIssued"] } },
+  handler: ({ ctx, event }) => {
+    const row = event as EventRow;
+    const report = issuedEventCertificates(ctx.db, row.id) ?? {
+      event: row.name, totalIssued: 0, participants: 0, judges: 0, winners: 0,
+      publicKeyPem: "", certificates: [],
+    };
+    return { ...report, template: certificateTemplate(ctx.db, row.id),
+      eventSlug: row.slug, resultsPublic: row.results_public === 1 };
+  },
+});
+
+export const configureCertificateTemplate = defineCommand({
+  name: "results.configure_certificate_template",
+  summary: "Save the event certificate design before issuance.",
+  method: "POST",
+  path: "/api/events/:event/certificates/template",
+  capability: { audience: "organizer", scope: "event" },
+  input: { event: EVENT_REF,
+    heading: { kind: "text", min: 3, max: 90, label: "Heading" },
+    body: { kind: "text", min: 3, max: 350, multiline: true, label: "Message" },
+    footer: { kind: "text", min: 0, max: 120, label: "Footer" },
+    signatory: { kind: "text", min: 2, max: 100, label: "Signatory" },
+  },
+  returns: { kind: "json", schema: { type: "object", properties: {
+    presentation: { type: "object" }, logoDataUrl: { type: "string" },
+  }, required: ["presentation"] } },
+  limit: "organize",
+  records: ["certificate.template.updated"],
+  form: { title: "Certificate design", submit: "Save certificate design",
+    redirect: ({ input }) => `/events/${encodeURIComponent(String(input.event))}/certificates/studio` },
+  handler: ({ ctx, event, input }) => {
+    const row = event as EventRow;
+    return ctx.recorded({ action: "certificate.template.updated", eventId: row.id,
+      payload: { heading: input.heading } }, () => saveCertificateTemplate(ctx.db, row.id, {
+      heading: String(input.heading), body: String(input.body), footer: String(input.footer),
+      signatory: String(input.signatory),
+    }, ctx.now()));
+  },
+});
+
+export const publicIssuedCertificate = defineCommand({
+  name: "results.public_certificate",
+  summary: "View an issued certificate and its current correction status.",
+  method: "GET",
+  path: "/api/events/:event/certificates/:serial",
+  capability: { audience: "public", scope: "event" },
+  input: { event: EVENT_REF,
+    serial: { kind: "text", min: 8, max: 180, label: "Certificate serial" } },
+  returns: { kind: "json", schema: { type: "object", properties: {
+    serial: { type: "string" },
+    eventName: { type: "string" },
+    recipientName: { type: "string" },
+    category: { type: "string" },
+    detail: { type: "string" },
+    issuedAt: { type: "integer" },
+    issuerOrigin: { type: "string" },
+    issuerKeyId: { type: "string" },
+    publicationRevision: { type: ["integer", "null"] },
+    presentation: { type: "object" },
+    logoDataUrl: { type: ["string", "null"] },
+    status: { type: "string" },
+    correctionReason: { type: ["string", "null"] },
+    replacementSerial: { type: ["string", "null"] },
+    eventSlug: { type: "string" },
+  }, required: ["serial", "recipientName", "status"] } },
+  handler: ({ ctx, event, input, roles }) => {
+    const row = event as EventRow;
+    if (!roles.includes("organizer")) { assertVotingClosed(row, ctx.now()); assertGate(row, ctx.now(), "results"); }
+    const cert = publicCertificate(ctx.db, row.id, String(input.serial));
+    if (!cert) throw new RuleError("certificate.unknown", "No issued certificate has this serial for this event.");
+    return { ...cert, eventSlug: row.slug };
   },
 });
 
@@ -1791,7 +1897,7 @@ export const issueCertificates = defineCommand({
   form: {
     title: "Issue event certificates",
     submit: "Issue and sign certificates",
-    redirect: ({ input }) => `/events/${encodeURIComponent(String(input.event))}/results`,
+    redirect: ({ input }) => `/events/${encodeURIComponent(String(input.event))}/certificates/studio`,
   },
   notes: "Issues cryptographic Ed25519 certificates. Refuses before results are published.",
   handler: ({ ctx, event, origin }) => {
@@ -2006,6 +2112,9 @@ export const RESULTS_COMMANDS: readonly Command[] = [
   publish,
   unpublish,
   certificates,
+  certificateStudio,
+  configureCertificateTemplate,
+  publicIssuedCertificate,
   issueCertificates,
   certificateStatus,
   correctIssuedCertificate,
