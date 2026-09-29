@@ -21,6 +21,7 @@ export {
   scroller,
   STYLESHEET_PATH,
   table,
+  themeToggle,
 } from "./html.ts";
 export type { Breadcrumb, FormOptions, PageOptions, Prefill } from "./html.ts";
 
@@ -80,4 +81,6 @@ export { informationPanel, evidenceGlossary } from "./information.ts";
 export { actionPlan } from "./action-plan.ts";
 export { explainPage, sandboxPage } from "./explain.ts";
 export { duplicatesPage } from "./duplicates.ts";
-export { embedPage } from "./embed.ts";
+export { embedPage, zeroJsShowcasePage } from "./embed.ts";
+export type { EmbedProjectItem, EmbedShowcaseOptions } from "./embed.ts";
+export { comparePage } from "./compare.ts";

@@ -619,6 +619,14 @@ function plant(path: string): Planted {
         signatory: "Organizing Committee",
         logoSha256: null,
       }), null, AT]);
+    db.run(
+      `insert into mfa_totp(account_id,secret,backup_codes,enabled_at,last_used_step) values(?,?,?,?,?)`,
+      [organizer.id, "JBSWY3DPEHPK3PXP", JSON.stringify(["BACKUP01"]), AT, 0],
+    );
+    db.run(
+      `insert into event_announcement(id,event_id,author_id,title,content,pinned,created_at,updated_at) values(?,?,?,?,?,?,?,?)`,
+      ["ann-sentinel", main.id, organizer.id, "Announcement Sentinel", "Archive fixture announcement content", 1, AT, AT],
+    );
 
     return {
       eventId: main.id,

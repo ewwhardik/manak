@@ -194,7 +194,7 @@ function parseField(
     }
     case "instant": {
       // Both forms are accepted because both callers are real: a form sends
-      // `2026-09-25T18:00`, and an API client that already has epoch milliseconds
+      // `2026-09-27T18:00`, and an API client that already has epoch milliseconds
       // should not have to format them into a string for us to parse them back.
       if (typeof text === "number") {
         return Number.isInteger(text) ? { value: text } : { problem: "should be a whole number of milliseconds." };

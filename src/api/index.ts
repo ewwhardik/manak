@@ -103,3 +103,13 @@ export type { DocumentInfo } from "./openapi.ts";
 export { buildCsv, escapeCsvCell } from "./csv.ts";
 export { RevisionCache } from "./cache.ts";
 export { liveShow } from "./commands/index.ts";
+export {
+  calculateTotp,
+  verifyTotp,
+  generateTotpSecret,
+  generateBackupCodes,
+  buildOtpauthUri,
+  generateQrCodeSvg,
+  encodeBase32,
+  decodeBase32,
+} from "./totp.ts";

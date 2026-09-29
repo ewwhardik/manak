@@ -90,18 +90,19 @@ export function seedSampleHackFull(dbPath = "./data/demo.db"): void {
     // 2. Seed quarantined duplicate project if not present
     const existingDup = db.get("select 1 from project where id = 'prj_dup_01'");
     if (!existingDup) {
-      const p1 = db.get<{ id: string; team_id: string }>(
-        "select id, team_id from project where event_id = :e order by id limit 1",
+      const p1 = db.get<{ id: string; team_id: string; submitted_at: number | null }>(
+        "select id, team_id, submitted_at from project where event_id = :e order by id limit 1",
         { e: event.id },
       );
       if (p1) {
+        const at = p1.submitted_at ?? (deadline - 3600000);
         db.run(
           `insert into project (id, event_id, team_id, title, summary, tagline, description, tech_tags, status, submitted_at, created_at, duplicate_of, duplicate_reason, duplicate_decision)
            values ('prj_dup_01', :e, :t, 'Voice Assistant Duplicate', 'Quarantined duplicate entry for triage', '', '', '', 'submitted', :at, :at, :prior, 'title', 'pending')`,
           {
             e: event.id,
             t: p1.team_id,
-            at: systemClock.now() - 7200000,
+            at,
             prior: p1.id,
           },
         );

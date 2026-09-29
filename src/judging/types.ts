@@ -49,7 +49,7 @@ export type Comparison = {
 };
 
 /** Why the pair scheduler chose a given pair — recorded for the audit trail. */
-export type PairReason = "bridge" | "informative" | "explore" | "exposure";
+export type PairReason = "bridge" | "informative" | "explore" | "exposure" | "podium";
 
 /**
  * A machine-readable finding, carried alongside the prose warnings rather than

@@ -61,8 +61,15 @@ import {
   teamOf,
   triageDuplicate,
   updateProject,
+  updateTeamRecruitment,
   withdrawProject,
+  allComparisons,
+  criteriaOf,
+  latestPublication,
+  loadJudgingInput,
+  publishedVersion,
 } from "../../db/index.ts";
+import { compareTexts, findRivals, winProbability } from "../../judging/index.ts";
 import type { Ctx, EventRow, ProjectRow, TeamRow } from "../../db/index.ts";
 
 /** The project a route names. An `id`, not a slug: a project has no human-facing name. */
@@ -385,7 +392,10 @@ export const teamList = defineCommand({
   method: "GET",
   path: "/api/events/:event/teams",
   capability: { audience: "participant", scope: "event" },
-  input: { event: EVENT_REF },
+  input: {
+    event: EVENT_REF,
+    recruiting: { kind: "bool", optional: true, label: "Filter recruiting teams" },
+  },
   returns: {
     kind: "json",
     schema: {
@@ -400,8 +410,10 @@ export const teamList = defineCommand({
               name: { type: "string" },
               size: { type: "integer" },
               yours: { type: "boolean" },
+              recruiting: { type: "boolean" },
+              neededSkills: { type: ["string", "null"] },
             },
-            required: ["id", "name", "size", "yours"],
+            required: ["id", "name", "size", "yours", "recruiting", "neededSkills"],
           },
         },
         yours: { type: ["string", "null"], description: "The id of the caller's team, if they are on one." },
@@ -409,18 +421,72 @@ export const teamList = defineCommand({
       required: ["teams", "yours"],
     },
   },
-  handler: ({ ctx, event, accountId }) => {
+  handler: ({ ctx, event, input, accountId }) => {
     const row = event as EventRow;
     const own = accountId === null ? undefined : teamOf(ctx.db, row.id, accountId);
+    const recruitingOnly = input.recruiting === true || input.recruiting === "true";
+    const teams = listTeams(ctx.db, row.id, { recruitingOnly });
     return {
-      teams: listTeams(ctx.db, row.id).map((team) => ({
+      teams: teams.map((team) => ({
         id: team.id,
         name: team.name,
         size: team.members.length,
         yours: team.id === own?.id,
+        recruiting: team.recruiting === 1,
+        neededSkills: team.needed_skills ?? null,
       })),
       yours: own?.id ?? null,
     };
+  },
+});
+
+export const teamRecruitmentUpdate = defineCommand({
+  name: "teams.recruitment",
+  summary: "Update team recruitment status and needed skills.",
+  method: "POST",
+  path: "/api/events/:event/teams/:team/recruitment",
+  capability: { audience: "participant", scope: "event" },
+  input: {
+    event: EVENT_REF,
+    team: TEAM_REF,
+    recruiting: { kind: "bool", label: "Actively recruiting new members" },
+    neededSkills: { kind: "text", optional: true, label: "Needed skills (e.g. Rust, Frontend, Design)" },
+  },
+  returns: {
+    kind: "json",
+    schema: {
+      type: "object",
+      properties: {
+        ok: { type: "boolean" },
+      },
+      required: ["ok"],
+    },
+  },
+  limit: "submission",
+  records: ["team.recruitment_updated"],
+  form: {
+    title: "Team recruitment settings",
+    submit: "Save recruitment preferences",
+    redirect: ({ input }) => `/events/${encodeURIComponent(String(input.event))}/teams`,
+  },
+  handler: ({ ctx, event, input, accountId }) => {
+    const row = event as EventRow;
+    const team = findTeamIn(ctx.db, row.id, String(input.team));
+    if (!team) throw notFound("team", String(input.team));
+    if (accountId === null) throw forbidden("Sign in to modify team recruitment.");
+    const own = teamOf(ctx.db, row.id, accountId);
+    if (!own || own.id !== team.id) {
+      throw forbidden("You can only modify recruitment settings for your own team.");
+    }
+    const isRecruiting = input.recruiting === true || input.recruiting === "true";
+    updateTeamRecruitment(
+      ctx,
+      row.id,
+      team.id,
+      isRecruiting,
+      input.neededSkills ? String(input.neededSkills) : null,
+    );
+    return { ok: true };
   },
 });
 
@@ -1101,6 +1167,221 @@ export const duplicateTriage = defineCommand({
   }),
 });
 
+export const projectCompare = defineCommand({
+  name: "projects.compare",
+  summary: "Side-by-side rival comparison analyzing thematic TF-IDF similarity, criterion scores, and head-to-head records.",
+  method: "GET",
+  path: "/api/events/:event/compare",
+  capability: { audience: "public", scope: "event" },
+  input: {
+    event: EVENT_REF,
+    left: { kind: "text", optional: true, label: "First project id" },
+    right: { kind: "text", optional: true, label: "Second project id (rival)" },
+  },
+  returns: {
+    kind: "json",
+    schema: {
+      type: "object",
+      properties: {
+        eventSlug: { type: "string" },
+        left: { type: "object" },
+        right: { type: "object" },
+        similarity: { type: "object" },
+        criteriaComparison: { type: "array", items: { type: "object" } },
+        headToHead: { type: "object" },
+        allProjects: { type: "array", items: { type: "object" } },
+      },
+      required: [
+        "eventSlug",
+        "left",
+        "right",
+        "similarity",
+        "criteriaComparison",
+        "headToHead",
+        "allProjects",
+      ],
+    },
+  },
+  handler: ({ ctx, event, input }) => {
+    const row = event as EventRow;
+    const all = listProjects(ctx.db, row.id).filter(
+      (p) => p.status !== "withdrawn" && p.status !== "disqualified",
+    );
+    if (all.length === 0) {
+      throw notFound("project", "No active projects available to compare in this event.");
+    }
+
+    const corpus = all.map((p) => ({
+      id: p.id,
+      text: `${p.title} ${p.summary ?? ""} ${p.description ?? ""}`,
+    }));
+
+    let leftProj = input.left
+      ? all.find((p) => p.id === String(input.left))
+      : undefined;
+    if (!leftProj) leftProj = all[0]!;
+
+    let rightCandidate = input.right
+      ? all.find((p) => p.id === String(input.right))
+      : undefined;
+    if (!rightCandidate) {
+      const rivals = findRivals(leftProj.id, corpus, 3);
+      const topRivalId = rivals.find((r) => r.rivalId !== leftProj!.id)?.rivalId;
+      rightCandidate = topRivalId
+        ? all.find((p) => p.id === topRivalId)
+        : all.find((p) => p.id !== leftProj!.id);
+    }
+    const rightProj: ProjectRow = rightCandidate ?? leftProj;
+
+    const leftText = `${leftProj.title} ${leftProj.summary ?? ""} ${leftProj.description ?? ""}`;
+    const rightText = `${rightProj.title} ${rightProj.summary ?? ""} ${rightProj.description ?? ""}`;
+    const sim = compareTexts(
+      leftText,
+      rightText,
+      corpus.map((c) => c.text),
+    );
+
+    const publication = latestPublication(ctx.db, row.id);
+    let leftRank: number | null = null;
+    let rightRank: number | null = null;
+    let leftAdjusted: number | null = null;
+    let rightAdjusted: number | null = null;
+    let leftLow: number | null = null;
+    let leftHigh: number | null = null;
+    let rightLow: number | null = null;
+    let rightHigh: number | null = null;
+
+    if (publication) {
+      try {
+        const rep = JSON.parse(publication.report) as {
+          projects?: {
+            project: string;
+            rank: number;
+            adjusted: number;
+            low?: number;
+            high?: number;
+          }[];
+        };
+        const leftEntry = rep.projects?.find((p) => p.project === leftProj!.id);
+        const rightEntry = rep.projects?.find((p) => p.project === rightProj.id);
+        if (leftEntry) {
+          leftRank = leftEntry.rank;
+          leftAdjusted = leftEntry.adjusted;
+          leftLow = leftEntry.low ?? null;
+          leftHigh = leftEntry.high ?? null;
+        }
+        if (rightEntry) {
+          rightRank = rightEntry.rank;
+          rightAdjusted = rightEntry.adjusted;
+          rightLow = rightEntry.low ?? null;
+          rightHigh = rightEntry.high ?? null;
+        }
+      } catch {
+        // publication report unreadable; proceed with nulls
+      }
+    }
+
+    const version = publishedVersion(ctx.db, row.id);
+    const judgingData =
+      version !== undefined
+        ? loadJudgingInput(ctx.db, row.id, version)
+        : { ballots: [] };
+    const criteriaList =
+      version !== undefined ? criteriaOf(ctx.db, row.id, version) : [];
+    const leftBallots = judgingData.ballots.filter((b) => b.project === leftProj!.id);
+    const rightBallots = judgingData.ballots.filter((b) => b.project === rightProj.id);
+
+    const criteriaComparison = criteriaList.map((crit) => {
+      const leftScores = leftBallots
+        .map((b) => b.scores[crit.key])
+        .filter((s): s is number => typeof s === "number");
+      const rightScores = rightBallots
+        .map((b) => b.scores[crit.key])
+        .filter((s): s is number => typeof s === "number");
+      const leftAvg =
+        leftScores.length > 0
+          ? leftScores.reduce((a, b) => a + b, 0) / leftScores.length
+          : null;
+      const rightAvg =
+        rightScores.length > 0
+          ? rightScores.reduce((a, b) => a + b, 0) / rightScores.length
+          : null;
+      return {
+        id: crit.key,
+        key: crit.key,
+        label: crit.label,
+        weight: crit.weight,
+        min: crit.min_score,
+        max: crit.max_score,
+        leftAvg,
+        rightAvg,
+      };
+    });
+
+    const duels = allComparisons(ctx.db, row.id).filter(
+      (c) =>
+        c.winner_id !== null &&
+        ((c.left_id === leftProj!.id && c.right_id === rightProj.id) ||
+          (c.left_id === rightProj.id && c.right_id === leftProj!.id)),
+    );
+    let leftWins = 0;
+    let rightWins = 0;
+    for (const d of duels) {
+      if (d.winner_id === leftProj.id) leftWins++;
+      else if (d.winner_id === rightProj.id) rightWins++;
+    }
+
+    const strengthLeft = leftAdjusted ?? 0;
+    const strengthRight = rightAdjusted ?? 0;
+    const leftWinProbability = winProbability(strengthLeft, strengthRight);
+
+    const teamNames = new Map(listTeams(ctx.db, row.id).map((t) => [t.id, t.name]));
+
+    return {
+      eventSlug: row.slug,
+      left: {
+        id: leftProj.id,
+        title: leftProj.title,
+        summary: leftProj.summary,
+        description: leftProj.description,
+        track: leftProj.track_key,
+        teamName: teamNames.get(leftProj.team_id) ?? "Team",
+        rank: leftRank,
+        adjusted: leftAdjusted,
+        low: leftLow,
+        high: leftHigh,
+      },
+      right: {
+        id: rightProj.id,
+        title: rightProj.title,
+        summary: rightProj.summary,
+        description: rightProj.description,
+        track: rightProj.track_key,
+        teamName: teamNames.get(rightProj.team_id) ?? "Team",
+        rank: rightRank,
+        adjusted: rightAdjusted,
+        low: rightLow,
+        high: rightHigh,
+      },
+      similarity: {
+        score: sim.similarity,
+        sharedKeywords: sim.sharedKeywords,
+      },
+      criteriaComparison,
+      headToHead: {
+        leftWins,
+        rightWins,
+        totalDuels: duels.length,
+        leftWinProbability,
+      },
+      allProjects: all.map((p) => ({
+        id: p.id,
+        title: p.title,
+      })),
+    };
+  },
+});
+
 export const PROJECT_COMMANDS: readonly Command[] = [
   commentAdd, commentHide,
   trackCreate,
@@ -1108,8 +1389,10 @@ export const PROJECT_COMMANDS: readonly Command[] = [
   teamJoin,
   teamLeave,
   teamInviteRotate,
+  teamRecruitmentUpdate,
   list,
   show,
+  projectCompare,
   create,
   update,
   submit,

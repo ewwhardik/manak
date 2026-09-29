@@ -36,6 +36,10 @@ export type PairingOptions = {
   exposureTarget?: number;
   /** Weight on exposure relative to information. 0 is pure information. */
   exposureWeight?: number;
+  /** Target podium cutoff rank (e.g. 3 for top-3 podium). Prioritizes border duels. */
+  podiumCutoff?: number;
+  /** Weight on podium border bonus relative to information and exposure. Default 0.75 when cutoff is set. */
+  podiumWeight?: number;
 };
 
 /**
@@ -159,6 +163,14 @@ export function nextPair(input: PairingInput, options: PairingOptions = {}): Pai
   const deficitOf = (p: ProjectId): number =>
     Math.max(0, opt.exposureTarget - (progress.exposure.get(p) ?? 0)) / Math.max(1, opt.exposureTarget);
 
+  const rankOf = new Map<ProjectId, number>();
+  if (opt.podiumCutoff !== undefined && opt.podiumCutoff > 0) {
+    const sortedPool = pool.slice().sort((p1, p2) => strengthOf(p2) - strengthOf(p1) || p1.localeCompare(p2));
+    sortedPool.forEach((p, idx) => rankOf.set(p, idx + 1));
+  }
+  const podiumCutoff = opt.podiumCutoff ?? 0;
+  const podiumWeight = opt.podiumWeight ?? (podiumCutoff > 0 ? 0.75 : 0);
+
   type Candidate = {
     a: ProjectId;
     b: ProjectId;
@@ -166,6 +178,7 @@ export function nextPair(input: PairingInput, options: PairingOptions = {}): Pai
     bridgeSpan: number;
     information: number;
     deficit: number;
+    podiumBonus: number;
     score: number;
   };
 
@@ -184,6 +197,18 @@ export function nextPair(input: PairingInput, options: PairingOptions = {}): Pai
       const p = winProbability(strengthOf(a), strengthOf(b));
       const information = p * (1 - p) * 4; // scaled to [0, 1]
       const deficit = (deficitOf(a) + deficitOf(b)) / 2;
+      let podiumBonus = 0;
+      if (podiumCutoff > 0) {
+        const ra = rankOf.get(a) ?? pool.length;
+        const rb = rankOf.get(b) ?? pool.length;
+        const minR = Math.min(ra, rb);
+        const maxR = Math.max(ra, rb);
+        if (minR <= podiumCutoff && maxR >= podiumCutoff) {
+          podiumBonus = 1.0 / (1 + Math.abs(minR - podiumCutoff) + Math.abs(maxR - (podiumCutoff + 1)));
+        } else if (Math.abs(ra - podiumCutoff) <= 1 && Math.abs(rb - podiumCutoff) <= 1) {
+          podiumBonus = 0.8;
+        }
+      }
       candidates.push({
         a,
         b,
@@ -191,7 +216,8 @@ export function nextPair(input: PairingInput, options: PairingOptions = {}): Pai
         bridgeSpan,
         information,
         deficit,
-        score: information + opt.exposureWeight * deficit,
+        podiumBonus,
+        score: information + opt.exposureWeight * deficit + podiumWeight * podiumBonus,
       });
     }
   }
@@ -228,13 +254,14 @@ export function nextPair(input: PairingInput, options: PairingOptions = {}): Pai
     const best = candidates[0] as Candidate;
     const tied = candidates.filter((c) => Math.abs(c.score - best.score) < 1e-12);
     chosen = (rng.pick(tied) ?? best) as Candidate;
-    // Attribute the pick to whichever term actually decided it. If the chosen
-    // pair was also the most informative one available, information decided;
-    // otherwise the exposure deficit promoted it over a more informative pair,
-    // and the ledger should say so rather than claiming a statistical motive.
+    // Attribute the pick to whichever term actually decided it.
     let bestInformation = 0;
     for (const c of candidates) bestInformation = Math.max(bestInformation, c.information);
-    reason = chosen.information >= bestInformation - 1e-12 ? "informative" : "exposure";
+    if (chosen.podiumBonus > 0 && podiumWeight * chosen.podiumBonus >= chosen.information && podiumWeight * chosen.podiumBonus >= opt.exposureWeight * chosen.deficit) {
+      reason = "podium";
+    } else {
+      reason = chosen.information >= bestInformation - 1e-12 ? "informative" : "exposure";
+    }
   }
 
   // Which side a project appears on is decided by the judge and the pair, not by

@@ -746,7 +746,11 @@ test("one address is one account, whatever case it arrives in", () => {
   // because the CHECK forbids empty and a blank name on a dashboard is worse.
   assert.equal(upsertAccount(h.system, "bob@example.test").display_name, "bob");
   assert.equal(findAccountByEmail(h.db, "ADA@EXAMPLE.TEST")?.id, first.id);
-  for (const bad of ["", "no-at-sign", "two@@at.test", "trailing@dot.", "spaces in@x.test"]) {
+  assert.equal(normalizeEmail("a.b+hack@googlemail.com"), "ab@gmail.com");
+  assert.equal(normalizeEmail("  Ada.Lovelace+x+y@GOOGLEMAIL.COM "), "adalovelace@gmail.com");
+  assert.equal(normalizeEmail("bob+votes@example.org"), "bob@example.org");
+  assert.equal(normalizeEmail("b.o.b@example.org"), "b.o.b@example.org");
+  for (const bad of ["", "no-at-sign", "two@@at.test", "trailing@dot.", "spaces in@x.test", "+tag@example.org"]) {
     assert.throws(() => normalizeEmail(bad), (error: unknown) => {
       assert.ok(error instanceof RuleError);
       assert.equal(error.code, "account.email");
@@ -2227,5 +2231,70 @@ test("nothing crosses an event boundary, not even by direct insert", () => {
   );
   assert.deepEqual(loadJudgingInput(h.db, other.id).ballots, []);
   assert.deepEqual(projectCoverage(h.db, other), []);
+  h.close();
+});
+
+test("database triggers harden submission windows, voting deadlines, and credit budgets", () => {
+  const h = world();
+  const eventId = h.event.id;
+  const project = (h.projects[0] as ProjectRow).id;
+
+  // 1. Project insert trigger refuses submitted project with timestamp before submissionsOpenAt
+  assert.throws(
+    () =>
+      h.system.recorded({ action: "test.probe", eventId, subject: "p-late" }, () => {
+        h.system.write(
+          `insert into project (id, event_id, team_id, title, summary, status, submitted_at, created_at)
+           values ('p-late', :e, 't1', 'Late Project', 'Summary', 'submitted', :late, :created)`,
+          { e: eventId, late: T0 - 1000, created: T0 - 2000 },
+        );
+      }),
+    /project submission timestamp outside event window/,
+  );
+
+  // 2. Voting triggers: register a voter first
+  const voterHash = "0".repeat(64);
+  h.db.run(
+    `insert into voter (token_hash, event_id, fingerprint, credits, created_at, expires_at)
+     values (:token, :e, 'fp-1', 100, :at, :exp)`,
+    { token: voterHash, e: eventId, at: T0, exp: T0 + 100000 },
+  );
+
+  // Set voting window: T0 + 10000 to T0 + MS.day
+  h.db.run(
+    `update event set voting_open_at = :start, voting_close_at = :close, voting_credits = 50 where id = :e`,
+    { e: eventId, start: T0 + 10000, close: T0 + MS.day },
+  );
+
+  // Vote outside voting window (before voting_open_at) is refused
+  assert.throws(
+    () =>
+      h.db.run(
+        `insert into vote (event_id, voter_hash, project_id, credits_spent, weight, created_at)
+         values (:e, :voter, :p, 10, 3, :at)`,
+        { e: eventId, voter: voterHash, p: project, at: T0 },
+      ),
+    /vote timestamp outside event voting window/,
+  );
+
+  // Vote within window succeeds
+  h.db.run(
+    `insert into vote (event_id, voter_hash, project_id, credits_spent, weight, created_at)
+     values (:e, :voter, :p, 30, 5, :at)`,
+    { e: eventId, voter: voterHash, p: project, at: T0 + 20000 },
+  );
+
+  // Vote that exceeds 50 credit budget is refused by vote_budget_limit trigger (30 + 25 > 50)
+  const project2 = (h.projects[1] as ProjectRow).id;
+  assert.throws(
+    () =>
+      h.db.run(
+        `insert into vote (event_id, voter_hash, project_id, credits_spent, weight, created_at)
+         values (:e, :voter, :p2, 25, 5, :at)`,
+        { e: eventId, voter: voterHash, p2: project2, at: T0 + 1000 },
+      ),
+    /voter credits spent exceeds event budget/,
+  );
+
   h.close();
 });

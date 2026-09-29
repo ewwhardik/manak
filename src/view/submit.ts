@@ -82,37 +82,64 @@ export function teamsPage(context: ViewContext): string {
   const own = at(context.result, "yours");
   const onATeam = typeof own === "string" && own !== "";
   const open = context.gates?.submissionsOpen === true;
+  const isRecruiting =
+    context.input.recruiting === true ||
+    context.input.recruiting === "true" ||
+    context.input.recruiting === "1";
+  const filterPills = `<nav class="track-pills" aria-label="Filter teams by recruitment status"><span class="track-pill-label">Filter:</span><a class="track-pill${!isRecruiting ? " track-pill-active" : ""}" href="/events/${encodeURIComponent(slug)}/teams">All teams (${teams.length})</a><a class="track-pill${isRecruiting ? " track-pill-active" : ""}" href="/events/${encodeURIComponent(slug)}/teams?recruiting=true">Actively recruiting</a></nav>`;
+
+  const myTeam = teams.find((t) => t.yours === true);
+  const settings =
+    myTeam && open
+      ? `<details><summary>Manage team recruitment</summary>${actionForm(
+          context,
+          "teams.recruitment",
+          { event: slug, team: String(myTeam.id) },
+          {
+            prefill: {
+              recruiting: myTeam.recruiting === true ? "true" : "",
+              neededSkills: String(myTeam.neededSkills ?? ""),
+            },
+            submit: "Save recruitment settings",
+          },
+        )}</details>`
+      : "";
+
   const body = ((): string => {
     if (teams.length === 0) {
-      return `<p class="muted">No teams yet. Entering a project creates one, so the usual order
-is to enter the project and let your team-mates join afterwards.</p>`;
+      return `<p class="muted">${isRecruiting ? "No teams are currently advertising open positions." : "No teams yet. Entering a project creates one, so the usual order is to enter the project and let your team-mates join afterwards."}</p>`;
     }
     return scroller(table(
-      // "yours" was its own headerless column and is now a badge on the name: a marker that
-      // belongs to the team is not an action anybody can take, and a column drawn with no
-      // heading has to be one or the other. The join column keeps a hidden label because the
-      // button in it names itself, and a screen reader still needs the column announced.
-      ["Team", "Members", "vh:Join"],
-      teams.map((team) => {
-        const id = String(team.id ?? "");
-        const mine = team.yours === true;
-        const name = esc(String(team.name ?? ""));
-        return [
-          mine ? `${name} ${tag("yours", "open")}` : name,
-          String(team.size ?? 0),
-          mine || onATeam || !open
-            ? ""
-            : actionForm(
-                context,
-                "teams.join",
-                { event: slug, team: id },
-                { inline: true, submit: "Join" },
-              ),
-        ];
-      }),
-      [0, 2],
-      [1],
-    ), "Teams in this event");
+        ["Team", "Members", "vh:Join"],
+        teams.map((team) => {
+          const id = String(team.id ?? "");
+          const mine = team.yours === true;
+          const name = esc(String(team.name ?? ""));
+          let nameHtml = mine ? `${name} ${tag("yours", "open")}` : name;
+          if (team.recruiting === true) {
+            nameHtml += ` ${tag("recruiting", "open")}`;
+          }
+          if (team.neededSkills) {
+            nameHtml += `<br><span class="detail">Needed: ${esc(String(team.neededSkills))}</span>`;
+          }
+          return [
+            nameHtml,
+            String(team.size ?? 0),
+            mine || onATeam || !open
+              ? ""
+              : actionForm(
+                  context,
+                  "teams.join",
+                  { event: slug, team: id },
+                  { inline: true, submit: "Join" },
+                ),
+          ];
+        }),
+        [0, 2],
+        [1],
+      ),
+      "Teams in this event",
+    );
   })();
   const note = ((): string => {
     if (onATeam) {
@@ -132,11 +159,14 @@ talking; this page only records it.</p>`;
   return page({
     title: `${context.event === null ? "Event" : context.event.name}`,
     trail: eventTrail(context, { label: "Teams" }),
-    whoami: context.whoami, demoMode: context.demoMode,
+    whoami: context.whoami,
+    demoMode: context.demoMode,
     ...(gatesNotice(context.gates) === undefined
       ? {}
       : { notice: gatesNotice(context.gates) as string }),
-    body: `${body}
+    body: `${filterPills}
+${body}
+${settings}
 ${note}
 <p><a href="${esc(
       routeFor(commandNamed(context.registry, "projects.list"), { event: slug }),
@@ -334,6 +364,7 @@ ${definitions(
       ],
       ["Status", "Repository", "Demo"],
     )}
+<p><a href="/events/${encodeURIComponent(slug)}/compare?left=${encodeURIComponent(id)}" class="card-bottom">Compare with rivals (TF-IDF &amp; head-to-head) &rarr;</a></p>
 <section class="conversation"><h2>Project conversation</h2>${rows(context.result, "comments").map((comment) => `<article class="comment"><header><b>${esc(comment.author)}</b><span class="detail">${esc(when(comment.at, timezone))}</span></header><p>${esc(comment.body)}</p>${mayModerate ? `<details><summary>Moderate this comment</summary>${actionForm(context, "comments.hide", params, { hidden: { comment: String(comment.id) } })}</details>` : ""}</article>`).join("") || '<p class="muted">Ask a thoughtful question or share useful feedback.</p>'}${context.accountId !== null && status === "submitted" && !context.gates?.archived ? actionForm(context, "comments.add", params) : '<p class="muted">Sign in to comment on an active, submitted project.</p>'}</section>
 ${owner}
 ${moderation}`,

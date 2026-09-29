@@ -30,6 +30,7 @@
     "certs:issue": "node --experimental-strip-types tools/issue-certs.ts",
     "typecheck": "tsc --noEmit",
     "verify:workflow": "node --experimental-strip-types tools/verify-workflow.ts",
+    "audit:commits": "node --experimental-strip-types tools/audit-commits.ts",
     "start:demo": "node --experimental-strip-types tools/start-demo.ts",
     "docs:generate": "node --experimental-strip-types tools/refresh-evidence.ts",
     "docker:build": "docker compose build",

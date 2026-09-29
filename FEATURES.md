@@ -282,22 +282,136 @@ Roles are scoped to one event. A judge invited to one event does not gain access
 
 **Current behavior:**
 - `tools/check_extended.py` executes against `.dogfood.toml`.
-- Probes all 12 extended criteria: ballot shuffle stability, active voting privacy gates, authenticated comment gating, duplicate project quarantine, hash chain continuity, CSV export validity, webhook contracts, Ed25519 certificates, and Prometheus `/metrics`.
-- Generates `acceptance-report-extended.txt` with zero failures (18 verified, 7 partial, 3 blocked, 0 unsupported, 0 failed).
+- Probes all 28 criteria with an ephemeral local webhook receiver and active test window support: ballot shuffle stability, active voting privacy gates, authenticated comment gating, duplicate project quarantine, hash chain continuity, CSV export validity, webhook contracts, Ed25519 certificates, scoped API tokens, voter voiding, team invite rotation, and Prometheus `/metrics`.
+- Generates `acceptance-report-extended.txt` with all 28 checks verified (28 verified, 0 partial, 0 blocked, 0 unsupported, 0 failed).
+
+## 27. Sub-Address and Dot Canonicalization
+
+**Target:** Prevent Sybil account multiplication and duplicate registrations via email sub-addressing (+tagging) and dot mutations.
+
+**Current behavior:** `normalizeEmail()` implements RFC 5233 sub-address stripping:
+- Strips `+tag` suffixes across all domains (`alice+tag@example.org` -> `alice@example.org`).
+- Strips dots from username components for Gmail and Googlemail accounts (`a.b.c@gmail.com` -> `abc@gmail.com`).
+- Canonicalizes `googlemail.com` domain to `gmail.com`.
+- Preserves dotted usernames for non-Gmail domains where dots may be distinct mailboxes.
+
+## 28. Border-Targeted Active Duels (Podium Focus)
+
+**Target:** Maximize statistical confidence at the boundary between prize winners and non-winners in pairwise comparisons.
+
+**Current behavior:** `suggestDuelPair()` supports `podiumCutoff` and `podiumWeight`:
+- Identifies the critical border between rank $K$ and $K+1$ based on current Bradley-Terry parameter estimates.
+- Weighting factor `podiumWeight` (default 2.0x) amplifies the selection utility for candidate duels that straddle this boundary.
+- Resolves ties and ambiguity where it matters most for final prize allocation.
+
+## 29. Multi-Model Comparison Dashboard
+
+**Target:** Empower organizers to cross-examine project rankings across distinct mathematical frameworks before final award decisions.
+
+**Current behavior:** Organizer results dashboard side-by-side comparison:
+- Tabulates **Raw Mean Score**, **Judge-Calibrated Score** (variance-adjusted), and **Bradley-Terry MM $\theta$** (pairwise maximum likelihood) for every project.
+- Computes rank shift $\Delta$ between calibration models to instantly pinpoint projects with high model sensitivity or judging variance.
+
+## 30. Sybil Voting Ring and Ballot Collusion Detection
+
+**Target:** Detect coordinated voting rings and ballot tampering across judges.
+
+**Current behavior:** `detectBallotCollusion()` in `src/judging/abuse.ts`:
+- Analyzes pairwise judge similarity across shared project evaluations.
+- Flags suspicious judge clusters exhibiting near-identical scoring vectors across multiple projects ($r \ge 0.95$, count $\ge 3$).
+- Detects inverted contrast rings and provides actionable collusion reports with severity flags.
+
+## 31. Zero-JS Embeddable Public Showcase
+
+**Target:** Provide a secure, zero-JavaScript responsive event showcase widget that external websites and sponsors can embed in any iframe.
+
+**Current behavior:**
+- Server-rendered HTML route at `/embed/events/:slug` delivering semantic CSS cards for all submitted projects.
+- Explicit Content-Security-Policy headers permitting `frame-ancestors *` for universal embedding.
+- Fast, zero client-side JavaScript execution, fully responsive across desktop and mobile viewport sizes.
+
+## 32. Engine-Level Deadline and Budget Hardening Triggers
+
+**Target:** Enforce core hackathon invariants directly in the SQLite database engine layer as an immutable backstop against application bugs.
+
+**Current behavior:** Migration `020_deadline_hardening_triggers.sql` adds engine triggers:
+- `project_submission_insert_window`: Aborts project insertions with `status = 'submitted'` outside the event's configured submission window.
+- `vote_submission_window` & `vote_submission_window_update`: Rejects vote inserts/updates outside the event's voting window.
+- `vote_budget_limit` & `vote_budget_limit_update`: Atomically enforces quadratic voting credit limits across all projects for each voter.
+
+## 33. Automated GitHub Commit Window Auditor
+
+**Target:** Automatically audit participant code submissions to verify that development occurred strictly within the official hackathon timeframe.
+
+**Current behavior:**
+- `src/judging/commit-audit.ts` and `tools/audit-commits.ts` (`npm run audit:commits`):
+- Audits git repository commit logs against event start and close boundaries.
+- Classifies repositories as `VERIFIED` (all commits in-window), `SUSPICIOUS` (pre-existing baseline code), or `DISQUALIFIED` (commits after close).
+- Emits detailed JSON audit reports and machine-checkable summaries.
+
+## 34. Rival Comparison Engine (`/compare`)
+
+**Target:** Provide side-by-side comparative analysis of direct competitor projects within an event.
+
+**Current behavior:**
+- Pure TypeScript TF-IDF tokenizer and cosine similarity vector engine in `src/judging/similarity.ts`.
+- Automatically suggests top semantic rival projects based on title, tagline, summary, story, technology tags, and track.
+- Side-by-side comparison view (`src/view/compare.ts` and `projects.compare` command) contrasting criterion scores, Bayesian ranks, 95% confidence intervals, and head-to-head pairwise duel records.
+
+## 35. Event Announcements Feed
+
+**Target:** Give organizers a direct broadcast feed to communicate schedule shifts, deadlines, and alerts to participants.
+
+**Current behavior:**
+- Migration `021_event_announcements.sql` introduces the `event_announcement` table.
+- Commands `announcements.create`, `announcements.list`, and `announcements.delete` with full audit ledger tracking.
+- Pinned alert banners and chronological announcement cards rendered natively on `/events/:slug`.
+
+## 36. Team Recruitment Directory
+
+**Target:** Help participants find teams with open spots and matching skill requirements.
+
+**Current behavior:**
+- Migration `022_team_recruitment.sql` adds `recruiting` flag and `needed_skills` text to `team`.
+- Captains can toggle recruitment status and declare needed skills via `teams.recruitment`.
+- Filterable recruitment directory at `/events/:slug/teams?recruiting=true` displaying badge indicators and quick-join links.
+
+## 37. Two-Factor Authentication (RFC 6238 TOTP)
+
+**Target:** Protect administrative and organizer accounts with time-based one-time passwords without external SaaS dependencies.
+
+**Current behavior:**
+- Migration `023_mfa_totp.sql` adds the `mfa_totp` table.
+- Pure `node:crypto` HMAC-SHA1 TOTP implementation with RFC 4648 base32 secret encoding and pure-SVG QR code generator in `src/api/totp.ts`.
+- Five dedicated operations: `totp.status`, `totp.setup`, `totp.enable`, `totp.verify`, and `totp.disable`.
+
+## 38. Deterministic Multi-Stage Demo Seeding (`--stages`)
+
+**Target:** Allow instant local exploration of every hackathon phase without manually advancing system clocks.
+
+**Current behavior:**
+- CLI flag `node bin/manak.ts seed --stages` generates 5 distinct demo events:
+  - `stage-setup`: Pre-registration setup phase.
+  - `stage-submissions`: Active submission window with draft projects.
+  - `stage-judging`: Active judging window with private rubric queues and duels.
+  - `stage-results`: Final results published with Bayesian calibration.
+  - `stage-certificates`: Full awards podium with Ed25519 digital certificates.
+- Fully verified against the append-only cryptographic ledger with zero breaks.
 
 ---
 
 ## Command inventory
 
-The **102 registered operations** are grouped below. `/docs` supplies the current method, path, fields, and role rule for each one. Generated [OpenAPI](openapi.json) documents the full machine-checked specification.
+The **112 registered operations** are grouped below. `/docs` supplies the current method, path, fields, and role rule for each one. Generated [OpenAPI](openapi.json) documents the full machine-checked specification.
 
 | Area | Operations |
 | --- | --- |
 | Sign-in | `auth.signin`, `auth.request`, `auth.link`, `auth.session`, `auth.whoami`, `auth.signout` |
-| Personal tokens | `tokens.list`, `tokens.create`, `tokens.revoke` |
+| Personal tokens & MFA | `tokens.list`, `tokens.create`, `tokens.revoke`, `totp.status`, `totp.setup`, `totp.enable`, `totp.verify`, `totp.disable` |
 | Events | `events.list`, `events.show`, `events.create`, `events.update`, `events.mine`, `events.invite`, `events.judges`, `events.clock`, `events.warp_clock`, `events.webhooks`, `events.ping_webhook`, `events.revoke_role` |
-| Teams and tracks | `tracks.create`, `teams.list`, `teams.join`, `teams.invite_rotate`, `teams.leave` |
-| Projects & duplicates | `projects.list`, `projects.show`, `projects.create`, `projects.update`, `projects.submit`, `projects.withdraw`, `projects.pull`, `projects.disqualify`, `duplicates.list`, `duplicates.triage` |
+| Announcements | `announcements.create`, `announcements.list`, `announcements.delete` |
+| Teams and tracks | `tracks.create`, `teams.list`, `teams.join`, `teams.invite_rotate`, `teams.leave`, `teams.recruitment` |
+| Projects & duplicates | `projects.list`, `projects.show`, `projects.create`, `projects.update`, `projects.submit`, `projects.withdraw`, `projects.pull`, `projects.disqualify`, `duplicates.list`, `duplicates.triage`, `projects.compare` |
 | Comments | `comments.add`, `comments.hide` |
 | Rubrics | `rubrics.show`, `rubrics.create`, `rubrics.publish` |
 | Judge work | `judging.queue`, `ballots.save`, `duels.next`, `duels.decide`, `assignments.draw`, `assignments.preview`, `judges.roster`, `judges.configure`, `judges.recusal`, `judges.self_recusal`, `reviews.requests`, `reviews.request`, `reviews.cancel` |

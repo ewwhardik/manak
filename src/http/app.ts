@@ -114,7 +114,8 @@ import {
   verifyPage,
 } from "../view/index.ts";
 import { certificateSvg } from "../view/certificates.ts";
-import { EMBED_JS, embedPage } from "../view/embed.ts";
+import { EMBED_JS, embedPage, zeroJsShowcasePage } from "../view/embed.ts";
+import type { EmbedProjectItem } from "../view/embed.ts";
 import type { Extra, StreamEvent } from "./respond.ts";
 import {
   clearedCookie,
@@ -326,7 +327,7 @@ export function makeApp(options: AppOptions): Serve {
       return jsResponse(EMBED_JS);
     }
 
-    const embedMatch = /^\/embed\/([^/]+)\/?$/.exec(target.pathname);
+    const embedMatch = /^\/embed\/(?:events\/)?([^/]+)\/?$/.exec(target.pathname);
     if (embedMatch) {
       if (request.method !== "GET" && request.method !== "HEAD") {
         throw methodNotAllowed(request.method, ["GET"]);
@@ -339,6 +340,39 @@ export function makeApp(options: AppOptions): Serve {
       }
       const event = resolveEvent(db, reference);
       if (!event) throw notFound("event");
+
+      const isZeroJs = target.pathname.startsWith("/embed/events/") || url.searchParams.get("mode") === "static";
+      if (isZeroJs) {
+        const rawProjects = db.all<{ id: string; title: string; summary: string | null; track_key: string | null }>(
+          `select id, title, summary, track_key from project where event_id = :e and status = 'submitted' order by title`,
+          { e: event.id },
+        );
+        const resultsPublic = event.results_public === 1;
+        const projectItems: EmbedProjectItem[] = rawProjects.map((p) => ({
+          id: p.id,
+          title: p.title,
+          summary: p.summary,
+          trackKey: p.track_key,
+        }));
+        const body = zeroJsShowcasePage({
+          eventName: event.name,
+          eventSlug: event.slug,
+          projects: projectItems,
+          resultsPublic,
+        });
+        const headers = new Headers(SECURITY_HEADERS);
+        headers.delete("x-frame-options");
+        headers.set("content-type", "text/html; charset=utf-8");
+        headers.set("cache-control", "no-store");
+        headers.set("content-security-policy", [
+          "default-src 'none'",
+          "style-src 'unsafe-inline'",
+          "frame-ancestors *",
+          "base-uri 'none'",
+        ].join("; "));
+        return new Response(body, { status: 200, headers });
+      }
+
       // parentOrigin is only a message destination hint. Refuse opaque, non-web, and
       // path-bearing values; the embed itself remains public and frameable from any site.
       let parentOrigin = "";
@@ -496,6 +530,20 @@ export function makeApp(options: AppOptions): Serve {
         showDemoDisclaimer: options.demoMode === true && !hasSeenDisclaimer,
         events: activeEvents,
       }), 200);
+    }
+
+    if (target.pathname === "/compare" || target.pathname === "/api/compare") {
+      const activeEvent = db.get<{ slug: string }>(
+        "select slug from event where archived_at is null order by created_at desc limit 1",
+      );
+      if (!activeEvent) throw notFound("event", "No active event found");
+      const dest = target.pathname.startsWith("/api")
+        ? `/api/events/${encodeURIComponent(activeEvent.slug)}/compare`
+        : `/events/${encodeURIComponent(activeEvent.slug)}/compare`;
+      return new Response(null, {
+        status: 303,
+        headers: { Location: dest },
+      });
     }
 
     const liveMatch = /^\/(api\/)?events\/([^/]+)\/live\/?$/.exec(target.pathname);

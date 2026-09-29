@@ -57,7 +57,7 @@ function row(label: string, event: Event, opt: typeof schedules[number]): string
 const db = openDatabase(":memory:");
 try {
   migrate(db);
-  const at = Date.parse("2026-09-26T12:00:00Z");
+  const at = Date.parse("2026-09-27T12:00:00Z");
   const { event } = db.tx(() => seedFixtures(makeContext(db, { clock: manualClock(at) }), at));
   const fixture = loadJudgingInput(db, event.id);
   const regimes: [string, Event][] = [["fixture", { rubric: fixture.rubric, ballots: fixture.ballots }]];

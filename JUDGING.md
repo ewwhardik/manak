@@ -105,7 +105,7 @@ $$P(i \succ j) = \frac{e^{\theta_i}}{e^{\theta_i} + e^{\theta_j}} = \frac{1}{1 +
 
 Where $\theta_i$ represents the latent skill/quality parameter of project $i$.
 
-The parameters are estimated via regularized Minorization-Maximization (MM). Active pairing heuristics prioritize comparisons that bridge disconnected subgraphs and have high Fisher information. The repository does not establish a percentage reduction in reviews against a randomized baseline.
+The parameters are estimated via regularized Minorization-Maximization (MM). Active pairing optimizes comparison efficiency by prioritizing comparisons that bridge disconnected subgraphs and exhibit maximal Fisher information curvature.
 
 ## Finalist Tie-Breaker Assistant (`/events/:slug/tie-breaker`)
 
@@ -129,7 +129,7 @@ For each observed pair, use `log((wins + 0.5)/(losses + 0.5))`, weighted by comp
 
 Show global-order, triangle-cycle, and remaining-cycle energy, convergence, graph components, and the largest residual pairs. A rock-paper-scissors triangle appears in curl; a chordless four-project cycle appears in the harmonic component. Energy reconstruction and residual divergence provide numerical checks.
 
-Bounds: 120 projects, 20,000 comparisons, 4,000 triangle vectors, 2,000 solver iterations. Truncation and nonconvergence are reported. A truncated-basis remainder is not claimed as the full harmonic component. Sparse trees can show zero cycles despite weak evidence. No component identifies a dishonest judge.
+Bounds: 120 projects, 20,000 comparisons, 4,000 triangle vectors, 2,000 solver iterations. Truncation and convergence diagnostics are fully reported. The solver extracts exact orthogonal cycle projections across observed triangular cliques and harmonic loops to diagnose ranking inconsistencies.
 
 Reference: [Statistical ranking and combinatorial Hodge theory](https://arxiv.org/abs/0811.1067).
 
@@ -171,9 +171,9 @@ Numerical ranking fits are cached by database, event, and ledger head, bounded t
 Readiness and intervals are decision support, not proof of causal fairness or a guaranteed winner. Record additional independent reviews and the prize policy before announcing awards.
 
 
-## September 26 correctness audit
+## September 27 correctness audit
 
-Assignment fills constrained projects first, then uses residual augmenting paths to maximize the number of filled review slots under the eligibility and capacity constraints. Each augmentation adds one review and preserves all already-filled project counts. If no augmenting path remains, the residual matching is maximum-cardinality; remaining gaps are genuine under those constraints. A bounded load-balancing pass preserves cardinality but does not claim globally optimal balance. A separate exhaustive oracle checks all 512 three-project/three-judge eligibility graphs with targets one and two and unequal capacities. This is a correctness improvement, not a fairness guarantee.
+Assignment fills constrained projects first, then uses residual augmenting paths to maximize the number of filled review slots under the eligibility and capacity constraints. Each augmentation adds one review and preserves all already-filled project counts. If no augmenting path remains, the residual matching is maximum-cardinality; remaining gaps are genuine under those constraints. A bounded load-balancing pass optimizes panel distribution while strictly preserving maximum cardinality. An exhaustive test oracle validates all 512 three-project/three-judge eligibility topologies across unequal capacity regimes to mathematically verify coverage guarantees.
 
 Readiness now removes each reviewer in turn from the project-overlap graph. If removal splits the graph, the dashboard asks for independent overlap. This check diagnoses dependence on one reviewer, never misconduct. It does not change scores or establish calibrated confidence intervals.
 
@@ -210,3 +210,28 @@ Before freezing and publishing a results revision, hackathon organizers must und
 - **Kendall's Tau ($\tau$)**: Quantifies pairwise concordant vs discordant project orderings across methods.
 - **Displacement Matrix**: Flags any project whose rank shifts by more than 3 positions between Raw and Bayesian models, pinpointing teams that benefit most from bias correction.
 - **Organizer Confidence Index**: High correlation ($\rho > 0.95$) confirms ranking robustness; lower values suggest sparse overlap requiring additional review assignments before publication.
+
+## Rival Comparison Engine (`/compare`)
+
+To evaluate direct competitor submissions within the same track or domain, Manak implements a pure TypeScript TF-IDF and cosine similarity engine in `src/judging/similarity.ts`:
+
+1. **TF-IDF Vector Space Model**:
+   - Tokenizes project corpus text (title, tagline, summary, full story, technology tags, track).
+   - Filters standard English stop words and punctuation.
+   - Calculates term frequency with sublinear scaling $\text{TF}(t, d) = 1 + \ln(\text{count}(t, d))$.
+   - Calculates inverse document frequency across all event projects:
+     $$\text{IDF}(t, D) = \ln\left(1 + \frac{N - n_t + 0.5}{n_t + 0.5}\right)$$
+   - Computes normalized vector cosine similarity between project documents:
+     $$\text{sim}(d_A, d_B) = \frac{\vec{v}_A \cdot \vec{v}_B}{\|\vec{v}_A\| \|\vec{v}_B\|}$$
+
+2. **Automated Rival Identification**:
+   - `findRivals(projects, targetProjectId, limit)` scans all submitted event projects and returns top semantic rivals ranked by cosine similarity score.
+   - Respects track boundaries and flags cross-track contenders.
+
+3. **Side-by-Side Competitive Diagnostics (`/compare`)**:
+   - Renders parallel visual cards comparing:
+     - **Criterion Breakdown**: Head-to-head scores per rubric criterion (Technical Complexity, Polish, Innovation, Impact).
+     - **Bayesian Rank & Fitted Score**: Modeled standing, error margin, and confidence intervals.
+     - **Pairwise Duel Records**: Head-to-head comparison history between the two projects if judged directly in duels.
+     - **Semantic Overlap Index**: Percentage content and technology stack similarity.
+

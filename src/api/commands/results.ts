@@ -1320,6 +1320,27 @@ export const dashboard = defineCommand({
         pairing: { type: ["object", "null"] },
         pairwise: { ...PAIRWISE_SCHEMA, type: ["object", "null"] },
         agreement: { ...AGREEMENT_SCHEMA, type: ["object", "null"] },
+        multiModel: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              project: { type: "string" },
+              title: { type: "string" },
+              trackKey: { type: ["string", "null"] },
+              ballots: { type: "integer" },
+              comparisons: { type: "integer" },
+              rawMean: { type: ["number", "null"] },
+              rawRank: { type: ["integer", "null"] },
+              calibratedScore: { type: ["number", "null"] },
+              calibratedRank: { type: ["integer", "null"] },
+              btStrength: { type: ["number", "null"] },
+              btRank: { type: ["integer", "null"] },
+              rankShift: { type: ["integer", "null"] },
+            },
+            required: ["project", "title", "ballots", "comparisons"],
+          },
+        },
         decisionSupport: { type: "object", properties: {
           target: { type: "integer" },
           decisive: { type: "boolean" },
@@ -1579,6 +1600,34 @@ export const dashboard = defineCommand({
         fit.rubric === null || fit.pairwise === null
           ? null
           : agreementJson(ctx, row, fit.rubric, fit.pairwise),
+      multiModel: (() => {
+        const rubricMap = new Map((fit.rubric?.projects ?? []).map((p) => [p.project, p]));
+        const pairwiseMap = new Map((fit.pairwise?.strengths ?? []).map((p) => [p.project, p]));
+        const allProjectIds = [...new Set([...pool, ...rubricMap.keys(), ...pairwiseMap.keys()])];
+        return allProjectIds.map((id) => {
+          const r = rubricMap.get(id);
+          const pw = pairwiseMap.get(id);
+          const titleInfo = titleOf(id);
+          return {
+            project: id,
+            title: titleInfo.title,
+            trackKey: titleInfo.trackKey,
+            ballots: r?.ballots ?? 0,
+            comparisons: pw?.comparisons ?? 0,
+            rawMean: r?.rawMean ?? null,
+            rawRank: r?.rankRaw ?? null,
+            calibratedScore: r?.adjusted ?? null,
+            calibratedRank: r?.rankAdjusted ?? null,
+            btStrength: pw?.beta ?? null,
+            btRank: pw?.rank ?? null,
+            rankShift: r?.rankMove ?? null,
+          };
+        }).sort((a, b) => {
+          const rankA = a.calibratedRank ?? a.btRank ?? 9999;
+          const rankB = b.calibratedRank ?? b.btRank ?? 9999;
+          return rankA - rankB || a.title.localeCompare(b.title);
+        });
+      })(),
     };
   },
 });

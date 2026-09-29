@@ -297,7 +297,7 @@ export function dashboardPage(context: ViewContext): string {
     : "";
   const notStarted = judges.filter((j) => Number(j.submitted ?? 0) === 0 && Number(j.comparisons ?? 0) === 0);
   const completion = Number(at(counts, "assignments") ?? 0) === 0 ? 0 : Number(at(counts, "ballots") ?? 0) / Number(at(counts, "assignments"));
-  const briefing = `<section class="briefing"><p class="eyebrow">The organizer’s briefing</p><h2>${gaps.length > 0 ? `${gaps.length} projects need more evidence.` : candidates.length > 0 ? "Coverage is complete. Review the close calls." : "Your judging room is ready."}</h2>${meter(completion, `${percent(completion)} of assigned rubric reviews filed`)}<p class="detail">${percent(completion)} of assigned rubric reviews filed. Drafts do not count.</p><ul>${notStarted.length > 0 ? `<li><b>${notStarted.length} judges have not started:</b> ${notStarted.map((j) => esc(j.name)).join(", ")}. Check their invitations and workload.</li>` : ""}${gaps.length > 0 ? `<li><a href="#coverage">Review coverage shortfalls</a> before publishing.</li>` : ""}<li>${candidates.length === 0 ? "No rubric evidence yet. Publish a rubric and collect reviews." : at(decision, "decisive") === true ? "The current intervals separate the finalist cut. Check the model warnings before making the final decision." : "The finalist cut is contested. Collect an independent review of the overlapping candidates."}</li></ul><nav class="section-index" aria-label="Dashboard sections"><a href="#decision-support">Finalist review ↓</a><a href="#judges">Judge progress ↓</a><a href="#coverage">Coverage ↓</a><a href="#audit">Audit trail ↓</a><a href="#operations">Operations ↓</a><a href="/events/${encodeURIComponent(slug)}/results">Preview results ↗</a></nav></section>`;
+  const briefing = `<section class="briefing"><p class="eyebrow">The organizer’s briefing</p><h2>${gaps.length > 0 ? `${gaps.length} projects need more evidence.` : candidates.length > 0 ? "Coverage is complete. Review the close calls." : "Your judging room is ready."}</h2>${meter(completion, `${percent(completion)} of assigned rubric reviews filed`)}<p class="detail">${percent(completion)} of assigned rubric reviews filed. Drafts do not count.</p><ul>${notStarted.length > 0 ? `<li><b>${notStarted.length} judges have not started:</b> ${notStarted.map((j) => esc(j.name)).join(", ")}. Check their invitations and workload.</li>` : ""}${gaps.length > 0 ? `<li><a href="#coverage">Review coverage shortfalls</a> before publishing.</li>` : ""}<li>${candidates.length === 0 ? "No rubric evidence yet. Publish a rubric and collect reviews." : at(decision, "decisive") === true ? "The current intervals separate the finalist cut. Check the model warnings before making the final decision." : "The finalist cut is contested. Collect an independent review of the overlapping candidates."}</li></ul><nav class="section-index" aria-label="Dashboard sections"><a href="#decision-support">Finalist review ↓</a><a href="#multi-model">Multi-model ↓</a><a href="#judges">Judge progress ↓</a><a href="#coverage">Coverage ↓</a><a href="#audit">Audit trail ↓</a><a href="#operations">Operations ↓</a><a href="/events/${encodeURIComponent(slug)}/results">Preview results ↗</a></nav></section>`;
   const decisionBlock = `<section id="decision-support"><h2>A closer look at the cut</h2><p class="muted">Explore finalist places without changing scores or publishing results. “Within cut” means under the displayed interval scenarios; these are individual intervals, not a simultaneous guarantee.</p><form method="get" class="filter-bar"><div class="field"><label for="finalist-count">Finalist places</label><input id="finalist-count" type="number" name="finalists" min="1" max="100" value="${esc(context.input.finalists ?? 3)}"></div><label><input type="checkbox" name="sensitivity" value="true"${context.input.sensitivity === true ? " checked" : ""}> Analyze reviewer influence (up to 32 refits)</label><button type="submit">Review the evidence</button></form>${candidates.length === 0 ? '<p class="muted">Collect rubric ballots to see the finalist scenarios.</p>' : scroller(table(["Project", "Rank", "Adjusted", "Interval", "Cut assessment", "Review spread"], candidates.map((p) => [
     `<a href="/events/${encodeURIComponent(slug)}/projects/${encodeURIComponent(String(p.project))}">${esc(p.title)}</a>`, count(p.rank), num(p.fitted), `${num(p.low)} – ${num(p.high)}`,
     tag(p.status === "guaranteed" ? "within cut" : p.status === "eliminated" ? "outside cut" : "contested", p.status === "guaranteed" ? "open" : "plain"),
@@ -305,6 +305,28 @@ export function dashboardPage(context: ViewContext): string {
   ]), [0,4,5], [1,2]), "Finalist interval scenarios")}
 ${rows(decision, "duels").length === 0 ? "" : `<h3>Suggested additional comparisons</h3><p class="detail">Suggestions cross the provisional cut. Assignment and track checks still apply; these do not bypass the scheduler.</p><ul>${rows(decision, "duels").map((d) => `<li>${esc(candidateTitle.get(String(d.left)) ?? d.left)} ↔ ${esc(candidateTitle.get(String(d.right)) ?? d.right)}</li>`).join("")}</ul>`}
 ${sensitivity == null ? "" : `<h3>How much does one reviewer change?</h3><p class="detail">${count(at(sensitivity,"judgesTested"))} of ${count(at(sensitivity,"judgesTotal"))} judges tested. ${at(sensitivity,"limited") === true ? "Bounded analysis: this is only a subset of the panel." : "Every judge was held out once."} ${count(at(sensitivity,"unstableRefits"))} refits did not fully settle. Score ranges show sensitivity, not confidence. Movement compares the same surviving projects.</p>${scroller(table(["Project", "Largest rank change", "Score range", "Lost evidence"], rows(sensitivity,"projects").map((p) => [candidateTitle.get(String(p.project)) ?? String(p.project), num(p.maxRankShift,1), `${num(p.minScore)} – ${num(p.maxScore)}`, count(p.missingWithoutJudge)]), [], [1,3]), "Reviewer influence on the ranking")}`}</section>`;
+  const multiModelRows = rows(result, "multiModel");
+  const multiModelBlock =
+    multiModelRows.length === 0
+      ? ""
+      : `<section id="multi-model"><h2>Unified Multi-Model Comparison</h2>
+<p class="muted">Side-by-side comparison across scoring paradigms: unadjusted Raw Mean, Calibrated Z-Score/Ridge, and Minorization-Maximization Bradley-Terry pairwise strengths.</p>
+${scroller(table(
+  ["Rank", "Project", "Track", "Ballots", "Duels", "Raw mean", "Calibrated", "Bradley-Terry θ", "Shift Δ"],
+  multiModelRows.map((m) => [
+    count(m.calibratedRank ?? m.btRank),
+    `<a href="/events/${encodeURIComponent(slug)}/projects/${encodeURIComponent(String(m.project))}">${esc(m.title)}</a>`,
+    String(m.trackKey ?? "—"),
+    count(m.ballots),
+    count(m.comparisons),
+    m.rawMean !== null && m.rawMean !== undefined ? `${num(m.rawMean, 2)} (#${count(m.rawRank)})` : "—",
+    m.calibratedScore !== null && m.calibratedScore !== undefined ? `${num(m.calibratedScore, 3)} (#${count(m.calibratedRank)})` : "—",
+    m.btStrength !== null && m.btStrength !== undefined ? `${num(m.btStrength, 3)} (#${count(m.btRank)})` : "—",
+    move(m.rankShift),
+  ]),
+  [1, 2],
+  [0, 3, 4, 5, 6, 7, 8],
+), "Unified Multi-Model Analysis")}</section>`;
   // One row per judge with everything the two passes know about them, rather than two tables keyed
   // by the same person. Both arrays are derived from one fit, so their membership is identical; the
   // lookup is by id anyway, because a name is not a key.
@@ -681,6 +703,7 @@ does not look like a discovery.</p>
 ${readinessBlock}
 ${evidenceGlossary()}
 ${decisionBlock}
+${multiModelBlock}
 <h2 id="judges">Judges</h2>
 ${judgeTable}
 <h2>Is this panel ready to publish?</h2>

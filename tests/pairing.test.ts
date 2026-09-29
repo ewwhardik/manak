@@ -198,3 +198,32 @@ test("which project appears on the left is decided by the seed, not by name", ()
   }
   assert.equal(sides.size, 2, "position bias: one project always took the left slot");
 });
+
+test("podium cutoff prioritizes border duels straddling the prize boundary", () => {
+  // Pool of 6 projects, connected history so no bridges needed
+  const projects = ["p1", "p2", "p3", "p4", "p5", "p6"];
+  const strengths = new Map([
+    ["p1", 2.0], // rank 1
+    ["p2", 1.5], // rank 2
+    ["p3", 1.0], // rank 3 (podium cutoff border)
+    ["p4", 0.9], // rank 4 (podium cutoff border)
+    ["p5", 0.1], // rank 5
+    ["p6", -0.5], // rank 6
+  ]);
+  const history = [
+    cmp("c1", "j0", "p1", "p2", "p1"),
+    cmp("c2", "j0", "p2", "p3", "p2"),
+    cmp("c3", "j0", "p3", "p4", "p3"),
+    cmp("c4", "j0", "p4", "p5", "p4"),
+    cmp("c5", "j0", "p5", "p6", "p5"),
+  ];
+  // With podiumCutoff: 3, the critical duel to resolve is between rank 3 (p3) and rank 4 (p4)
+  const pick = nextPair(
+    { judge: "j1", projects, comparisons: history, strengths, seed: "podium-test" },
+    { podiumCutoff: 3, podiumWeight: 1.5, exposureWeight: 0, epsilon: 0 },
+  );
+  assert.ok(pick);
+  const pair = [pick.left, pick.right].sort();
+  assert.deepEqual(pair, ["p3", "p4"]);
+  assert.equal(pick.reason, "podium");
+});

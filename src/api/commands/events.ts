@@ -39,6 +39,7 @@ import {
   issueMagicLink,
   listEvents,
   listTracks,
+  listAnnouncements,
   MAGIC_LINK_TTL,
   membersOf,
   MS,
@@ -216,6 +217,10 @@ export const show = defineCommand({
           description: "Roles the caller holds here. Empty for a visitor, and not a refusal.",
           items: { type: "string", enum: [...ROLES] },
         },
+        announcements: {
+          type: "array",
+          items: { type: "object" },
+        },
       },
       required: ["event", "clock", "judging", "tracks", "yourRoles"],
     },
@@ -237,6 +242,13 @@ export const show = defineCommand({
       },
       tracks: listTracks(ctx.db, row.id).map((track) => ({ key: track.key, label: track.label })),
       yourRoles: [...roles],
+      announcements: listAnnouncements(ctx.db, row.id).map((a) => ({
+        id: a.id,
+        title: a.title,
+        content: a.content,
+        pinned: a.pinned === 1,
+        createdAt: a.created_at,
+      })),
     };
   },
 });

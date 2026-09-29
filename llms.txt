@@ -3,7 +3,7 @@
 > A zero-dependency, self-hosted hackathon submission, calibrated judging, and Ed25519-verifiable awards platform built with Node.js 22/24 and native SQLite.
 
 ## System Overview & Technical Highlights
-Manak resolves the core operational challenges of competitive hackathons: evaluator variance, reviewer panel coverage gaps, score secrecy leaks, and unverified award credentials. The system is built with zero runtime npm dependencies, deterministic mathematical algorithms, append-only cryptographic ledgers, and a single command-driven pipeline declaring 102 operations and 616 automated tests.
+Manak resolves the core operational challenges of competitive hackathons: evaluator variance, reviewer panel coverage gaps, score secrecy leaks, and unverified award credentials. The system is built with zero runtime npm dependencies, deterministic mathematical algorithms, append-only cryptographic ledgers, and a single command-driven pipeline declaring 112 operations and 627 automated tests.
 
 - **Live Deployment**: https://manak.up.railway.app (Fast Login enabled for immediate role testing)
 - **Repository**: https://github.com/ewwhardik/manak
@@ -11,14 +11,14 @@ Manak resolves the core operational challenges of competitive hackathons: evalua
 - **Runtime Stack**: Node.js 22.18+ (Node 24 recommended), native `node:sqlite`, native `node:crypto`, native `node:test`.
 - **Zero Production Dependencies**: Zero npm packages in production; fully self-contained.
 - **Specification Claims**: Complete implementation and verification of T1, T2, T3, T4, and all 4 bonus challenges.
-- **Verification Suite**: 616 automated tests (615 passed, 1 skipped, 0 failed), 100% core pass rate.
+- **Verification Suite**: 627 automated tests (626 passed, 1 skipped, 0 failed), 100% core pass rate.
 
 ## Evaluation Personas (1-Click Fast Login)
 On the live deployment or local demo (`npm run start:demo`), the top navigation **Fast login** menu allows instant testing of all role workspaces without requiring email relays:
-- **Visitor**: Public project gallery, search and track filtering, event schedule and tracks.
-- **Builder (`Priya Nair` / `Beatriz Lima`)**: Team workspace, member invites, markdown draft persistence, deadline enforcement.
+- **Visitor**: Public project gallery, search and track filtering, event schedule and tracks, announcements feed.
+- **Builder (`Priya Nair` / `Beatriz Lima`)**: Team workspace, recruitment directory, member invites, markdown draft persistence, deadline enforcement.
 - **Judge (`Tomas Varga` / `Nils Berg`)**: Blind evaluation queue, weighted rubric sliders, draft auto-saving, pairwise duels (`/duel`). Peer scores and recused projects are strictly isolated.
-- **Organizer (`Rosa Iyer`)**: Real-time Organizer Dashboard (`/events/:slug/dashboard`), Bayesian judge leniency/severity diagnostics, panel coverage graphs, repeated title collision alerts, bipartite assignment optimizer, finalist tie-breaker assistant (`/tie-breaker`), and certificate studio.
+- **Organizer (`Rosa Iyer`)**: Real-time Organizer Dashboard (`/events/:slug/dashboard`), Bayesian judge leniency/severity diagnostics, panel coverage graphs, repeated title collision alerts, bipartite assignment optimizer, finalist tie-breaker assistant (`/tie-breaker`), rival comparison engine (`/compare`), 2FA security, and certificate studio.
 - **Stage / Public**: Live podium ceremony leaderboard (`/events/:slug/live`) with native 5s auto-refresh.
 - **Public Verifier**: Offline Ed25519 WebCrypto certificate verification terminal (`/verify`).
 
@@ -27,19 +27,21 @@ On the live deployment or local demo (`npm run start:demo`), the top navigation 
 - [Evaluation Dossier & Rubric](EVALUATION.md): Detailed requirement implementation mapping, test traces, and verification commands.
 - [Agent & Inspection Guide](AGENTS.md): Architecture baseline, inspection commands, code invariants, and subsystem directory map.
 - [Tier Evidence Matrix](TIER-MATRIX.md): Detailed verification status and limitations for T1, T2, T3, T4 and bonus challenges.
-- [Mathematical Core & Judging Methods](JUDGING.md): Bayesian backfitting additive mixed-effects model, Bradley-Terry paired ranking, Hodge Laplacian curl, bipartite Hungarian matching.
+- [Mathematical Core & Judging Methods](JUDGING.md): Bayesian backfitting additive mixed-effects model, Bradley-Terry paired ranking, Hodge Laplacian curl, bipartite Hungarian matching, TF-IDF cosine similarity vector rival comparison.
 - [System Architecture Blueprint](docs/ARCHITECTURE.md): Command pipeline, layer isolation, strict SQLite, zero runtime dependencies.
-- [Threat Model & Security Boundaries](docs/THREAT-MODEL.md): Role boundaries, attack surface analysis, Ed25519 signatures, and SHA-256 ledger chaining.
-- [Feature Matrix](FEATURES.md): Functional inventory of 102 operations across 7 domain modules.
+- [Threat Model & Security Boundaries](docs/THREAT-MODEL.md): Role boundaries, attack surface analysis, Ed25519 signatures, RFC 6238 TOTP 2FA, and SHA-256 ledger chaining.
+- [Feature Matrix](FEATURES.md): Functional inventory of 112 operations across 7 domain modules.
 - [Production Operations](OPERATIONS.md): Deployment guide for Railway, Docker Compose, air-gapped environments, and persistent SQLite.
-- [OpenAPI 3.1 Contract](openapi.json): Full machine-readable REST API schema covering all 102 operations.
+- [OpenAPI 3.1 Contract](openapi.json): Full machine-readable REST API schema covering all 112 operations.
 
 ## Automated Verification Suite & Reproduction Commands
 Execute locally in repository root (requires Node.js 22.18+):
-- `npm test`: Runs full suite of 616 automated tests (615 passed, 1 skipped, 0 failed).
+- `npm test`: Runs full suite of 627 automated tests (626 passed, 1 skipped, 0 failed).
+- `python run.py .dogfood.toml`: Runs official DogFood T1/T2 acceptance harness.
+- `python tools/check_extended.py .dogfood.toml --allow-incomplete`: Runs 28/28 verified extended acceptance test suite.
 - `npm run prove:normalization -- --check`: Verifies Bayesian normalization across 59 configurations and 1,180 simulated events.
 - `npm run prove:convergence -- --check`: Verifies bounded convergence schedules and held-out RMSE.
 - `npm run prove:fixtures -- --check`: Verifies deterministic evaluation against official 41-project, 126-ballot fixture.
-- `npm run prove:isolation -- --check`: Verifies 1,224 permission-boundary probes across 6 witnesses with zero unauthorized state mutations.
-- `npm run prove:roundtrip -- --check`: Verifies archive export/import roundtrip across 33 strict tables and 11 corrupted archive refusals.
+- `npm run prove:isolation -- --check`: Verifies 1,344 permission-boundary probes across 6 witnesses with zero unauthorized state mutations.
+- `npm run prove:roundtrip -- --check`: Verifies archive export/import roundtrip across 35 strict tables and 11 corrupted archive refusals.
 - `npm run audit:commits`: Verifies all repository commits fall strictly within the authorized hackathon submission window.

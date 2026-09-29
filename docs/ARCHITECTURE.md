@@ -26,12 +26,12 @@ flowchart TD
   end
 
   subgraph APILayer ["API Contract & Commands"]
-    API["src/api (96 Operation Declarations, OpenAPI, Access Matrix)"]
+    API["src/api (112 Operation Declarations, OpenAPI, Access Matrix)"]
     CAP["Capability & Rate Limiting (Role Audience, Windows, Buckets)"]
   end
 
   subgraph StorageLayer ["Persistence & Ledger"]
-    DB["src/db (Native SQLite, 36 Tables, 19 Migrations)"]
+    DB["src/db (Native SQLite, 39 Tables, 23 Migrations)"]
     LEDGER["Append-Only SHA-256 Hash Chain (Audited Mutations)"]
   end
 
@@ -52,7 +52,7 @@ flowchart TD
 
 ---
 
-Manak is 102 operations with 33 archived tables, no production npm
+Manak is 112 operations with 33 archived tables, no production npm
 dependencies, no build step and one process. That combination is not a boast; it is the
 constraint that decided nearly every other question in this repository, and this file is
 where those decisions are written down with their costs attached rather than left for a
@@ -102,7 +102,7 @@ None of the five is written by hand and none of them can omit an operation, beca
 one is a `map` over the same array. A feature that exists in the browser and not in the
 API is not something this codebase makes difficult; it is something it has nowhere to put.
 
-The 102 operations are declared once: 52 are `GET` and 50 are `POST`.
+The 112 operations are declared once: 55 are `GET` and 57 are `POST`.
 The isolation proof exercises every declaration through JSON and browser rendering.
 
 **Only `GET` and `POST`, and this is the price paid for the table above.** An HTML form can
@@ -130,14 +130,14 @@ before the socket opens.
 
 | | Lines | May import | Owns |
 | --- | --- | --- | --- |
-| `src/judging` | 7,587 | nothing | the arithmetic: normalization, reliability, per-criterion analysis, pairwise fitting, bootstrap intervals, judge calibration, assignment |
-| `src/db` | 7,004 | `node:*`, the engine's types | schema, migrations, repositories, ledger, limiter |
-| `src/api` | 10,424 | `src/db/index.ts` | the declarations, capability, schema, errors, OpenAPI |
-| `src/view` | 6,965 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
-| `src/http` | 2,388 | everything below | the dispatcher, the responses, the socket |
+| `src/judging` | 8,136 | nothing | the arithmetic: normalization, reliability, per-criterion analysis, pairwise fitting, bootstrap intervals, judge calibration, assignment |
+| `src/db` | 7,416 | `node:*`, the engine's types | schema, migrations, repositories, ledger, limiter |
+| `src/api` | 11,598 | `src/db/index.ts` | the declarations, capability, schema, errors, OpenAPI |
+| `src/view` | 7,547 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
+| `src/http` | 2,436 | everything below | the dispatcher, the responses, the socket |
 | `src/mail` | 1,179 | `node:*`, one erased type | RFC 5322 composition, an SMTP client, the outbox |
-| `bin/manak.ts` | 555 | everything | the environment, migration, signals, the process |
-| `tools` | 6,682 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
+| `bin/manak.ts` | 606 | everything | the environment, migration, signals, the process |
+| `tools` | 7,244 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
 
 `src/mail` is the one entry that is not part of the stack, and the shape of its row is the
 reason. It sits beside the layers rather than on top of them: it imports `node:*` and one
@@ -528,7 +528,7 @@ it puts HTML in the file the OpenAPI document is generated from, and then the cl
 JSON API is not the second-class rendering becomes a matter of discipline rather than of
 structure.
 
-A missing view is not an error. Of the 102 operations, 26 have a hand-written page and
+A missing view is not an error. Of the 112 operations, 27 have a hand-written page and
 three of the remaining GETs, the OpenAPI document, the capability matrix and the health check -
 render through a generic renderer that shows the same data as a definition list. The other twenty
 are POSTs, which never render at all: a browser that posts one gets a 303 to the page that shows
@@ -600,7 +600,7 @@ fails the suite rather than review.
 
 It owns three things nothing above it does. It reads the environment, every option `makeApp`
 takes is a value somebody has to supply, and doing it in one file is most of what keeps
-`process.env` out of 102 handlers. Anything that is not plainly a boolean is refused rather
+`process.env` out of 112 handlers. Anything that is not plainly a boolean is refused rather
 than read as false, because `MANAK_TRUST_PROXY=maybe` meaning "off" is a misconfiguration
 that never announces itself. It migrates before serving, which is a deliberate trade in favour
 of a one-command boot and is safe only because `planMigrations` refuses a divergent history:
@@ -630,14 +630,14 @@ of it is checkable from outside the source. `/api/capabilities` publishes the ac
 computed from the same declarations the dispatcher enforces, so every refusal this deployment
 intends to make can be read before a single request is sent, and then
 `npm run prove:isolation` sends
-102 × 6 × 2 = 1224 requests over a real socket and compares every answer to it.
+112 × 6 × 2 = 1344 requests over a real socket and compares every answer to it.
 `npm run prove:normalization` re-derives the engine's numbers from a seed.
 `npm run prove:roundtrip` exports 159 rows through 30 files, imports them into an empty
 database, exports again and compares the bytes. All three are committed, re-executable, and
 run as tests by `tests/proof.test.ts`, so a change that quietly invalidates one fails
 `npm test` rather than waiting to be noticed.
 
-The 608 tests are Node's own runner with no framework. Three files in there are load-bearing in
+The 627 tests are Node's own runner with no framework. Three files in there are load-bearing in
 a way the rest are not: `tests/source.test.ts` holds every layer and source rule described
 above,
 `tests/api.test.ts` asserts that every refusal the published document describes is one the

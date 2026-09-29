@@ -162,6 +162,7 @@ export {
   teamOf,
   triageDuplicate,
   updateProject,
+  updateTeamRecruitment,
   withdrawProject,
 } from "./repo/projects.ts";
 export type { ProjectInput, ProjectRow, ProjectStatus, TeamRow } from "./repo/projects.ts";
@@ -277,3 +278,20 @@ export {
   resolveWebhookAddress,
   sendPinnedWebhook,
 } from "./webhook-transport.ts";
+
+export {
+  createAnnouncement,
+  listAnnouncements,
+  findAnnouncement,
+  deleteAnnouncement,
+} from "./repo/announcements.ts";
+export type { AnnouncementRow } from "./repo/announcements.ts";
+
+export {
+  getMfaTotp,
+  enableMfaTotp,
+  disableMfaTotp,
+  updateMfaLastUsedStep,
+  consumeBackupCode,
+} from "./repo/totp.ts";
+export type { MfaTotpRow } from "./repo/totp.ts";

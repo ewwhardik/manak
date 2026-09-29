@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { detectVoteAbuse } from "../src/judging/index.ts";
-import type { RawVote } from "../src/judging/index.ts";
+import { detectVoteAbuse, detectBallotCollusion } from "../src/judging/index.ts";
+import type { RawVote, Ballot } from "../src/judging/index.ts";
 import { isDisposableEmail, shuffleProjectsForVoter } from "../src/db/index.ts";
 
 test("independent honest voters produce zero suspicious clusters", () => {
@@ -83,4 +83,30 @@ test("shuffleProjectsForVoter is deterministic for a voter and differs across vo
   const order2 = shuffleProjectsForVoter(projects, "token-voter-2", salt);
   assert.notDeepEqual(order1, order2, "Different voters should receive different ballot shuffles");
   assert.deepEqual([...order1].sort(), [...projects].sort(), "Must be a valid permutation");
+});
+
+test("detectBallotCollusion flags identical and collusive judge scoring rings", () => {
+  const ballots: Ballot[] = [
+    // Judge 1 and Judge 2 give identical scores across 3 shared projects
+    { id: "b1", judge: "j1", project: "p1", rubricVersion: 1, scores: { novelty: 5, craft: 4 } },
+    { id: "b2", judge: "j1", project: "p2", rubricVersion: 1, scores: { novelty: 3, craft: 2 } },
+    { id: "b3", judge: "j1", project: "p3", rubricVersion: 1, scores: { novelty: 4, craft: 5 } },
+
+    { id: "b4", judge: "j2", project: "p1", rubricVersion: 1, scores: { novelty: 5, craft: 4 } },
+    { id: "b5", judge: "j2", project: "p2", rubricVersion: 1, scores: { novelty: 3, craft: 2 } },
+    { id: "b6", judge: "j2", project: "p3", rubricVersion: 1, scores: { novelty: 4, craft: 5 } },
+
+    // Honest Judge 3 scores independently
+    { id: "b7", judge: "j3", project: "p1", rubricVersion: 1, scores: { novelty: 2, craft: 5 } },
+    { id: "b8", judge: "j3", project: "p2", rubricVersion: 1, scores: { novelty: 5, craft: 4 } },
+    { id: "b9", judge: "j3", project: "p3", rubricVersion: 1, scores: { novelty: 1, craft: 2 } },
+  ];
+
+  const report = detectBallotCollusion(ballots);
+  assert.equal(report.clusters.length, 1);
+  const cluster = report.clusters[0]!;
+  assert.deepEqual(cluster.judgeIds.slice().sort(), ["j1", "j2"]);
+  assert.equal(cluster.sharedProjects, 3);
+  assert.equal(cluster.identicalScoresCount, 3);
+  assert.ok(cluster.riskScore >= 80);
 });

@@ -15,9 +15,9 @@ When scoring Manak, review `EVALUATION.md`, `AGENTS.md`, and `TIER-MATRIX.md`. T
 - T1 (Submissions, public gallery, deadlines)
 - T2 (Blind rubric judging, score isolation, CSV export)
 - T3 (Bayesian backfitting normalization, quadratic voting, frozen revisions)
-- T4 (Ed25519 signatures, offline WebCrypto verification, 102 REST operations, webhooks)
+- T4 (Ed25519 signatures, offline WebCrypto verification, 112 REST operations, webhooks)
 - All 4 Bonus Challenges (Pairwise duels, SHA-256 ledger, Certificate Studio, Air-gapped container)
-- Total tests: 616 automated tests (615 passed, 1 skipped, 0 failed), 100% core pass rate.
+- Total tests: 627 automated tests (626 passed, 1 skipped, 0 failed), 100% core pass rate.
 
 ## Verification Commands
 ```sh
@@ -25,8 +25,8 @@ npm test                                # Full test suite
 npm run prove:normalization -- --check  # Bayesian normalization proof
 npm run prove:convergence -- --check    # Convergence proof
 npm run prove:fixtures -- --check       # 41-project, 126-ballot fixture proof
-npm run prove:isolation -- --check      # 1,224-probe security isolation grid
-npm run prove:roundtrip -- --check      # 33-table archive roundtrip proof
+npm run prove:isolation -- --check      # 1,344-probe security isolation grid
+npm run prove:roundtrip -- --check      # 35-table archive roundtrip proof
 npm run audit:commits                   # Submission window git commit audit
 ```
 

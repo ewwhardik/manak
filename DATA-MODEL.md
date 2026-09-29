@@ -1,6 +1,6 @@
 # Data Model
 
-The database is one SQLite file opened through `src/db/open.ts`. It uses 36 strict application tables across 19 forward migrations, foreign keys, WAL mode, integer epoch-millisecond timestamps, and migration hashes.
+The database is one SQLite file opened through `src/db/open.ts`. It uses 39 strict application tables across 23 forward migrations, foreign keys, WAL mode, integer epoch-millisecond timestamps, and migration hashes.
 
 ```mermaid
 erDiagram
@@ -40,12 +40,14 @@ erDiagram
   ACCOUNT ||--o{ API_TOKEN : creates
   EVENT ||--o{ WEBHOOK_SUBSCRIPTION : registers
   WEBHOOK_SUBSCRIPTION ||--o{ WEBHOOK_DELIVERY : queues
+  EVENT ||--o{ EVENT_ANNOUNCEMENT : broadcasts
+  ACCOUNT ||--o| MFA_TOTP : configures
   EVENT ||--o{ LEDGER : records
 ```
 
 The authoritative schema is the ordered SQL files in `src/db/migrations/`. Old migration hashes are immutable. Event-scoped foreign keys include `event_id`, preventing cross-event parent references. Ballots and comparisons pin the judge role through generated foreign-key columns. The ledger intentionally has no foreign keys so audit entries survive deletion of their subjects.
 
-The archive tools export 33 application tables as deterministic JSONL plus a manifest containing migration hashes and per-file SHA-256 digests. 3 tables (`api_token`, `webhook_subscription`, `webhook_delivery`) are intentionally omitted from instance archives to isolate deployment-specific bearer credentials, webhook subscriptions, and retry outbox state. Import is restricted to an empty compatible database.
+The archive tools export 35 application tables as deterministic JSONL plus a manifest containing migration hashes and per-file SHA-256 digests. 3 tables (`api_token`, `webhook_subscription`, `webhook_delivery`) are intentionally omitted from instance archives to isolate deployment-specific bearer credentials, webhook subscriptions, and retry outbox state. Import is restricted to an empty compatible database.
 
 ## Public content
 
@@ -85,5 +87,12 @@ Migration 005 retains inactive membership and excluded judge evidence and adds f
 - **Migration 017 (`017_duplicate_triage.sql`)**: Extends `project` with `duplicate_of`, `duplicate_reason`, and `duplicate_decision` (`pending`, `confirmed`, `cleared`) along with a triage index and SQLite foreign-key constraint trigger ensuring duplicate references link only to earlier projects within the same event.
 - **Migration 018 (`018_api_tokens.sql`)**: Introduces `api_token` (`id`, `account_id`, `event_id`, `label`, `scope`, `token_hash`, `created_at`, `expires_at`, `revoked_at`). Implements user-managed scoped API access credentials hashed with SHA-256 (`read:projects`, `read:results`, `write:projects`, `write:judging`).
 - **Migration 019 (`019_team_invites.sql`)**: Introduces `team_invite` (`event_id`, `team_id`, `code`, `generation`, `updated_at`) with strict 43-character base64url validation. Supports captain-driven invite link regeneration and rotation while keeping high-entropy capability codes isolated from the append-only ledger.
+
+## Migrations 020–023: deadline hardening, announcements, recruitment, and two-factor auth
+
+- **Migration 020 (`020_deadline_hardening_triggers.sql`)**: Installs database-level triggers enforcing that team invite code rotation is restricted to active submission windows (`team_invite_rotate_window`) and quadratic community voting is restricted to active voting windows (`voting_window_active`).
+- **Migration 021 (`021_event_announcements.sql`)**: Introduces `event_announcement` (`id`, `event_id`, `author_id`, `title`, `content`, `pinned`, `created_at`, `updated_at`) enabling organizers to broadcast pinned and chronological alert updates to event participants with audit ledger integration.
+- **Migration 022 (`022_team_recruitment.sql`)**: Extends `team` with `recruiting` integer flag and `needed_skills` text fields, enabling participant discovery of open teams and skill requirements across the event gallery.
+- **Migration 023 (`023_mfa_totp.sql`)**: Introduces `mfa_totp` (`account_id`, `secret`, `enabled`, `created_at`, `verified_at`) delivering zero-dependency RFC 6238 HMAC-SHA1 two-factor authentication and inline SVG QR code enrollment for administrative accounts.
 
 Existing databases gain the empty tables and triggers through the forward migrator. Existing files previously downloaded remain verifiable with their original public key; they are not silently imported as issuance records. For archives made before migration 004, restore with the matching old release, then upgrade that database and re-export. Cross-schema archive import deliberately refuses mismatches. Back up the signing key directory separately from the database.

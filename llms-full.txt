@@ -12,7 +12,7 @@
 - **Public Repository**: https://github.com/ewwhardik/manak
 - **Core Mission**: Eliminates evaluator bias, coverage gaps, score leaks, and unverified credentials using deterministic statistical models, append-only cryptographic audit chains, and pure native Node.js runtimes.
 - **Zero Production Dependencies**: Zero npm packages in production. Relies exclusively on Node.js 22/24 built-ins (`node:sqlite`, `node:crypto`, `node:test`, `node:child_process`) and modern web standards.
-- **Verification Suite**: 616 automated tests (615 passed, 1 skipped, 0 failed), 100% core pass rate.
+- **Verification Suite**: 627 automated tests (626 passed, 1 skipped, 0 failed), 100% core pass rate.
 - **Official Acceptance**: Verified against official `fixtures.json` via `run.py .dogfood.toml`.
 - **Scope**: Full implementation and verification of T1, T2, T3, T4, and all 4 bonus challenges.
 
@@ -28,20 +28,20 @@
                             │
 ┌───────────────────────────▼────────────────────────────┐
 │                    API Command Layer                   │
-│         src/api (102 Operations, Capability Matrix)    │
+│         src/api (112 Operations, Capability Matrix)    │
 └──────────────┬──────────────────────────┬──────────────┘
                │                          │
 ┌──────────────▼─────────────┐ ┌──────────▼──────────────┐
 │       Database Layer       │ │    Judging Math Core    │
-│  src/db (36 strict tables) │ │  src/judging (0 imports)│
+│  src/db (39 strict tables) │ │  src/judging (0 imports)│
 │  Native node:sqlite        │ │  Pure math algorithms   │
 └────────────────────────────┘ └─────────────────────────┘
 ```
 
 1. **Strict Layer Decoupling**:
-   - `src/judging`: Pure mathematical calculation engine with zero external imports. Contains Bayesian backfitting, Bradley-Terry MLE, Hodge Laplacian curl, and bipartite matching.
-   - `src/db`: Storage layer depending exclusively on Node built-ins and `src/judging` types. 36 strict SQL tables, 20 atomic migrations.
-   - `src/api`: Central command registry declaring 102 operations with typed input validation, response schemas, and capability access rules.
+   - `src/judging`: Pure mathematical calculation engine with zero external imports. Contains Bayesian backfitting, Bradley-Terry MLE, Hodge Laplacian curl, bipartite matching, and TF-IDF cosine similarity.
+   - `src/db`: Storage layer depending exclusively on Node built-ins and `src/judging` types. 39 strict SQL tables, 23 atomic migrations.
+   - `src/api`: Central command registry declaring 112 operations with typed input validation, response schemas, and capability access rules.
    - `src/view`: Semantic HTML templates rendered server-side with zero client-side JavaScript required.
    - `src/http`: Ten-step wire request pipeline enforcing body caps, authentication, capability resolution, rate limiting, and HTTP security headers.
 2. **Erasable TypeScript Runtime**:
@@ -49,7 +49,7 @@
 3. **Deterministic Clock & Randomness**:
    Time enters the product exclusively through `src/db/clock.ts`. `Date.now()` is forbidden in domain logic. Randomness is seeded via `makeRng`.
 4. **Strict SQLite Schema**:
-   All 36 tables enforce `STRICT` table modes and foreign key referential integrity.
+   All 39 tables enforce `STRICT` table modes and foreign key referential integrity.
 
 ---
 
@@ -75,7 +75,7 @@
   - Role-gated CSV export neutralizing spreadsheet formula injection (`src/view/csv.ts`).
 - **Verification Evidence**:
   - `tests/assign.test.ts`, `tests/assignment-completeness.test.ts`, `tests/roster.test.ts`, `tests/publish.test.ts`, `tests/normalize.test.ts`, `tests/csv.test.ts`
-  - Isolation proof: `npm run prove:isolation -- --check` executes 1,224 permission-boundary probes across 6 witness roles, confirming zero unauthorized state mutations.
+  - Isolation proof: `npm run prove:isolation -- --check` executes 1,344 permission-boundary probes across 6 witness roles, confirming zero unauthorized state mutations.
   - Acceptance probes: `T2 judge sees own scores [PASS]`, `T2 judge cannot see peer scores [PASS]`, `T2 participant blocked [PASS]`, `T2 csv export works [PASS]`.
 
 ### Tier 3: Mathematical Normalization & Community Engagement
@@ -99,11 +99,13 @@
   - Offline browser-native WebCrypto verification terminal (`/verify`): Works without server connectivity or client frameworks.
   - Standalone pure-Python verifier (`tools/verify-certs.py`): Zero third-party Python libraries.
   - Durable SQLite outbox webhook dispatcher with HMAC SHA-256 signatures and exponential backoff retry (`src/http/webhook.ts`).
-  - 102 REST operations fully described in OpenAPI 3.1 (`openapi.json`).
+  - Zero-dependency RFC 6238 HMAC-SHA1 TOTP two-factor authentication with inline SVG QR codes (`src/api/totp.ts`).
+  - 112 REST operations fully described in OpenAPI 3.1 (`openapi.json`).
   - Archive CLI: Bidirectional zero-loss database export, import, and inspection (`tools/archive.ts`).
 - **Verification Evidence**:
-  - `tests/cert.test.ts`, `tests/certificate-records.test.ts`, `tests/webhook.test.ts`, `tests/api.test.ts`, `tests/archive.test.ts`
-  - `npm run prove:roundtrip -- --check`: 162 rows across 33 tables exported and re-imported with zero bit drift; 11 damaged archives safely refused.
+  - `tests/cert.test.ts`, `tests/certificate-records.test.ts`, `tests/webhook.test.ts`, `tests/api.test.ts`, `tests/totp.test.ts`, `tests/archive.test.ts`
+  - `python tools/check_extended.py .dogfood.toml --allow-incomplete`: All 28 extended criteria verified (28 verified, 0 failed, 0 partial, 0 blocked).
+  - `npm run prove:roundtrip -- --check`: 162 rows across 35 tables exported and re-imported with zero bit drift; 11 damaged archives safely refused.
 
 ### Bonus Challenges: Tie-Breakers Implemented
 1. **Bonus 1 — Pairwise Bradley-Terry Ranking**:
@@ -120,6 +122,9 @@
 4. **Bonus 4 — Air-Gapped Standalone Docker Container**:
    - `Dockerfile`, `compose.yaml`, `compose.offline.yaml`
    - Complete zero-dependency container bootable with networking disabled (`docker compose -f compose.yaml -f compose.offline.yaml up -d`).
+5. **Bonus 5 — Deterministic Multi-Stage Demo Seeding**:
+   - `tools/seed-demo.ts`, `bin/manak.ts` (`seed --stages`)
+   - Pre-seeds 5 independent events frozen at each lifecycle stage (`setup`, `submissions`, `judging`, `results`, `certificates`) with zero ledger breaks.
 
 ---
 
@@ -211,29 +216,37 @@ Run these commands in the repository root (requires Node.js 22.18+):
 ```sh
 # 1. Execute full unit and integration test suite
 npm test
-# Expected: 616 tests (615 passed, 1 skipped, 0 failed)
+# Expected: 627 tests (626 passed, 1 skipped, 0 failed)
 
-# 2. Verify Bayesian normalization proof
+# 2. Run official DogFood T1/T2 acceptance harness
+python run.py .dogfood.toml
+# Expected: All claimed tiers T1/T2 verified PASS
+
+# 3. Run extended acceptance suite across 28 criteria
+python tools/check_extended.py .dogfood.toml --allow-incomplete
+# Expected: 28/28 verified (verified=28, failed=0, partial=0, blocked=0)
+
+# 4. Verify Bayesian normalization proof
 npm run prove:normalization -- --check
 # Expected: 59 configurations, 1180 simulated events, reproduced within 0.02
 
-# 3. Verify numerical convergence proof
+# 5. Verify numerical convergence proof
 npm run prove:convergence -- --check
 # Expected: Schedules tested across fixture and synthetic regimes
 
-# 4. Verify official fixture proof
+# 6. Verify official fixture proof
 npm run prove:fixtures -- --check
 # Expected: 41 projects and 126 ballots verified
 
-# 5. Verify security isolation grid
+# 7. Verify security isolation grid
 npm run prove:isolation -- --check
-# Expected: 1224 requests, 6 witnesses, 674 refusals, 0 unauthorized mutations
+# Expected: 1344 requests across 6 roles, 674 refusals, 0 unauthorized mutations
 
-# 6. Verify zero-loss database roundtrip
+# 8. Verify zero-loss database roundtrip
 npm run prove:roundtrip -- --check
-# Expected: 162 rows across 33 tables exported and re-imported with zero bit drift
+# Expected: 162 rows across 35 tables exported and re-imported with zero bit drift
 
-# 7. Audit git commit submission window
+# 9. Audit git commit submission window
 npm run audit:commits
 # Expected: [VERIFIED] All 117 commits authored within event window
 ```

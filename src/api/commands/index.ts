@@ -34,6 +34,7 @@ import { VOTING_COMMANDS } from "./voting.ts";
 import { EXPORT_COMMANDS } from "./exports.ts";
 import { AWARD_COMMANDS } from "./awards.ts";
 import { APPEAL_COMMANDS } from "./appeals.ts";
+import { ANNOUNCEMENT_COMMANDS } from "./announcements.ts";
 
 export { AUTH_COMMANDS } from "./auth.ts";
 export { EVENT_COMMANDS, EVENT_REF, EVENT_SUMMARY, eventSummary } from "./events.ts";
@@ -52,15 +53,21 @@ export { RESULTS_COMMANDS, liveShow } from "./results.ts";
 export { VOTING_COMMANDS } from "./voting.ts";
 export { AWARD_COMMANDS } from "./awards.ts";
 export { APPEAL_COMMANDS } from "./appeals.ts";
+export { ANNOUNCEMENT_COMMANDS } from "./announcements.ts";
 
 import { TOKEN_COMMANDS } from "./tokens.ts";
 export { TOKEN_COMMANDS } from "./tokens.ts";
+
+import { TOTP_COMMANDS } from "./totp.ts";
+export { TOTP_COMMANDS } from "./totp.ts";
 
 export const ALL_COMMANDS: readonly Command[] = [
   ...SYSTEM_COMMANDS,
   ...AUTH_COMMANDS,
   ...TOKEN_COMMANDS,
+  ...TOTP_COMMANDS,
   ...EVENT_COMMANDS,
+  ...ANNOUNCEMENT_COMMANDS,
   ...PROJECT_COMMANDS,
   ...RUBRIC_COMMANDS,
   ...JUDGING_COMMANDS,

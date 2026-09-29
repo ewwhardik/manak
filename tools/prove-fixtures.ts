@@ -8,7 +8,7 @@ import { seedFixtures } from "./seed-fixtures.ts";
 
 const fixtureBytes = readFileSync(new URL("./fixtures.json", import.meta.url));
 const fixture = JSON.parse(fixtureBytes.toString("utf8"));
-const at = Date.parse("2026-09-26T12:00:00Z");
+const at = Date.parse("2026-09-27T12:00:00Z");
 const db = openDatabase(":memory:");
 try {
   migrate(db);

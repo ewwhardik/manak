@@ -51,7 +51,14 @@ export function hideProjectComment(ctx: Ctx, event: EventRow, projectId: string,
     payload: { reason: reason.trim(), project: projectId } }, () => {});
 }
 
-export type TeamRow = { id: string; event_id: string; name: string; created_at: number };
+export type TeamRow = {
+  id: string;
+  event_id: string;
+  name: string;
+  created_at: number;
+  recruiting?: number;
+  needed_skills?: string | null;
+};
 
 export type ProjectStatus = "draft" | "submitted" | "withdrawn" | "disqualified";
 
@@ -142,20 +149,22 @@ export function createTeam(ctx: Ctx, eventId: string, name: string, id?: string)
  */
 export function findTeamIn(db: Db, eventId: string, id: string): TeamRow | undefined {
   return db.get<TeamRow>(
-    "select id, event_id, name, created_at from team where event_id = :e and id = :id",
+    "select id, event_id, name, created_at, coalesce(recruiting, 0) as recruiting, needed_skills from team where event_id = :e and id = :id",
     { e: eventId, id },
   );
 }
 
 /** Every team in an event, with its members, for the join page and the organizer's view. */
-export function listTeams(db: Db, eventId: string): (TeamRow & { members: string[] })[] {
+export function listTeams(
+  db: Db,
+  eventId: string,
+  options?: { recruitingOnly?: boolean },
+): (TeamRow & { members: string[] })[] {
+  const where = options?.recruitingOnly ? "where event_id = :e and recruiting = 1" : "where event_id = :e";
   const teams = db.all<TeamRow>(
-    "select id, event_id, name, created_at from team where event_id = :e order by created_at, id",
+    `select id, event_id, name, created_at, coalesce(recruiting, 0) as recruiting, needed_skills from team ${where} order by created_at, id`,
     { e: eventId },
   );
-  // One read for the memberships rather than one per team. The shape this replaces —
-  // `teams.map((t) => teamMembers(db, event, t.id))` — is a query count that grows with
-  // the size of the event, on the page most likely to be open when the event is largest.
   const rows = db.all<{ team_id: string; account_id: string }>(
     `select team_id, account_id from team_member
       where event_id = :e order by team_id, created_at, account_id`,
@@ -170,9 +179,42 @@ export function listTeams(db: Db, eventId: string): (TeamRow & { members: string
   return teams.map((team) => ({ ...team, members: members.get(team.id) ?? [] }));
 }
 
+export function updateTeamRecruitment(
+  ctx: Ctx,
+  eventId: string,
+  teamId: string,
+  recruiting: boolean,
+  neededSkills?: string | null,
+): void {
+  const team = findTeamIn(ctx.db, eventId, teamId);
+  if (!team) {
+    throw new RuleError("team.missing", "Team not found in this event.");
+  }
+  const recVal = recruiting ? 1 : 0;
+  const skillsVal =
+    neededSkills !== undefined
+      ? neededSkills ? neededSkills.trim() : null
+      : team.needed_skills ?? null;
+
+  ctx.recorded(
+    {
+      action: "team.recruitment_updated",
+      eventId,
+      subject: teamId,
+      payload: { recruiting: recVal, neededSkills: skillsVal },
+    },
+    () => {
+      ctx.write(
+        `update team set recruiting = :recruiting, needed_skills = :neededSkills where event_id = :e and id = :id`,
+        { e: eventId, id: teamId, recruiting: recVal, neededSkills: skillsVal },
+      );
+    },
+  );
+}
+
 export function teamOf(db: Db, eventId: string, accountId: string): TeamRow | undefined {
   return db.get<TeamRow>(
-    `select t.id, t.event_id, t.name, t.created_at
+    `select t.id, t.event_id, t.name, t.created_at, coalesce(t.recruiting, 0) as recruiting, t.needed_skills
        from team_member m join team t on t.id = m.team_id and t.event_id = m.event_id
       where m.event_id = :e and m.account_id = :a`,
     { e: eventId, a: accountId },

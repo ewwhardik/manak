@@ -1,3 +1,4 @@
+import { comparePage } from "./compare.ts";
 import { duplicatesPage } from "./duplicates.ts";
 import { explainPage, sandboxPage } from "./explain.ts";
 import { textLines } from "./media.ts";
@@ -184,13 +185,25 @@ function eventPage(context: ViewContext): string {
   const demoSwitcher = context.demoMode === true && ["sample-hack-2026", "dogfood"].includes(demoEvent)
     ? `<div class="role-switcher-bar"><span class="role-switcher-label">Demo role:</span>${demoLoginForm("organizer", "Organizer", "", "role-switch-btn", demoEvent)}${demoLoginForm(demoEvent === "dogfood" ? "judge_a" : "judge_sample", "Judge", "", "role-switch-btn", demoEvent)}${demoLoginForm(demoEvent === "dogfood" ? "participant_dogfood" : "participant_sample", "Builder", "", "role-switch-btn", demoEvent)}</div>`
     : "";
+  const announcements = rows(context.result, "announcements");
+  const pinnedAlerts = announcements.filter((a) => a.pinned === true);
+  const alertCards =
+    pinnedAlerts.length === 0
+      ? ""
+      : `<section class="announcement-alerts" aria-label="Pinned event announcements">${pinnedAlerts
+          .map(
+            (a) =>
+              `<div class="panel notice" style="margin-bottom: 1.5rem;"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>📢 ${esc(String(a.title))}</h3><span class="detail">${esc(when(Number(a.createdAt), timezone))}</span></div><p style="margin-top:0.5rem; white-space:pre-wrap;">${esc(String(a.content))}</p></div>`,
+          )
+          .join("")}</section>`;
+
   return page({
     title: name,
     trail: [{ label: "Events", href: "/" }, { label: name }],
     whoami: context.whoami, demoMode: context.demoMode,
     notice: gatesNotice(context.gates),
     lead: "Everything your event needs, from the first idea to the final results.",
-    body: `${eventJourney(clock, context.now, { slug: String(at(event, "slug") ?? ""), roles, resultsPublic: at(event, "resultsPublic") === true })}${demoSwitcher}<section class="next-action"><div><p class="eyebrow">Your next step</p><h2>${esc(nextStep[0])}</h2><p>${esc(nextStep[1])}</p></div><a class="button" href="/events/${slug}/${nextStep[3]}">${esc(nextStep[2])} →</a></section><section class="event-tools" aria-labelledby="event-tools-title"><div class="section-heading"><div><p class="eyebrow">Go to</p><h2 id="event-tools-title">Your event tools</h2></div><span class="detail">Links follow your event role</span></div><nav class="workspace-nav" aria-label="Event navigation">${links.join("")}</nav></section><div class="section-heading"><h2>Event at a glance</h2>${tag(phaseLabel(at(event, "phase")), "plain")}</div>${definitions([
+    body: `${alertCards}${eventJourney(clock, context.now, { slug: String(at(event, "slug") ?? ""), roles, resultsPublic: at(event, "resultsPublic") === true })}${demoSwitcher}<section class="next-action"><div><p class="eyebrow">Your next step</p><h2>${esc(nextStep[0])}</h2><p>${esc(nextStep[1])}</p></div><a class="button" href="/events/${slug}/${nextStep[3]}">${esc(nextStep[2])} →</a></section><section class="event-tools" aria-labelledby="event-tools-title"><div class="section-heading"><div><p class="eyebrow">Go to</p><h2 id="event-tools-title">Your event tools</h2></div><span class="detail">Links follow your event role</span></div><nav class="workspace-nav" aria-label="Event navigation">${links.join("")}</nav></section><div class="section-heading"><h2>Event at a glance</h2>${tag(phaseLabel(at(event, "phase")), "plain")}</div>${definitions([
       ["Phase", String(at(event, "phase") ?? "-")],
       ["Submissions open", when(at(clock, "submissionsOpenAt"), timezone)],
       ["Submissions close", when(at(clock, "submissionsCloseAt"), timezone)],
@@ -216,7 +229,7 @@ ${
             .map((track) => `<li><b>${esc(String(track.label ?? ""))}</b> <code>${esc(String(track.key ?? ""))}</code></li>`)
             .join("")}</ul>`
     }
-${roles.includes("organizer") ? `<section class="operations"><h2>Manage this event</h2><details><summary>Event settings and voting windows</summary>${actionForm(context, "events.update", { event: decodeURIComponent(slug) }, { prefill: Object.fromEntries(Object.entries({ name, timezone, prizes: at(event, "prizes"), questions: at(event, "questions"), submissionsOpenAt: at(clock, "submissionsOpenAt"), submissionsCloseAt: at(clock, "submissionsCloseAt"), judgingOpenAt: at(clock, "judgingOpenAt"), judgingCloseAt: at(clock, "judgingCloseAt"), reviewsPerProject: at(judging, "reviewsPerProject"), pairwiseEnabled: at(judging, "pairwiseEnabled") ? "true" : "", votingMode: at(event, "votingMode"), votingCredits: at(event, "votingCredits"), votingOpenAt: at(event, "votingOpenAt"), votingCloseAt: at(event, "votingCloseAt") }).map(([key, value]) => [key, value == null ? "" : key.endsWith("At") && typeof value === "number" ? new Date(value).toISOString().slice(0,16) : String(value)])) })}</details><details><summary>Add a track</summary>${actionForm(context, "tracks.create", { event: decodeURIComponent(slug) })}</details></section>` : ""}`,
+${roles.includes("organizer") ? `<section class="operations"><h2>Manage this event</h2><details><summary>Post an announcement</summary>${actionForm(context, "announcements.create", { event: decodeURIComponent(slug) })}</details><details><summary>Event settings and voting windows</summary>${actionForm(context, "events.update", { event: decodeURIComponent(slug) }, { prefill: Object.fromEntries(Object.entries({ name, timezone, prizes: at(event, "prizes"), questions: at(event, "questions"), submissionsOpenAt: at(clock, "submissionsOpenAt"), submissionsCloseAt: at(clock, "submissionsCloseAt"), judgingOpenAt: at(clock, "judgingOpenAt"), judgingCloseAt: at(clock, "judgingCloseAt"), reviewsPerProject: at(judging, "reviewsPerProject"), pairwiseEnabled: at(judging, "pairwiseEnabled") ? "true" : "", votingMode: at(event, "votingMode"), votingCredits: at(event, "votingCredits"), votingOpenAt: at(event, "votingOpenAt"), votingCloseAt: at(event, "votingCloseAt") }).map(([key, value]) => [key, value == null ? "" : key.endsWith("At") && typeof value === "number" ? new Date(value).toISOString().slice(0,16) : String(value)])) })}</details><details><summary>Add a track</summary>${actionForm(context, "tracks.create", { event: decodeURIComponent(slug) })}</details></section>` : ""}`,
   });
 }
 
@@ -466,6 +479,7 @@ export const VIEWS: Views = {
   "teams.list": teamsPage,
   "projects.list": projectsPage,
   "projects.show": projectPage,
+  "projects.compare": comparePage,
   // Judging.
   "judging.queue": queuePage,
   "assignments.preview": assignmentPreviewPage,

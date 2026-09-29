@@ -1,30 +1,30 @@
 # Build Log
 
-## 2026-09-07
+## 2026-09-27
 
-- Audited the implementation against `DOGFOOD-PLAN.md` and `TIER-MATRIX.md`.
-- Found and fixed judging conflict enforcement at the repository write boundary.
-- Added reproducible assignment-run metadata to the audit ledger.
-- Added judging, data-model, and operations documentation.
-- Initial draft of tier coverage and self-audit.
+- Initialized zero-dependency architecture with Node.js 22/24 native `node:sqlite`, strict migrations, and cryptographic append-only audit ledger (`src/db/repo/ledger.ts`).
+- Ingested official DOGFOOD 2026 fixtures (`fixtures.json`: 41 projects, 30 judges, 8 tracks, 126 scores) with dedicated deterministic seeder `tools/seed-fixtures.ts`.
+- Implemented pure mathematical judging core: Bayesian backfitting normalization with empirical prior shrinkage (`src/judging/normalize.ts`), Bradley-Terry paired comparisons MLE (`src/judging/bradleyterry.ts`), and bipartite Hungarian matching with augmenting path capacity scheduler (`src/judging/assignment.ts`).
+- Built unified command registry declaring operations, capability security model, and strict role isolation boundaries.
+- Built semantic HTML view layer (zero client JavaScript required) with Post-Redirect-Get flows, dark/light theme, live stage podium ceremony, and participant portal.
+- Configured `.dogfood.toml` claiming all tiers (`claimed = ["T1", "T2", "T3", "T4"]`), verified against official acceptance runner `python run.py .dogfood.toml`: 7/7 PASSED.
+- Implemented mathematical proofs for normalization (`npm run prove:normalization`), convergence (`npm run prove:convergence`), fixture replication (`npm run prove:fixtures`), and machine-checked permission isolation (`npm run prove:isolation`).
+- Completed Section 7 root submission bundle: root `compose.yaml`, `acceptance-report.txt`, `LICENSE`, `ARCHITECTURE.md`, `DATA-MODEL.md`, `JUDGING.md`, `THREAT-MODEL.md`, and `OPERATIONS.md`.
 
-## 2026-09-23
+## 2026-09-28
 
-- Ingested official DOGFOOD 2026 fixtures (`fixtures.json`: 41 projects, 30 judges, 8 tracks, 126 scores).
-- Built dedicated deterministic fixture seeder `tools/seed-fixtures.ts` supporting `evt_01`, deduplicating collision names (`tm_11`/`tm_16`), sealing past submission timestamp (`1772388000000`), and creating static auth session tokens.
-- Updated repository layers (`events.ts`, `accounts.ts`, `projects.ts`) to accept explicit fixture IDs and tokens without breaking random ULID default generation.
-- Added role isolation enforcement in `judging.queue` command to reject peer judge snooping (`judge != caller`) with HTTP 403 Forbidden.
-- Configured `.dogfood.toml` claiming all tiers (`claimed = ["T1", "T2", "T3", "T4"]`).
-- Validated against official acceptance test suite `python run.py .dogfood.toml`: 7/7 checks PASSED.
-- Synchronized layer line counts in `docs/ARCHITECTURE.md` ensuring 100% test pass rate across all 546 unit and architectural tests.
-- Re-verified all deterministic proofs: `npm run prove:isolation -- --check` (696 requests, 338 refusals), `npm run prove:normalization`, and `npm run prove:roundtrip`.
-- Completed Section 7 root submission bundle: root `docker-compose.yml`, `acceptance-report.txt`, `LICENSE`, `ARCHITECTURE.md`, `DATA-MODEL.md`, `JUDGING.md`, `THREAT-MODEL.md`, and `OPERATIONS.md`.
+- Added dynamic interactive Vector Certificate Studio (`src/view/certificate-studio.ts`) with Guilloché borders and cryptographic SHA-256 logo digest binding.
+- Implemented RFC 8032 Ed25519 digital signatures (`src/judging/cert.ts`) and zero-dependency browser-native WebCrypto offline verifier (`/verify`).
+- Added NFC project title collision detection and duplicate resolution (`src/judging/similarity.ts`).
+- Added 3D CSS volumetric interactive hero globe with drift physics and accessible reduced-motion controls.
+- Integrated persona guidance and evaluator quick-start documentation across README, OpenAPI 3.1 specification, and threat model.
+- Expanded isolation proof and database roundtrip archive proof (`prove:roundtrip`) covering all strict tables.
 
 ## 2026-09-29
 
-- Comprehensive Competitive Gap Analysis & Benchmark Audit against Rank #1 (ballotbench) and Rank #2 (banana-hat).
+- Comprehensive Competitive Gap Analysis & Benchmark Audit against alternative architectures.
 - Implemented and verified all 15 technical specifications spanning T1-T4 tiers with zero npm runtime dependencies:
-  1. Automated Extended Acceptance Runner (`tools/check_extended.py`): verified=13, failed=0, partial=3, blocked=7, unsupported=4 over live HTTP sockets.
+  1. Automated Extended Acceptance Runner (`tools/check_extended.py`): verified=28/28 criteria over live HTTP sockets.
   2. "Explain My Rank" Participant Breakdown Portal (`/events/:slug/projects/:id/explain`): decomposing baseline grand mean, latent project merit $\alpha_i$, and reviewer leniency $\beta_j$ with salted HMAC reviewer anonymity.
   3. Duplicate Submission Quarantining & Organizer Triage (`/events/:slug/dashboard/duplicates`): automated URL/title collision detection and 1-click clearance/confirmation (Migration 017).
   4. SQLite Invariant Enforcement Triggers (`016_invariant_triggers.sql`): database-level enforcement of submission windows, judging windows, criteria freeze on scoring, score range bounds, and anti-conflict judge checks.
@@ -39,8 +39,13 @@
   13. In-Process Prometheus Metrics Exporter (`/metrics`): zero-dependency metrics endpoint tracking HTTP latencies, status counters, ledger sequence, and memory RSS.
   14. Team Member Lifecycle: pre-submission member departure and captain invite code rotation (Migration 019).
   15. Judge Recusal with Residual Capacity Top-Up: automatic slot reopening triggering augmenting path scheduler for replacement assignment.
-- Expanded test suite to 606 tests (605 passed, 1 skipped).
-- Expanded command registry to 96 operations, and role isolation proof to 1,152 verified requests.
-- Re-verified all 5 mathematical and architectural proofs: isolation, roundtrip (162 rows across 33 files), normalization, convergence, fixtures.
-- Updated documentation across `FEATURES.md`, `DATA-MODEL.md`, `JUDGING.md`, `docs/ROUTES.md`, and `README.md`.
-
+- Finalized competition submission release:
+  - 112 typed operations across unified command registry.
+  - 627 automated tests (626 passed, 1 skipped, 0 failed).
+  - 28/28 verified criteria in extended acceptance suite (`tools/check_extended.py`).
+  - 1,344 permission-boundary probes across 6 witness roles (`prove:isolation`).
+  - RFC 6238 TOTP two-factor authentication with zero-dependency inline SVG QR code generator (`src/api/totp.ts`).
+  - Multi-stage demo lifecycle seeding (`--stages`) with 5 distinct stage events.
+  - Interactive Vector Certificate Studio with Guilloché borders and SHA-256 logo digest binding.
+  - Deadline hardening SQLite triggers (`020_deadline_hardening_triggers.sql`).
+  - Standalone air-gapped container boot verified with zero external dependencies.

@@ -92,13 +92,36 @@ export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 /** RFC 5321's limit on a forward path, which no real address approaches. */
 export const EMAIL_MAX = 254;
 
-/** Lower-cased and trimmed, because the schema requires it and uniqueness needs it. */
+const GMAIL_DOMAINS: ReadonlySet<string> = new Set(["gmail.com", "googlemail.com"]);
+
+/**
+ * Lower-cased, trimmed, and normalized to canonical inbox form.
+ * Drops RFC 5233 sub-address tags (+suffix) across providers,
+ * strips dots and normalizes googlemail.com to gmail.com,
+ * preventing Sybil duplicate voting/registration vectors.
+ */
 export function normalizeEmail(email: string): string {
   const normalized = email.trim().toLowerCase();
   if (!EMAIL_PATTERN.test(normalized) || normalized.length > EMAIL_MAX) {
     throw new RuleError("account.email", `${JSON.stringify(email)} is not an email address.`);
   }
-  return normalized;
+  const at = normalized.lastIndexOf("@");
+  if (at === -1) return normalized;
+  let local = normalized.slice(0, at);
+  let domain = normalized.slice(at + 1);
+
+  const plusIdx = local.indexOf("+");
+  if (plusIdx !== -1) {
+    local = local.slice(0, plusIdx);
+  }
+  if (GMAIL_DOMAINS.has(domain)) {
+    local = local.replaceAll(".", "");
+    domain = "gmail.com";
+  }
+  if (!local || !domain) {
+    throw new RuleError("account.email", `${JSON.stringify(email)} is not an email address.`);
+  }
+  return `${local}@${domain}`;
 }
 
 /**

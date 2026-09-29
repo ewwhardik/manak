@@ -20,7 +20,7 @@
  *   - **It localizes damage.** A truncated `.jsonl` identifies the damaged table;
  *     import refuses the entire archive before committing partial state.
  *
- * **Everything is exported.** All 33 application tables, every row, including sessions and
+ * **Everything is exported.** All 35 application tables, every row, including sessions and
  * unconsumed magic links. Two absences and no others, both named in the manifest so
  * that "what is missing" is a published fact rather than a thing to be discovered:
  * `migration` is rebuilt by the migrator on the way in and is pinned in the manifest
@@ -86,7 +86,9 @@ export const ARCHIVE_TABLES: readonly string[] = [
   "session",
   "magic_link",
   "rate_limit",
+  "mfa_totp",
   "track",
+  "event_announcement",
   "team",
   "team_member",
   "team_invite",

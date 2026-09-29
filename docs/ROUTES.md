@@ -18,10 +18,14 @@ Registered JSON routes and their browser spellings are generated from the [OpenA
 
 ## Notable Registered API & UI Endpoints
 
-The 102 registered operations in `src/api/commands/` declare typed JSON and form handlers. Key additions include:
+The 112 registered operations in `src/api/commands/` declare typed JSON and form handlers. Key additions include:
 
 | Route Path | Capability / Access | Description |
 | --- | --- | --- |
+| `/events/:event/compare` | Participant / Public | **Rival Comparison Engine**: TF-IDF cosine similarity vector comparison with rubric breakdown and pairwise records. |
+| `/events/:event/announcements` | Public / Organizer | **Event Announcements Feed**: Pinned markdown alerts and broadcasts with urgent badges. |
+| `/events/:event/teams?recruiting=true` | Public / Participant | **Team Recruitment Directory**: Skill-filtered directory of teams actively seeking teammates. |
+| `/me/mfa/totp` | Authenticated Account | **Two-Factor Authentication (TOTP / RFC 6238)**: Zero-dependency HMAC-SHA1 2FA setup with responsive SVG QR codes and recovery codes. |
 | `/events/:event/results/explain` | Participant / Public | **Explain My Rank**: Shows calibrated reviewer contributions and reported uncertainty with project-local sequential anonymous review labels. |
 | `/events/:event/dashboard/sandbox` | Organizer | **Multi-Method Normalization Sandbox**: Concurrently computes Raw Trimmed Mean, Standardized Z-Score, Additive Bayesian, and Bradley-Terry MM models with Spearman $\rho$ and Kendall $\tau$ concordances. |
 | `/events/:event/dashboard/duplicates` | Organizer | **Duplicate Submission Triage**: Lists automated title/URL collisions held in quarantine; allows organizers to clear or confirm duplicates. |

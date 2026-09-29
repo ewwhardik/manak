@@ -58,10 +58,12 @@ import {
   SESSION_COOKIE,
   statusForRefusal,
   WITNESSES,
+  calculateTotp,
 } from "../src/api/index.ts";
 import type { Cell, Command, Delivery, MatrixRow, Operation, Witness } from "../src/api/index.ts";
 import {
   addTeamMember,
+  createAnnouncement,
   createEvent,
   createProject,
   createRubricVersion,
@@ -95,8 +97,8 @@ import { VIEWS } from "../src/view/index.ts";
 import { fileURLToPath } from "node:url";
 const OUT_MD = fileURLToPath(new URL("../docs/proof/isolation.md", import.meta.url));
 
-/** Frozen for the whole run: 2026-09-26T12:00:00.000Z, a day into the event. */
-const AT = Date.parse("2026-09-26T12:00:00.000Z");
+/** Frozen for the whole run: 2026-09-27T12:00:00.000Z, during the event. */
+const AT = Date.parse("2026-09-27T12:00:00.000Z");
 
 /** The event every scoped probe names. */
 const SCOPED = "dogfood-2026";
@@ -209,6 +211,8 @@ type Planted = {
   readonly voterHash: string;
   readonly certSerial: string;
   readonly leaveTeam: string;
+  readonly announcementJson: string;
+  readonly announcementHtml: string;
 };
 
 type Fixture = {
@@ -371,6 +375,21 @@ function plant(): Fixture {
   db.run(`insert into certificate_batch (event_id, issued_at, report) values (:event, :at, :report)`,
     { event: here.id, at: AT, report: JSON.stringify(report) });
 
+  const annJson = createAnnouncement(system, {
+    eventId: here.id,
+    authorId: organizer,
+    title: "Pinned Alert JSON",
+    content: "Isolation proof alert content for JSON probe.",
+    pinned: true,
+  });
+  const annHtml = createAnnouncement(system, {
+    eventId: here.id,
+    authorId: organizer,
+    title: "Pinned Alert HTML",
+    content: "Isolation proof alert content for HTML probe.",
+    pinned: true,
+  });
+
   const accountOf: Record<Witness, string | null> = {
     anonymous: null,
     stranger,
@@ -396,6 +415,8 @@ function plant(): Fixture {
       voterHash,
       certSerial,
       leaveTeam: leaverTeam.id,
+      announcementJson: annJson.id,
+      announcementHtml: annHtml.id,
     },
     accountOf,
     sessionFor: (witness) => {
@@ -561,7 +582,30 @@ function valuesFor(
       return { event: SCOPED, key: `track-${tag}`, label: `Track for the ${witness}`, ordering: 2 };
     case "teams.list":
     case "projects.list":
+    case "announcements.list":
       return { event: SCOPED };
+    case "announcements.create":
+      return { event: SCOPED, title: `Alert ${tag}`, content: "Isolation test announcement" };
+    case "announcements.delete":
+      return { event: SCOPED, announcement: wants === "json" ? planted.announcementJson : planted.announcementHtml };
+    case "teams.recruitment":
+      return { event: SCOPED, team: planted.team, recruiting: true, neededSkills: "Design" };
+    case "projects.compare":
+      return { event: SCOPED, left: planted.left, right: planted.right };
+    case "auth.totp_status":
+    case "auth.totp_setup":
+      return {};
+    case "auth.totp_enable": {
+      const secret = "JBSWY3DPEHPK3PXP";
+      const { code } = calculateTotp(secret, fixture.clock.now());
+      return { secret, code };
+    }
+    case "auth.totp_verify":
+    case "auth.totp_disable": {
+      const secret = "JBSWY3DPEHPK3PXP";
+      const { code } = calculateTotp(secret, fixture.clock.now());
+      return { code };
+    }
     case "teams.join":
     case "teams.invite_rotate":
       // The witness's *own* team. Only the participant reaches this handler, and joining the
@@ -873,7 +917,7 @@ async function probeOne(
   const token = fixture.sessionFor(witness);
   const values = valuesFor(command.name, witness, wants, fixture);
   const init = submission(command, values, wants);
-  fixture.db.exec("delete from rate_limit;");
+  fixture.db.exec("delete from rate_limit; update mfa_totp set last_used_step = 0;");
   const before = ledgerLength(fixture.db);
   const response = await fetch(`${origin}${target(command, values, wants)}`, {
     method: command.method,

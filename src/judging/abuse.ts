@@ -14,7 +14,8 @@
  *   5. Formatted organizer suspicion report with risk score and discount advice.
  */
 
-import { components } from "./stats.ts";
+import { components, correlation } from "./stats.ts";
+import type { Ballot } from "./types.ts";
 
 export type RawVote = {
   readonly voterToken: string;
@@ -211,5 +212,128 @@ export function detectVoteAbuse(votes: readonly RawVote[], thresholds: AbuseThre
     uniqueProjects: projects.size,
     clusters,
     highRiskCount: highRisk,
+  };
+}
+
+export type BallotCollusionCluster = {
+  readonly clusterId: number;
+  readonly judgeIds: readonly string[];
+  readonly sharedProjects: number;
+  readonly correlation: number;
+  readonly identicalScoresCount: number;
+  readonly riskScore: number;
+  readonly reason: string;
+};
+
+export type BallotCollusionReport = {
+  readonly clusters: readonly BallotCollusionCluster[];
+  readonly suspiciousPairCount: number;
+};
+
+/**
+ * Scan rubric ballots across judges to detect identical scoring patterns
+ * or extreme collusion rings (>0.95 score correlation on shared projects).
+ */
+export function detectBallotCollusion(ballots: readonly Ballot[]): BallotCollusionReport {
+  const byJudge = new Map<string, Map<string, Record<string, number>>>();
+  const totalScore = (scores: Record<string, number>): number =>
+    Object.values(scores).reduce((a, b) => a + b, 0);
+
+  for (const b of ballots) {
+    let judgeMap = byJudge.get(b.judge);
+    if (!judgeMap) {
+      judgeMap = new Map();
+      byJudge.set(b.judge, judgeMap);
+    }
+    judgeMap.set(b.project, b.scores);
+  }
+
+  const judges = [...byJudge.keys()].sort();
+  const edges: [string, string][] = [];
+  const pairDetails = new Map<string, { corr: number; shared: number; identical: number }>();
+
+  for (let i = 0; i < judges.length; i++) {
+    const j1 = judges[i]!;
+    const p1 = byJudge.get(j1)!;
+    for (let j = i + 1; j < judges.length; j++) {
+      const j2 = judges[j]!;
+      const p2 = byJudge.get(j2)!;
+
+      const shared = [...p1.keys()].filter((p) => p2.has(p));
+      if (shared.length < 2) continue;
+
+      let identical = 0;
+      const v1: number[] = [];
+      const v2: number[] = [];
+
+      for (const p of shared) {
+        const s1 = p1.get(p)!;
+        const s2 = p2.get(p)!;
+        const t1 = totalScore(s1);
+        const t2 = totalScore(s2);
+        v1.push(t1);
+        v2.push(t2);
+
+        const keys = Object.keys(s1);
+        const isMatch = keys.length > 0 && keys.every((k) => s1[k] === s2[k]);
+        if (isMatch) identical++;
+      }
+
+      const corr = correlation(v1, v2);
+      const isCollusive =
+        identical === shared.length ||
+        (shared.length >= 3 && corr >= 0.95) ||
+        (identical >= 2 && shared.length >= 2 && (corr >= 0.9 || Number.isNaN(corr)));
+
+      if (isCollusive) {
+        edges.push([j1, j2]);
+        pairDetails.set(`${j1}:${j2}`, { corr: Number.isNaN(corr) ? 1.0 : corr, shared: shared.length, identical });
+      }
+    }
+  }
+
+  const comps = components(judges, edges).filter((c) => c.length >= 2);
+  const clusters: BallotCollusionCluster[] = [];
+
+  for (let idx = 0; idx < comps.length; idx++) {
+    const members = comps[idx]!;
+    let maxShared = 0;
+    let maxIdentical = 0;
+    let avgCorr = 0;
+    let pairs = 0;
+
+    for (let i = 0; i < members.length; i++) {
+      for (let j = i + 1; j < members.length; j++) {
+        const d = pairDetails.get(`${members[i]}:${members[j]}`) ?? pairDetails.get(`${members[j]}:${members[i]}`);
+        if (d) {
+          maxShared = Math.max(maxShared, d.shared);
+          maxIdentical = Math.max(maxIdentical, d.identical);
+          avgCorr += d.corr;
+          pairs++;
+        }
+      }
+    }
+
+    const meanCorr = pairs > 0 ? avgCorr / pairs : 1.0;
+    const isExact = maxIdentical === maxShared;
+    const riskScore = Math.min(100, Math.round(50 + (isExact ? 35 : 20) + members.length * 5 + meanCorr * 10));
+    const reason = isExact
+      ? `Identical score assignment across ${maxShared} shared project(s)`
+      : `High statistical correlation (r = ${meanCorr.toFixed(2)}) across ${maxShared} shared project(s)`;
+
+    clusters.push({
+      clusterId: idx + 1,
+      judgeIds: members,
+      sharedProjects: maxShared,
+      correlation: Number(meanCorr.toFixed(3)),
+      identicalScoresCount: maxIdentical,
+      riskScore,
+      reason,
+    });
+  }
+
+  return {
+    clusters,
+    suspiciousPairCount: edges.length,
   };
 }

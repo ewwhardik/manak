@@ -63,3 +63,27 @@ test("embed frame rejects unknown events and malformed encoded slugs", async () 
     w.close();
   }
 });
+
+test("embed route /embed/events/:slug serves responsive zero-JS showcase without scripts", async () => {
+  const w = world();
+  try {
+    const serve = makeApp({ db: w.db, registry: makeRegistry(ALL_COMMANDS), publicOrigin: "https://portal.test" });
+    const response = await serve(new Request(
+      `https://portal.test/embed/events/${encodeURIComponent(w.event.slug)}`,
+    ));
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("content-type") ?? "", /text\/html/);
+    assert.equal(response.headers.get("x-frame-options"), null);
+    const policy = response.headers.get("content-security-policy") ?? "";
+    assert.match(policy, /default-src 'none'/);
+    assert.match(policy, /frame-ancestors \*/);
+    const body = await response.text();
+    // Zero-JS guarantee: No <script> tag present in the document
+    assert.equal(body.includes("<script"), false);
+    assert.match(body, /Project Showcase/);
+    assert.match(body, /class="gallery"/);
+    assert.match(body, /class="project"/);
+  } finally {
+    w.close();
+  }
+});

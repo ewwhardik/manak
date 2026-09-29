@@ -81,3 +81,104 @@ function mount(script){
 var scripts=document.currentScript?[document.currentScript]:Array.prototype.slice.call(document.querySelectorAll('script[data-manak-event],script[data-event]'));
 scripts.forEach(mount);
 })();`;
+
+export type EmbedProjectItem = {
+  readonly id: string;
+  readonly title: string;
+  readonly summary?: string | null;
+  readonly trackKey?: string | null;
+  readonly rank?: number | null;
+};
+
+export type EmbedShowcaseOptions = {
+  readonly eventName: string;
+  readonly eventSlug: string;
+  readonly projects: readonly EmbedProjectItem[];
+  readonly resultsPublic?: boolean;
+};
+
+function escapeText(value: unknown): string {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => {
+    switch (ch) {
+      case "&": return "&amp;";
+      case "<": return "&lt;";
+      case ">": return "&gt;";
+      case '"': return "&quot;";
+      case "'": return "&#39;";
+      default: return ch;
+    }
+  });
+}
+
+/**
+ * Standalone zero-JS responsive embed showcase widget.
+ * Pre-rendered purely in server-side HTML/CSS, adhering to default-src 'none'.
+ */
+export function zeroJsShowcasePage(options: EmbedShowcaseOptions): string {
+  const { eventName, eventSlug, projects, resultsPublic } = options;
+  const cards = projects.length === 0
+    ? '<p class="message">No submitted projects yet.</p>'
+    : projects.map((p) => {
+        const href = `/events/${encodeURIComponent(eventSlug)}/projects/${encodeURIComponent(p.id)}`;
+        const rankBadge = resultsPublic && p.rank
+          ? `<span class="badge ${p.rank <= 3 ? "podium" : "rank"}">#${escapeText(p.rank)}</span>`
+          : "";
+        const trackBadge = p.trackKey
+          ? `<span class="track">${escapeText(p.trackKey)}</span>`
+          : "";
+        const summary = p.summary
+          ? `<p>${escapeText(p.summary)}</p>`
+          : "";
+        return `<article class="project"><div class="project-head"><h2><a href="${href}" target="_blank" rel="noopener noreferrer">${escapeText(p.title)}</a></h2>${rankBadge}</div>${summary}${trackBadge ? `<div class="meta">${trackBadge}</div>` : ""}</article>`;
+      }).join("\n");
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escapeText(eventName)} — Project Showcase</title>
+<style>
+:root{color-scheme:light dark;font:15px/1.5 system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:#fff;color:#182230}
+header{margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e4e7ec;padding-bottom:12px}
+h1{margin:0;font-size:1.15rem;font-weight:600}
+.count{font-size:.85rem;color:#667085}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:14px}
+.project{min-width:0;padding:16px;border:1px solid #e4e7ec;border-radius:10px;background:#fff;display:flex;flex-direction:column;justify-content:space-between}
+.project-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.project h2{margin:0;font-size:1.05rem;line-height:1.3}
+.project a{color:#155eef;text-decoration:none;font-weight:600}
+.project a:hover{text-decoration:underline}
+.project p{margin:0 0 12px;color:#475467;font-size:.9rem;line-height:1.4;overflow-wrap:anywhere}
+.meta{display:flex;align-items:center;gap:6px;margin-top:auto}
+.track{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef4ff;color:#3538cd;font-size:.75rem;font-weight:500}
+.badge{display:inline-block;padding:2px 6px;border-radius:6px;font-size:.75rem;font-weight:700}
+.badge.podium{background:#fef0c7;color:#b54708;border:1px solid #fedf89}
+.badge.rank{background:#f2f4f7;color:#344054}
+.message{padding:32px;text-align:center;color:#667085}
+@media(prefers-color-scheme:dark){
+body{background:#101828;color:#f2f4f7}
+header{border-color:#344054}
+.count{color:#98a2b3}
+.project{background:#1d2939;border-color:#344054;color:#f2f4f7}
+.project a{color:#84caff}
+.project p{color:#d0d5dd}
+.track{background:#1e293b;color:#a5b4fc}
+.badge.rank{background:#344054;color:#f2f4f7}
+.message{color:#98a2b3}
+}
+</style>
+</head>
+<body>
+<header>
+<h1>${escapeText(eventName)}</h1>
+<span class="count">${projects.length} project${projects.length === 1 ? "" : "s"}</span>
+</header>
+<main class="gallery">
+${cards}
+</main>
+</body>
+</html>`;
+}

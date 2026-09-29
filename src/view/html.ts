@@ -58,6 +58,18 @@ export function demoLoginForm(as: string, label: string, detail: string, classNa
   return `<form method="post" action="/fast-login">${event === undefined ? "" : `<input type="hidden" name="event" value="${esc(event)}">`}<button type="submit" name="as" value="${esc(as)}" class="${esc(className)}"><strong>${esc(label)}</strong><span>${esc(detail)}</span></button></form>`;
 }
 
+/** Pure CSS animated light mode / dark mode switch. */
+export function themeToggle(checked = true): string {
+  return `<input type="checkbox" id="theme-toggle" class="theme-toggle-input"${checked ? " checked" : ""} aria-label="Toggle theme">` +
+    `<label for="theme-toggle" class="theme-switch" title="Toggle light and dark mode" aria-label="Toggle light and dark mode">` +
+    `<span class="theme-track">` +
+    `<span class="theme-icon theme-sun" aria-hidden="true"></span>` +
+    `<span class="theme-icon theme-moon" aria-hidden="true"></span>` +
+    `<span class="theme-thumb"></span>` +
+    `</span>` +
+    `</label>`;
+}
+
 /** Pure CSS modal explaining features added specifically for the evaluation preview. */
 export function demoNoticeModal(openByDefault = false): string {
   return `<input type="checkbox" id="demo-disclaimer-modal" class="demo-disclaimer-state"${openByDefault ? " checked" : ""}>
@@ -232,7 +244,7 @@ ${options.demoMode === true ? `${demoNoticeModal(options.showDemoDisclaimer === 
 <form method="post" action="/fast-login"><button name="as" value="participant_dogfood" class="fast-login-item"><strong>Builder (Dogfood)</strong> <span>Beatriz Lima &middot; Team Saffron workspace</span></button></form>
 </div>
 </div>
-</details>` : ""}</nav>
+</details>` : ""}${themeToggle(true)}</nav>
 </header>
 ${
     options.notice === undefined ? "" : `<p class="notice">${esc(options.notice)}</p>\n`

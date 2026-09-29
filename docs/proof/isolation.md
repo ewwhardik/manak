@@ -12,12 +12,12 @@ derived from the declarations.
 
 | Measured                                     | Count |
 | -------------------------------------------- | ----- |
-| Operations declared                          | 102   |
+| Operations declared                          | 112   |
 | Witnesses impersonated                       | 6     |
 | Renderings per operation                     | 2     |
-| Requests sent over a socket                  | 1224  |
-| Answers that were a refusal                  | 674   |
-| Refusals of an operation that writes         | 418   |
+| Requests sent over a socket                  | 1344  |
+| Answers that were a refusal                  | 714   |
+| Refusals of an operation that writes         | 456   |
 | Ledger entries appended by a refused request | 0     |
 | Sign-in and invitation messages delivered    | 14    |
 | Breaks in the ledger's hash chain afterwards | 0     |
@@ -56,110 +56,120 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 
 ## The matrix that was asserted
 
-| Operation                              | Route                                                     | Needs                                   | anonymous | stranger | founder | participant | judge | organizer |
-| -------------------------------------- | --------------------------------------------------------- | --------------------------------------- | --------- | -------- | ------- | ----------- | ----- | --------- |
-| system.home                            | `GET /api`                                                | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| system.about                           | `GET /api/about`                                          | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| system.docs                            | `GET /api/docs`                                           | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| system.openapi                         | `GET /api/openapi.json`                                   | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| system.capabilities                    | `GET /api/capabilities`                                   | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| system.healthz                         | `GET /api/healthz`                                        | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| system.limits                          | `GET /api/system/limits`                                  | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| system.rate_probe                      | `POST /api/system/rate-probe`                             | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| auth.signin                            | `GET /api/signin`                                         | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| auth.request                           | `POST /api/signin`                                        | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| auth.link                              | `GET /api/signin/:token`                                  | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| auth.session                           | `POST /api/session`                                       | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| auth.whoami                            | `GET /api/whoami`                                         | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
-| auth.signout                           | `POST /api/signout`                                       | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
-| tokens.list                            | `GET /api/me/tokens`                                      | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
-| tokens.create                          | `POST /api/me/tokens`                                     | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
-| tokens.revoke                          | `POST /api/me/tokens/:tokenId/revoke`                     | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
-| events.list                            | `GET /api/events`                                         | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| events.show                            | `GET /api/events/:event`                                  | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| events.create                          | `POST /api/events`                                        | founder                                 | 401       | 403      | yes     | 403         | 403   | 403       |
-| events.update                          | `POST /api/events/:event`                                 | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| events.mine                            | `GET /api/mine`                                           | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
-| events.invite                          | `POST /api/events/:event/invitations`                     | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| events.judges                          | `GET /api/events/:event/judges`                           | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| events.clock                           | `GET /api/events/:event/clock`                            | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| events.warp_clock                      | `POST /api/events/:event/clock/warp`                      | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| events.webhooks                        | `GET /api/events/:event/webhooks`                         | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| events.ping_webhook                    | `POST /api/events/:event/webhooks/ping`                   | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| events.revoke_role                     | `POST /api/events/:event/roles/revoke`                    | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| comments.add                           | `POST /api/events/:event/projects/:project/comments`      | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
-| comments.hide                          | `POST /api/events/:event/projects/:project/comments/hide` | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| tracks.create                          | `POST /api/events/:event/tracks`                          | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| teams.list                             | `GET /api/events/:event/teams`                            | participant                             | 401       | 404      | 404     | yes         | 403   | 403       |
-| teams.join                             | `POST /api/events/:event/teams/:team/members`             | participant, submissions open           | 401       | 404      | 404     | yes         | 403   | 403       |
-| teams.leave                            | `POST /api/events/:event/teams/:team/leave`               | participant, submissions open           | 401       | 404      | 404     | yes         | 403   | 403       |
-| teams.invite_rotate                    | `POST /api/events/:event/teams/:team/invites/rotate`      | participant, submissions open           | 401       | 404      | 404     | yes         | 403   | 403       |
-| projects.list                          | `GET /api/events/:event/projects`                         | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| projects.show                          | `GET /api/events/:event/projects/:project`                | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| projects.create                        | `POST /api/events/:event/projects`                        | participant, submissions open           | 401       | 404      | 404     | yes         | 403   | 403       |
-| projects.update                        | `POST /api/events/:event/projects/:project`               | participant, own team, submissions open | 401       | 404      | 404     | yes         | 403   | 403       |
-| projects.submit                        | `POST /api/events/:event/projects/:project/submit`        | participant, own team, submissions open | 401       | 404      | 404     | yes         | 403   | 403       |
-| projects.withdraw                      | `POST /api/events/:event/projects/:project/withdraw`      | participant, own team, submissions open | 401       | 404      | 404     | yes         | 403   | 403       |
-| projects.pull                          | `POST /api/events/:event/projects/:project/pull`          | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| projects.disqualify                    | `POST /api/events/:event/projects/:project/disqualify`    | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| duplicates.list                        | `GET /api/events/:event/manage/duplicates`                | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| duplicates.triage                      | `POST /api/events/:event/manage/duplicates/triage`        | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| rubrics.show                           | `GET /api/events/:event/rubric`                           | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| rubrics.create                         | `POST /api/events/:event/rubric`                          | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| rubrics.publish                        | `POST /api/events/:event/rubric/publish`                  | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| judging.queue                          | `GET /api/events/:event/judging`                          | judge                                   | 401       | 404      | 404     | 403         | yes   | 403       |
-| ballots.save                           | `POST /api/events/:event/projects/:project/ballot`        | judge, own judge, judging open          | 401       | 404      | 404     | 403         | yes   | 403       |
-| duels.next                             | `GET /api/events/:event/duel`                             | judge                                   | 401       | 404      | 404     | 403         | yes   | 403       |
-| duels.decide                           | `POST /api/events/:event/duel`                            | judge, judging open                     | 401       | 404      | 404     | 403         | yes   | 403       |
-| assignments.draw                       | `POST /api/events/:event/assignments`                     | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| assignments.preview                    | `GET /api/events/:event/assignments/preview`              | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| judges.roster                          | `GET /api/events/:event/judges/roster`                    | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| judges.configure                       | `POST /api/events/:event/judges/configure`                | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| judges.recusal                         | `POST /api/events/:event/judges/recusal`                  | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| judges.self_recusal                    | `POST /api/events/:event/judging/:project/recuse`         | judge, judging open                     | 401       | 404      | 404     | 403         | yes   | 403       |
-| reviews.requests                       | `GET /api/events/:event/review-requests`                  | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| reviews.request                        | `POST /api/events/:event/review-requests`                 | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| reviews.cancel                         | `POST /api/events/:event/review-requests/:request/cancel` | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| events.dashboard                       | `GET /api/events/:event/dashboard`                        | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| results.show                           | `GET /api/events/:event/results`                          | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| results.confidence                     | `GET /api/events/:event/results/confidence`               | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| results.publish                        | `POST /api/events/:event/results/publish`                 | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| results.unpublish                      | `POST /api/events/:event/results/unpublish`               | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| results.certificates                   | `GET /api/events/:event/certificates`                     | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| results.certificate_studio             | `GET /api/events/:event/certificates/studio`              | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| results.configure_certificate_template | `POST /api/events/:event/certificates/template`           | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| results.public_certificate             | `GET /api/events/:event/certificates/:serial`             | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| results.issue_certs                    | `POST /api/events/:event/certificates`                    | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| results.certificate_status             | `GET /api/events/:event/certificates/status`              | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| results.correct_cert                   | `POST /api/events/:event/certificates/corrections`        | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| results.history                        | `GET /api/events/:event/results/history`                  | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| results.judge_evidence                 | `POST /api/events/:event/results/judge-evidence`          | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| results.preflight                      | `GET /api/events/:event/results/preflight`                | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| results.evidence_packet                | `GET /api/events/:event/results/evidence`                 | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| results.explain                        | `GET /api/events/:event/results/explain`                  | participant                             | 401       | 404      | 404     | yes         | 403   | 403       |
-| results.sandbox                        | `GET /api/events/:event/results/sandbox`                  | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| awards.list                            | `GET /api/events/:event/awards`                           | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| awards.decide                          | `POST /api/events/:event/awards`                          | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| appeals.list                           | `GET /api/events/:event/appeals`                          | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| appeals.open                           | `POST /api/events/:event/appeals`                         | participant                             | 401       | 404      | 404     | yes         | 403   | 403       |
-| appeals.resolve                        | `POST /api/events/:event/appeals/:appeal/resolve`         | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| votes.start                            | `POST /api/events/:event/votes/start`                     | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| votes.cast                             | `POST /api/events/:event/votes`                           | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| votes.results                          | `GET /api/events/:event/votes`                            | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| votes.ballot                           | `GET /api/events/:event/voting`                           | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
-| votes.abuse                            | `GET /api/events/:event/voting/abuse`                     | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| votes.configure_abuse                  | `POST /api/events/:event/voting/abuse/policy`             | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| votes.review_abuse                     | `POST /api/events/:event/voting/abuse/review`             | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| votes.discount_cluster                 | `POST /api/events/:event/voting/discount`                 | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| votes.void_voter                       | `POST /api/events/:event/voting/void`                     | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| exports.download                       | `GET /api/events/:event/csv/:stage`                       | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| exports.archive_manifest               | `GET /api/events/:event/archive`                          | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| exports.registrations_csv              | `GET /api/events/:event/export/registrations.csv`         | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| exports.teams_csv                      | `GET /api/events/:event/export/teams.csv`                 | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| exports.projects_csv                   | `GET /api/events/:event/export/projects.csv`              | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| exports.scores_csv                     | `GET /api/events/:event/export/scores.csv`                | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| exports.results_csv                    | `GET /api/events/:event/export/results.csv`               | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
-| exports.audit_csv                      | `GET /api/events/:event/export/audit.csv`                 | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| Operation                              | Route                                                        | Needs                                   | anonymous | stranger | founder | participant | judge | organizer |
+| -------------------------------------- | ------------------------------------------------------------ | --------------------------------------- | --------- | -------- | ------- | ----------- | ----- | --------- |
+| system.home                            | `GET /api`                                                   | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| system.about                           | `GET /api/about`                                             | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| system.docs                            | `GET /api/docs`                                              | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| system.openapi                         | `GET /api/openapi.json`                                      | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| system.capabilities                    | `GET /api/capabilities`                                      | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| system.healthz                         | `GET /api/healthz`                                           | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| system.limits                          | `GET /api/system/limits`                                     | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| system.rate_probe                      | `POST /api/system/rate-probe`                                | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| auth.signin                            | `GET /api/signin`                                            | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| auth.request                           | `POST /api/signin`                                           | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| auth.link                              | `GET /api/signin/:token`                                     | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| auth.session                           | `POST /api/session`                                          | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| auth.whoami                            | `GET /api/whoami`                                            | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
+| auth.signout                           | `POST /api/signout`                                          | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
+| tokens.list                            | `GET /api/me/tokens`                                         | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
+| tokens.create                          | `POST /api/me/tokens`                                        | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
+| tokens.revoke                          | `POST /api/me/tokens/:tokenId/revoke`                        | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
+| auth.totp_status                       | `GET /api/me/totp`                                           | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
+| auth.totp_setup                        | `POST /api/me/totp/setup`                                    | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
+| auth.totp_enable                       | `POST /api/me/totp/enable`                                   | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
+| auth.totp_verify                       | `POST /api/me/totp/verify`                                   | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
+| auth.totp_disable                      | `POST /api/me/totp/disable`                                  | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
+| events.list                            | `GET /api/events`                                            | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| events.show                            | `GET /api/events/:event`                                     | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| events.create                          | `POST /api/events`                                           | founder                                 | 401       | 403      | yes     | 403         | 403   | 403       |
+| events.update                          | `POST /api/events/:event`                                    | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| events.mine                            | `GET /api/mine`                                              | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
+| events.invite                          | `POST /api/events/:event/invitations`                        | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| events.judges                          | `GET /api/events/:event/judges`                              | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| events.clock                           | `GET /api/events/:event/clock`                               | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| events.warp_clock                      | `POST /api/events/:event/clock/warp`                         | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| events.webhooks                        | `GET /api/events/:event/webhooks`                            | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| events.ping_webhook                    | `POST /api/events/:event/webhooks/ping`                      | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| events.revoke_role                     | `POST /api/events/:event/roles/revoke`                       | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| announcements.list                     | `GET /api/events/:event/announcements`                       | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| announcements.create                   | `POST /api/events/:event/announcements`                      | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| announcements.delete                   | `POST /api/events/:event/announcements/:announcement/delete` | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| comments.add                           | `POST /api/events/:event/projects/:project/comments`         | account                                 | 401       | yes      | yes     | yes         | yes   | yes       |
+| comments.hide                          | `POST /api/events/:event/projects/:project/comments/hide`    | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| tracks.create                          | `POST /api/events/:event/tracks`                             | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| teams.list                             | `GET /api/events/:event/teams`                               | participant                             | 401       | 404      | 404     | yes         | 403   | 403       |
+| teams.join                             | `POST /api/events/:event/teams/:team/members`                | participant, submissions open           | 401       | 404      | 404     | yes         | 403   | 403       |
+| teams.leave                            | `POST /api/events/:event/teams/:team/leave`                  | participant, submissions open           | 401       | 404      | 404     | yes         | 403   | 403       |
+| teams.invite_rotate                    | `POST /api/events/:event/teams/:team/invites/rotate`         | participant, submissions open           | 401       | 404      | 404     | yes         | 403   | 403       |
+| teams.recruitment                      | `POST /api/events/:event/teams/:team/recruitment`            | participant                             | 401       | 404      | 404     | yes         | 403   | 403       |
+| projects.list                          | `GET /api/events/:event/projects`                            | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| projects.show                          | `GET /api/events/:event/projects/:project`                   | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| projects.compare                       | `GET /api/events/:event/compare`                             | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| projects.create                        | `POST /api/events/:event/projects`                           | participant, submissions open           | 401       | 404      | 404     | yes         | 403   | 403       |
+| projects.update                        | `POST /api/events/:event/projects/:project`                  | participant, own team, submissions open | 401       | 404      | 404     | yes         | 403   | 403       |
+| projects.submit                        | `POST /api/events/:event/projects/:project/submit`           | participant, own team, submissions open | 401       | 404      | 404     | yes         | 403   | 403       |
+| projects.withdraw                      | `POST /api/events/:event/projects/:project/withdraw`         | participant, own team, submissions open | 401       | 404      | 404     | yes         | 403   | 403       |
+| projects.pull                          | `POST /api/events/:event/projects/:project/pull`             | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| projects.disqualify                    | `POST /api/events/:event/projects/:project/disqualify`       | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| duplicates.list                        | `GET /api/events/:event/manage/duplicates`                   | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| duplicates.triage                      | `POST /api/events/:event/manage/duplicates/triage`           | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| rubrics.show                           | `GET /api/events/:event/rubric`                              | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| rubrics.create                         | `POST /api/events/:event/rubric`                             | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| rubrics.publish                        | `POST /api/events/:event/rubric/publish`                     | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| judging.queue                          | `GET /api/events/:event/judging`                             | judge                                   | 401       | 404      | 404     | 403         | yes   | 403       |
+| ballots.save                           | `POST /api/events/:event/projects/:project/ballot`           | judge, own judge, judging open          | 401       | 404      | 404     | 403         | yes   | 403       |
+| duels.next                             | `GET /api/events/:event/duel`                                | judge                                   | 401       | 404      | 404     | 403         | yes   | 403       |
+| duels.decide                           | `POST /api/events/:event/duel`                               | judge, judging open                     | 401       | 404      | 404     | 403         | yes   | 403       |
+| assignments.draw                       | `POST /api/events/:event/assignments`                        | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| assignments.preview                    | `GET /api/events/:event/assignments/preview`                 | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| judges.roster                          | `GET /api/events/:event/judges/roster`                       | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| judges.configure                       | `POST /api/events/:event/judges/configure`                   | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| judges.recusal                         | `POST /api/events/:event/judges/recusal`                     | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| judges.self_recusal                    | `POST /api/events/:event/judging/:project/recuse`            | judge, judging open                     | 401       | 404      | 404     | 403         | yes   | 403       |
+| reviews.requests                       | `GET /api/events/:event/review-requests`                     | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| reviews.request                        | `POST /api/events/:event/review-requests`                    | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| reviews.cancel                         | `POST /api/events/:event/review-requests/:request/cancel`    | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| events.dashboard                       | `GET /api/events/:event/dashboard`                           | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| results.show                           | `GET /api/events/:event/results`                             | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| results.confidence                     | `GET /api/events/:event/results/confidence`                  | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| results.publish                        | `POST /api/events/:event/results/publish`                    | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| results.unpublish                      | `POST /api/events/:event/results/unpublish`                  | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| results.certificates                   | `GET /api/events/:event/certificates`                        | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| results.certificate_studio             | `GET /api/events/:event/certificates/studio`                 | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| results.configure_certificate_template | `POST /api/events/:event/certificates/template`              | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| results.public_certificate             | `GET /api/events/:event/certificates/:serial`                | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| results.issue_certs                    | `POST /api/events/:event/certificates`                       | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| results.certificate_status             | `GET /api/events/:event/certificates/status`                 | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| results.correct_cert                   | `POST /api/events/:event/certificates/corrections`           | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| results.history                        | `GET /api/events/:event/results/history`                     | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| results.judge_evidence                 | `POST /api/events/:event/results/judge-evidence`             | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| results.preflight                      | `GET /api/events/:event/results/preflight`                   | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| results.evidence_packet                | `GET /api/events/:event/results/evidence`                    | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| results.explain                        | `GET /api/events/:event/results/explain`                     | participant                             | 401       | 404      | 404     | yes         | 403   | 403       |
+| results.sandbox                        | `GET /api/events/:event/results/sandbox`                     | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| awards.list                            | `GET /api/events/:event/awards`                              | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| awards.decide                          | `POST /api/events/:event/awards`                             | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| appeals.list                           | `GET /api/events/:event/appeals`                             | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| appeals.open                           | `POST /api/events/:event/appeals`                            | participant                             | 401       | 404      | 404     | yes         | 403   | 403       |
+| appeals.resolve                        | `POST /api/events/:event/appeals/:appeal/resolve`            | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| votes.start                            | `POST /api/events/:event/votes/start`                        | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| votes.cast                             | `POST /api/events/:event/votes`                              | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| votes.results                          | `GET /api/events/:event/votes`                               | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| votes.ballot                           | `GET /api/events/:event/voting`                              | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| votes.abuse                            | `GET /api/events/:event/voting/abuse`                        | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| votes.configure_abuse                  | `POST /api/events/:event/voting/abuse/policy`                | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| votes.review_abuse                     | `POST /api/events/:event/voting/abuse/review`                | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| votes.discount_cluster                 | `POST /api/events/:event/voting/discount`                    | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| votes.void_voter                       | `POST /api/events/:event/voting/void`                        | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| exports.download                       | `GET /api/events/:event/csv/:stage`                          | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| exports.archive_manifest               | `GET /api/events/:event/archive`                             | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| exports.registrations_csv              | `GET /api/events/:event/export/registrations.csv`            | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| exports.teams_csv                      | `GET /api/events/:event/export/teams.csv`                    | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| exports.projects_csv                   | `GET /api/events/:event/export/projects.csv`                 | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| exports.scores_csv                     | `GET /api/events/:event/export/scores.csv`                   | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| exports.results_csv                    | `GET /api/events/:event/export/results.csv`                  | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| exports.audit_csv                      | `GET /api/events/:event/export/audit.csv`                    | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 
 ## Every 404, beside the control
 
@@ -197,6 +207,14 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 | events.revoke_role                     | stranger | html      |,               | 200         |
 | events.revoke_role                     | founder  | json      | `event.missing` | 200         |
 | events.revoke_role                     | founder  | html      |,               | 200         |
+| announcements.create                   | stranger | json      | `event.missing` | 200         |
+| announcements.create                   | stranger | html      |,               | 200         |
+| announcements.create                   | founder  | json      | `event.missing` | 200         |
+| announcements.create                   | founder  | html      |,               | 200         |
+| announcements.delete                   | stranger | json      | `event.missing` | 200         |
+| announcements.delete                   | stranger | html      |,               | 200         |
+| announcements.delete                   | founder  | json      | `event.missing` | 200         |
+| announcements.delete                   | founder  | html      |,               | 200         |
 | comments.hide                          | stranger | json      | `event.missing` | 200         |
 | comments.hide                          | stranger | html      |,               | 200         |
 | comments.hide                          | founder  | json      | `event.missing` | 200         |
@@ -221,6 +239,10 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 | teams.invite_rotate                    | stranger | html      |,               | 200         |
 | teams.invite_rotate                    | founder  | json      | `event.missing` | 200         |
 | teams.invite_rotate                    | founder  | html      |,               | 200         |
+| teams.recruitment                      | stranger | json      | `event.missing` | 200         |
+| teams.recruitment                      | stranger | html      |,               | 200         |
+| teams.recruitment                      | founder  | json      | `event.missing` | 200         |
+| teams.recruitment                      | founder  | html      |,               | 200         |
 | projects.create                        | stranger | json      | `event.missing` | 200         |
 | projects.create                        | stranger | html      |,               | 200         |
 | projects.create                        | founder  | json      | `event.missing` | 200         |
@@ -430,12 +452,12 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 
 | Status | Code                     | Media type                 | Answers |
 | ------ | ------------------------ | -------------------------- | ------- |
-| 401    |,                        | `text/html`                | 73      |
-| 401    | `access.unauthenticated` | `application/problem+json` | 73      |
-| 403    |,                        | `text/html`                | 134     |
-| 403    | `access.forbidden`       | `application/problem+json` | 134     |
-| 404    |,                        | `text/html`                | 130     |
-| 404    | `event.missing`          | `application/problem+json` | 130     |
+| 401    |,                        | `text/html`                | 81      |
+| 401    | `access.unauthenticated` | `application/problem+json` | 81      |
+| 403    |,                        | `text/html`                | 140     |
+| 403    | `access.forbidden`       | `application/problem+json` | 140     |
+| 404    |,                        | `text/html`                | 136     |
+| 404    | `event.missing`          | `application/problem+json` | 136     |
 
 ## What this does not prove
 

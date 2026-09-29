@@ -136,8 +136,15 @@ export type {
   SimulationOptions,
 } from "./simulate.ts";
 
-export { detectVoteAbuse, ABUSE_DEFAULTS } from "./abuse.ts";
-export type { AbuseReport, AbuseThresholds, RawVote, SuspiciousCluster } from "./abuse.ts";
+export { detectVoteAbuse, detectBallotCollusion, ABUSE_DEFAULTS } from "./abuse.ts";
+export type {
+  AbuseReport,
+  AbuseThresholds,
+  BallotCollusionCluster,
+  BallotCollusionReport,
+  RawVote,
+  SuspiciousCluster,
+} from "./abuse.ts";
 
 export { hybridConsensus, kendallW } from "./consensus.ts";
 export type { ConsensusOptions, HybridConsensusResult, HybridProject } from "./consensus.ts";
@@ -169,3 +176,21 @@ export type { InformationPair } from "./information.ts";
 export { assessFinalists } from "./close-call.ts";
 export type { CloseCall, FinalistEvidence, PairwiseEvidence } from "./close-call.ts";
 export { normalizationSandbox, reviewExplanations } from "./sandbox.ts";
+export { auditCommitWindow } from "./commit-audit.ts";
+export type {
+  AuditClassification,
+  CommitAuditReport,
+  CommitRecord,
+  OutsideCommit,
+  WindowBounds,
+} from "./commit-audit.ts";
+
+export {
+  tokenizeText,
+  vectorizeCorpus,
+  cosineSimilarity,
+  extractSharedKeywords,
+  compareTexts,
+  findRivals,
+} from "./similarity.ts";
+export type { DocumentVector } from "./similarity.ts";

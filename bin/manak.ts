@@ -60,6 +60,7 @@ import { ALL_COMMANDS } from "../src/api/commands/index.ts";
 import { makeRegistry } from "../src/api/index.ts";
 import {
   checkIntegrity,
+  findEventBySlug,
   headHash,
   getOrCreateKeypair,
   ledgerLength,
@@ -78,6 +79,7 @@ import type { LogRecord } from "../src/http/index.ts";
 import { mailbox, makeOutbox, makeResendOutbox } from "../src/mail/index.ts";
 import type { Encryption, Outbox } from "../src/mail/index.ts";
 import { VIEWS } from "../src/view/index.ts";
+import { seed, seedStages, STAGE_SLUGS } from "../tools/seed-demo.ts";
 
 /** Where the database goes when nobody says. Relative, so a bare `npm start` works. */
 const DEFAULT_DATABASE = "./data/manak.db";
@@ -210,6 +212,7 @@ function reportBug(error: unknown): void {
 const HELP = `manak — a self-hostable hackathon submission and judging portal
 
   node --experimental-strip-types bin/manak.ts        (or: npm start)
+  node --experimental-strip-types bin/manak.ts seed [--stages]
 
 Environment:
   MANAK_DEMO          true enables disposable demo login and global clock controls; default false
@@ -420,9 +423,57 @@ function sweeper(db: Db): ReturnType<typeof setInterval> {
 }
 
 async function main(): Promise<void> {
-  if (process.argv.slice(2).some((arg) => arg === "--help" || arg === "-h")) {
+  const args = process.argv.slice(2);
+  if (args.some((arg) => arg === "--help" || arg === "-h")) {
     process.stdout.write(HELP);
     return;
+  }
+
+  if (args[0] === "seed") {
+    const isStages = args.includes("--stages");
+    const db = database();
+    try {
+      if (isStages) {
+        const existing = STAGE_SLUGS.filter((s) => findEventBySlug(db, s) !== undefined);
+        if (existing.length > 0) {
+          process.stderr.write(
+            `[seed] events (${existing.join(", ")}) already exist in this database, and this command will not ` +
+              `reconcile or replace them.\n`,
+          );
+          process.exit(1);
+        }
+        const clock = systemClock;
+        const ctx = makeContext(db, { clock });
+        const { events, links } = seedStages(ctx, clock.now());
+        process.stdout.write(
+          `[seed] 5 multi-stage demo events created:\n` +
+            events.map((e) => `       - /events/${e.slug} (${e.name})\n`).join("") +
+            `[seed] ledger ${ledgerLength(db)} entries, head ${headHash(db)}\n` +
+            `[seed] sign in as any of these; the link is printed to this server's stdout:\n` +
+            links.map((email) => `       ${email}\n`).join(""),
+        );
+      } else {
+        if (findEventBySlug(db, "dogfood") !== undefined) {
+          process.stderr.write(
+            `[seed] dogfood already exists in this database, and this command will not ` +
+              `reconcile or replace it.\n`,
+          );
+          process.exit(1);
+        }
+        const clock = systemClock;
+        const ctx = makeContext(db, { clock });
+        const { event, links } = seed(ctx, clock.now());
+        process.stdout.write(
+          `[seed] ${event.name} is at /events/${event.slug}\n` +
+            `[seed] ledger ${ledgerLength(db)} entries, head ${headHash(db)}\n` +
+            `[seed] sign in as any of these; the link is printed to this server's stdout:\n` +
+            links.map((email) => `       ${email}\n`).join(""),
+        );
+      }
+      process.exit(0);
+    } finally {
+      db.close();
+    }
   }
 
   // Every setting is read before the database is opened, so a mistyped one fails in the first
@@ -483,26 +534,6 @@ async function main(): Promise<void> {
   const sweep = sweeper(db);
   pump();
 
-  process.stdout.write(
-    listed.length === 0
-      ? "[boot] no founders configured, so nobody can create an event over HTTP; " +
-          "set MANAK_FOUNDERS to your own address\n"
-      : `[boot] ${listed.length} address(es) may create an event\n`,
-  );
-  if (trustProxy) {
-    process.stdout.write("[boot] trusting X-Forwarded-For and X-Forwarded-Proto\n");
-  }
-  // Always a line, either way. The unconfigured case is the one that matters most to print:
-  // somebody trying this product for the first time cannot sign in at all until they know
-  // their link is in this stream, and nobody reads `--help` before `docker compose up`.
-  process.stdout.write(
-    mail === null
-      ? "[boot] no mail relay configured, so sign-in links are printed to this log; " +
-          "set MANAK_SMTP_HOST and MANAK_SMTP_FROM to send them instead\n"
-      : `${mail.banner}\n`,
-  );
-  process.stdout.write(`[boot] listening on ${listening.url}\n`);
-
   let stopping = false;
   const stop = (signal: string): void => {
     // A second signal is somebody out of patience, and the honest answer is to go at once
@@ -541,6 +572,26 @@ async function main(): Promise<void> {
   for (const signal of ["SIGINT", "SIGTERM"]) {
     process.on(signal, () => stop(signal));
   }
+
+  process.stdout.write(
+    listed.length === 0
+      ? "[boot] no founders configured, so nobody can create an event over HTTP; " +
+          "set MANAK_FOUNDERS to your own address\n"
+      : `[boot] ${listed.length} address(es) may create an event\n`,
+  );
+  if (trustProxy) {
+    process.stdout.write("[boot] trusting X-Forwarded-For and X-Forwarded-Proto\n");
+  }
+  // Always a line, either way. The unconfigured case is the one that matters most to print:
+  // somebody trying this product for the first time cannot sign in at all until they know
+  // their link is in this stream, and nobody reads `--help` before `docker compose up`.
+  process.stdout.write(
+    mail === null
+      ? "[boot] no mail relay configured, so sign-in links are printed to this log; " +
+          "set MANAK_SMTP_HOST and MANAK_SMTP_FROM to send them instead\n"
+      : `${mail.banner}\n`,
+  );
+  process.stdout.write(`[boot] listening on ${listening.url}\n`);
 }
 
 try {
