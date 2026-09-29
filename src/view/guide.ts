@@ -28,7 +28,7 @@ export function goldenPathBanner(demoMode?: boolean): string {
   return `<section class="fast-login-box" id="golden-path">
 <div class="fast-login-header">
   <span class="role-badge">Evaluator Golden Path</span>
-  <h2>Experience the End-to-End System in 3 Clicks</h2>
+  <h2>Explore the event through four role workflows</h2>
   <p>Under extreme evaluation time pressure? Jump straight into each critical persona workflow without configuration:</p>
 </div>
 <div class="role-routes">
@@ -45,7 +45,7 @@ export function goldenPathBanner(demoMode?: boolean): string {
   <a href="${esc(mathHref)}">
     <span class="route-number">03 / PARTICIPANT</span>
     <h3>Explain My Rank Waterfall <span aria-hidden="true">&rarr;</span></h3>
-    <p>Interactive SVG Waterfall decomposing Grand Mean &mu; &rarr; judge offsets &beta;&#x2C7; &rarr; 95% bootstrap CI band.</p>
+    <p>Score waterfall showing the panel baseline, calibrated review contributions, published score, and reported uncertainty band.</p>
   </a>
   <a href="${esc(verifyHref)}">
     <span class="route-number">04 / TRUST &amp; VERIFIER</span>

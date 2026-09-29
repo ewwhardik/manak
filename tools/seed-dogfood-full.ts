@@ -1,5 +1,5 @@
-import { openDatabase, makeContext, systemClock, findEventBySlug, storePublication, persistEventCertificates, certificateKeyDirectory, latestPublication } from "../src/db/index.ts";
-import { liveShow } from "../src/api/commands/results.ts";
+import { openDatabase, makeContext, systemClock, findEventBySlug, persistEventCertificates, certificateKeyDirectory, latestPublication } from "../src/db/index.ts";
+import { publish } from "../src/api/commands/results.ts";
 
 export function seedDogfoodFull(dbPath = "./data/demo.db"): void {
   const db = openDatabase(dbPath);
@@ -13,16 +13,18 @@ export function seedDogfoodFull(dbPath = "./data/demo.db"): void {
     db.run("delete from award_decision where event_id = :e", { e: event.id });
     db.run("delete from result_publication where event_id = :e", { e: event.id });
 
-    // 1. Generate live report
-    const live = (liveShow.handler as (call: unknown) => unknown)({
+    // Use the production publication path, including frozen participant explanations.
+    (publish.handler as (call: unknown) => unknown)({
       ctx,
       event,
-      input: { event: "dogfood" },
+      input: { event: "dogfood", reason: "Initial official publication",
+        publicSummary: "Official Standings & Ceremony Results" },
       roles: ["organizer"],
-    }) as Record<string, unknown>;
+    });
 
     // 2. Store publication rev 1
-    const pub = storePublication(ctx, event.id, live, "Initial official publication", "Official Standings & Ceremony Results");
+    const pub = latestPublication(db, event.id)!;
+    const live = JSON.parse(pub.report) as Record<string, unknown>;
     process.stdout.write(`[dogfood] Stored publication revision ${pub.revision}\n`);
 
     // 3. Record awards for revision 1
@@ -66,8 +68,16 @@ export function seedSampleHackFull(dbPath = "./data/demo.db"): void {
     const event = findEventBySlug(db, "sample-hack-2026");
     if (!event) return;
 
-    // 1. Temporarily set results_public = 1 and voting_mode = 'off' to freeze and issue certificates
-    db.run("update event set results_public = 1, voting_mode = 'off' where id = :e", { e: event.id });
+    // This is a completed fixture showcase, so its published explanation and
+    // certificates must remain available. Preserve the imported submission
+    // deadline and close voting before publishing; never reopen a published
+    // event just to demonstrate an active voting window.
+    const now = systemClock.now();
+    db.run(
+      `update event set results_public = 1, voting_mode = 'open',
+       voting_open_at = :o, voting_close_at = :c, voting_credits = 100 where id = :e`,
+      { e: event.id, o: now - 48 * 3600000, c: now - 3600000 },
+    );
 
     // 2. Seed quarantined duplicate project if not present
     const existingDup = db.get("select 1 from project where id = 'prj_dup_01'");
@@ -107,19 +117,17 @@ export function seedSampleHackFull(dbPath = "./data/demo.db"): void {
     db.run("delete from award_decision where event_id = :e", { e: event.id });
     db.run("delete from result_publication where event_id = :e", { e: event.id });
 
-    const live = (liveShow.handler as (call: unknown) => unknown)({
+    (publish.handler as (call: unknown) => unknown)({
       ctx,
-      event,
-      input: { event: event.slug },
+      event: findEventBySlug(db, event.slug)!,
+      input: { event: event.slug, reason: "Official Fixture Results",
+        publicSummary: "Final Verified Standings" },
       roles: ["organizer"],
-    }) as Record<string, unknown>;
+    });
 
-    // 4. Store publication if not present
-    let pub = latestPublication(db, event.id);
-    if (!pub) {
-      pub = storePublication(ctx, event.id, live, "Official Fixture Results", "Final Verified Standings");
-      process.stdout.write(`[sample-hack-2026] Stored publication revision ${pub.revision}\n`);
-    }
+    const pub = latestPublication(db, event.id)!;
+    const live = JSON.parse(pub.report) as Record<string, unknown>;
+    process.stdout.write(`[sample-hack-2026] Stored publication revision ${pub.revision}\n`);
 
     // 5. Seed Grand Prize award if not present
     const projects = live.projects as Array<{ project: string; title: string }>;
@@ -150,22 +158,13 @@ export function seedSampleHackFull(dbPath = "./data/demo.db"): void {
       }
     }
 
-    // 6. Issue certificates while voting is off and results are public
+    // 6. Issue certificates after voting has closed and results are public
     const existingCerts = db.get("select 1 from certificate_batch where event_id = :e", { e: event.id });
     if (!existingCerts) {
       const certReport = persistEventCertificates(db, "sample-hack-2026", Date.now(), certificateKeyDirectory(), "http://localhost:8080");
       process.stdout.write(`[sample-hack-2026] Issued certificates: ${certReport.totalIssued}\n`);
     }
 
-    // 7. Enable active community voting window for T3 verification
-    db.run(
-      `update event set voting_mode = 'open', voting_open_at = :o, voting_close_at = :c, voting_credits = 100, submissions_close_at = :c where id = :e`,
-      {
-        e: event.id,
-        o: systemClock.now() - 3600000,
-        c: systemClock.now() + 3600000 * 48,
-      },
-    );
   } finally {
     db.close();
   }

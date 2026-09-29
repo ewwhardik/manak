@@ -1,5 +1,11 @@
 # Production Operations & Deployment Guide
 
+## Container identity and existing volumes
+
+The image runs as the unprivileged `node` user, including when Compose overrides the command. `/data` is owned by that user in the image; a fresh Docker named volume inherits that ownership. Startup does not require elevated capabilities or run recursive ownership changes.
+
+An existing volume created by an older root-running demo may contain root-owned files. Back it up, stop the application, and explicitly repair ownership for the application's user before starting the new image. For bind mounts, prepare the host directory for the container user. Do not delete the database or signing keys to work around permissions. Container startup and restart must still be verified on the intended Docker host.
+
 <p align="center">
   <img src="docs/images/7.png" width="96" alt="Cryptographic Trust Mascot" />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -88,10 +94,35 @@ Expected Response:
 ```json
 {
   "status": "ok",
-  "database": "connected",
-  "ledger_head": "019234a5-...",
-  "operations": 82,
-  "dependencies": 0
+  "at": 1727631000000,
+  "version": "0.1.0",
+  "migrations": {
+    "current": true,
+    "applied": 19,
+    "pending": []
+  },
+  "ledger": {
+    "length": 858,
+    "headHash": "d64200216a989a2ac01c9751d1b82f9b3726a6400a389612bac0ec09d996f0e3"
+  },
+  "problems": {}
+}
+```
+
+Inspect registered operations (102 operations) and runtime claims via `/api/about`:
+
+```sh
+curl -s https://manak.up.railway.app/api/about | jq .built
+```
+
+Expected Response:
+```json
+{
+  "dependencies": 0,
+  "operations": 102,
+  "runtime": "Node's standard library. TypeScript is stripped at load; there is no build step.",
+  "storage": "One SQLite file through node:sqlite, in write-ahead mode, with strict tables.",
+  "clientScript": false
 }
 ```
 

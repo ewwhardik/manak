@@ -29,8 +29,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { openDatabase, findEvent } from "../src/db/index.ts";
+import { FIXTURE_AUTH } from "../tools/seed-fixtures.ts";
 
 const ENTRY = fileURLToPath(new URL("../bin/manak.ts", import.meta.url));
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
@@ -58,11 +62,11 @@ type Booted = {
  * exported one into their shell would otherwise change what these tests assert, and the
  * failure would appear on their machine only.
  */
-function boot(settings: Record<string, string>, args: readonly string[] = []): Booted {
+function boot(settings: Record<string, string>, args: readonly string[] = [], entry = ENTRY): Booted {
   const inherited = Object.fromEntries(
     Object.entries(process.env).filter(([name]) => !name.startsWith("MANAK_") && name !== "PORT"),
   );
-  const child = spawn(process.execPath, ["--experimental-strip-types", ENTRY, ...args], {
+  const child = spawn(process.execPath, ["--experimental-strip-types", entry, ...args], {
     cwd: ROOT,
     env: { ...inherited, ...settings },
     stdio: ["ignore", "pipe", "pipe"],
@@ -130,6 +134,59 @@ function announced(output: string): string {
 
 /** Port 0 and an in-memory database, so nothing on the machine is touched or held. */
 const EPHEMERAL = { MANAK_DATABASE: ":memory:", MANAK_PORT: "0", MANAK_HOST: "127.0.0.1" };
+
+test("complete demo startup preserves the closed fixture and participant publication across restart", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "manak-demo-boot-"));
+  const database = join(directory, "demo.db");
+  const fixture = JSON.parse(readFileSync(join(ROOT, "fixtures.json"), "utf8")) as {
+    event: { submissions_close: string };
+  };
+  const deadline = Date.parse(fixture.event.submissions_close);
+  const entry = fileURLToPath(new URL("../tools/start-demo.ts", import.meta.url));
+  const settings = { ...EPHEMERAL, MANAK_DEMO: "true", MANAK_DATABASE: database,
+    MANAK_KEY_DIR: join(directory, "keys") };
+  try {
+    for (let startup = 0; startup < 2; startup++) {
+      const server = boot(settings, [], entry);
+      try {
+        const address = announced(await server.until(/\[boot\] listening on/));
+        const db = openDatabase(database);
+        try {
+          const event = findEvent(db, "evt_01")!;
+          assert.equal(event.submissions_close_at, deadline);
+          assert.equal(event.voting_mode, "open");
+          assert.ok(event.voting_close_at! < Date.now());
+        } finally { db.close(); }
+        const late = await fetch(`${address}/api/events/evt_01/projects`, {
+          method: "POST", headers: { "content-type": "application/json",
+            cookie: `manak_session=${FIXTURE_AUTH.participant}` },
+          body: JSON.stringify({ title: "late-startup-regression", summary: "Must refuse after fixture deadline." }),
+        });
+        assert.equal(late.status, 409);
+        assert.equal((await late.json() as { code: string }).code, "submissions.closed");
+
+        const login = await fetch(`${address}/events/switch?as=participant_sample&to=/events/sample-hack-2026/results/explain`,
+          { redirect: "manual" });
+        assert.equal(login.status, 303);
+        const destination = login.headers.get("location");
+        assert.equal(destination, "/events/sample-hack-2026/results/explain");
+        const cookie = login.headers.get("set-cookie")!.split(";")[0]!;
+        const explanation = await fetch(`${address}${destination}`, { headers: { cookie } });
+        assert.equal(explanation.status, 200);
+        assert.match(await explanation.text(), /Calibrated contribution/);
+        const report = await fetch(`${address}/api/events/evt_01/results/explain`, { headers: { cookie } });
+        assert.equal(report.status, 200);
+        const own = await report.json() as { revision: number; projects: { reviews: unknown[] }[] };
+        assert.equal(own.revision, 1);
+        assert.ok(own.projects.length > 0);
+        assert.ok(own.projects[0]!.reviews.length > 0);
+      } finally {
+        server.signal("SIGTERM");
+        await server.ended();
+      }
+    }
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
 
 test("it announces the database, the schema, the ledger, the mail and the address, in order", async () => {
   const server = boot(EPHEMERAL);

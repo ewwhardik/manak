@@ -93,7 +93,7 @@ Where:
 
 Weighted backfitting iteratively alternates between updating project effects and reviewer offsets. Per-judge scale estimates are shrunk toward 1.0 using empirical shrinkage to prevent low-variance reviewers from destabilizing the ranking.
 
-A judge who assigns identical marks to all projects provides zero ordering information; Manak weights reviewer contributions according to information entropy rather than silently discarding ballots.
+A judge who assigns identical marks to all projects provides little ordering information. The model uses information weights when combining calibrated contributions rather than silently discarding ballots.
 
 [The normalization proof](docs/proof/normalization.md), [bounded convergence experiment](docs/proof/convergence.md), [bundled fixture report](docs/proof/fixtures.md), and CSV are reproducible local evidence. Re-run locally with `npm run prove:normalization -- --check`, `npm run prove:convergence -- --check`, and `npm run prove:fixtures -- --check`.
 
@@ -105,14 +105,14 @@ $$P(i \succ j) = \frac{e^{\theta_i}}{e^{\theta_i} + e^{\theta_j}} = \frac{1}{1 +
 
 Where $\theta_i$ represents the latent skill/quality parameter of project $i$.
 
-The parameters are estimated via regularized Minorization-Maximization (MM). Active pairing heuristics select comparisons that bridge disconnected subgraphs and maximize Fisher information curvature, reducing total required reviews by up to 40% compared to random pairings.
+The parameters are estimated via regularized Minorization-Maximization (MM). Active pairing heuristics prioritize comparisons that bridge disconnected subgraphs and have high Fisher information. The repository does not establish a percentage reduction in reviews against a randomized baseline.
 
 ## Finalist Tie-Breaker Assistant (`/events/:slug/tie-breaker`)
 
 In elite hackathons, top finalists often separate by hundredths of a point (e.g. 4.92 vs 4.88). Awarding top honours purely on insignificant decimal noise undermines integrity.
 
 Manak's **Finalist Tie-Breaker Assistant** provides mathematical decision support:
-1. **Confidence Interval Overlap**: Projects display 95% empirical bootstrap confidence intervals $[\hat{\theta}_i - 1.96 \cdot \text{SE}_i, \hat{\theta}_i + 1.96 \cdot \text{SE}_i]$. Overlapping intervals visually indicate statistical equivalence.
+1. **Reported rubric-score bands**: This assistant displays approximate 95% bands computed from each fitted score and its standard error. They are normal-approximation bands, not bootstrap intervals. Overlap is a prompt to collect independent evidence; it does not establish statistical equivalence. Pairwise Bradley–Terry uncertainty is reported separately using bootstrap resampling.
 2. **Head-to-Head Win Probability**: Evaluates exact pairwise likelihood $P(A \succ B)$ from the fitted latent parameters.
 3. **Three Defensible Resolution Pathways**:
    - **Targeted Shootout Duel**: Dispatch a blind head-to-head evaluation between the tied finalists to an unconflicted senior judge.
@@ -183,18 +183,14 @@ The exact bundled fixture proof is in [docs/proof/fixtures.md](docs/proof/fixtur
 
 While organizers inspect mathematical diagnostics in the Evidence Lab (`?lab=true`), participants whose projects placed in competitive brackets deserve transparent, accountable insight into their final standing.
 
-Manak provides the **"Explain My Rank"** portal (`/events/:slug/projects/:id/explain` and `/api/events/:slug/projects/:id/explain`):
+Manak provides the **"Explain My Rank"** portal (`/events/:slug/results/explain` and `/api/events/:slug/results/explain`):
 
 1. **Additive Breakdown**:
-   Decomposes the project's adjusted score into clear, explainable constituent terms:
-   $$\hat{s}_i = \mu + \alpha_i + \bar{\beta}_{\text{assigned}}$$
-   - **Grand Baseline ($\mu$)**: The mean score across all peer projects under the published rubric.
-   - **Net Project Effect ($\alpha_i$)**: The latent project merit estimated after removing reviewer severity offsets.
-   - **Panel Severity Adjustment**: Quantifies whether assigned reviewers were systematically tougher or more lenient than the event-wide average, showing exactly how many points were added or deducted to achieve cross-panel parity.
-2. **Reviewer Privacy via HMAC Tokens**:
-   Judges are rendered with salted HMAC-SHA256 identifiers (e.g., `Reviewer #8A3F`). Reviewer anonymity is preserved against participant pressure while maintaining verifiable per-reviewer marks and criterion breakdowns.
-3. **Statistical Uncertainty & Confidence Interval**:
-   Displays the project's 95% bootstrap confidence band $[\text{rank}_{\min}, \text{rank}_{\max}]$ and standard error, explaining why adjacent ranks within uncertainty bands are treated as statistical peers.
+   Shows each review's calibrated contribution and computes the published adjusted score as an information-weighted mean of those contributions. Each contribution is the grand mean plus the scale-calibrated difference from that review's baseline; the adjusted score is not a simple additive sum of grand mean, project effect and panel offset.
+2. **Project-local anonymous review labels**:
+   Labels are sequential within one project and restart on another project. They do not identify a judge or link that judge's reviews across projects.
+3. **Reported uncertainty**:
+   Displays the reported score band when available. Treat it as approximate decision support; overlap does not prove equivalence or that projects are tied.
 4. **Criterion Profile**:
    Renders relative percentile performance per rubric criterion (Technical Complexity, Polish, Impact), showing teams where their project excelled and where points diverged.
 
@@ -214,4 +210,3 @@ Before freezing and publishing a results revision, hackathon organizers must und
 - **Kendall's Tau ($\tau$)**: Quantifies pairwise concordant vs discordant project orderings across methods.
 - **Displacement Matrix**: Flags any project whose rank shifts by more than 3 positions between Raw and Bayesian models, pinpointing teams that benefit most from bias correction.
 - **Organizer Confidence Index**: High correlation ($\rho > 0.95$) confirms ranking robustness; lower values suggest sparse overlap requiring additional review assignments before publication.
-

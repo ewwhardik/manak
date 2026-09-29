@@ -13,7 +13,6 @@
   <a href="https://github.com/ewwhardik/manak"><img src="https://img.shields.io/badge/GitHub-ewwhardik%2Fmanak-181717?style=flat-square&logo=github" alt="GitHub Repo" /></a>
   <img src="https://img.shields.io/badge/Version-0.1.0-blue?style=flat-square" alt="Version 0.1.0" />
   <img src="https://img.shields.io/badge/Node.js-22%20%7C%2024-green?style=flat-square&logo=node.js" alt="Node Version" />
-  <img src="https://img.shields.io/badge/Tests-605%20passed%20%7C%201%20skipped-brightgreen?style=flat-square" alt="Tests" />
   <img src="https://img.shields.io/badge/Dependencies-0%20runtime%20npm%20packages-success?style=flat-square" alt="0 Dependencies" />
   <img src="https://img.shields.io/badge/Storage-Native%20SQLite%20(36%20Tables)-orange?style=flat-square&logo=sqlite" alt="Native SQLite" />
   <a href="https://youtu.be/Wev9sf-WCa4"><img src="https://img.shields.io/badge/Demo%20Video-YouTube-red?style=flat-square&logo=youtube" alt="Demo Video" /></a>
@@ -132,7 +131,7 @@ flowchart TD
   end
 
   subgraph APILayer["3. Declarative Command Registry (src/api)"]
-    CommandRegistry["Declarative Command Registry<br/>(96 Typed Operations, Strict Schema Validation)"]
+    CommandRegistry["Declarative Command Registry<br/>(102 Typed Operations, Strict Schema Validation)"]
     AccessGate["Capability & Rate Limiting<br/>(Event-scoped roles, IP & Account buckets)"]
     OpenAPIGen["OpenAPI 3.1 Contract<br/>(Auto-derived from registry)"]
     TokenAuth["Bearer Auth & Scoped Tokens<br/>(SHA-256 Hashed Tokens)"]
@@ -142,7 +141,7 @@ flowchart TD
     DualJudging["Dual-Mode Judging Engine<br/>• Bayesian Additive Backfitting (Rubrics)<br/>• Minorization-Maximization (Bradley-Terry Duels)"]
     EvidenceLab["Evidence Lab (Organizer Diagnostics)<br/>• Combinatorial Hodge Decomposition<br/>• 1D Wasserstein Calibration<br/>• Fisher Information Curvature Leverage"]
     Sandbox["Normalization Sandbox<br/>(Raw vs Z-Score vs Bayesian vs Bradley-Terry)"]
-    ExplainRank["Explain My Rank Portal<br/>(Additive score decomposition + HMAC judge anonymity)"]
+    ExplainRank["Explain My Rank Portal<br/>(Calibrated contributions + project-local anonymous review labels)"]
     CertStudio["Vector Certificate Studio<br/>(Live WYSIWYG SVG Layout + Ed25519 Signatures)"]
     AntiAbuse["Community Choice & Anti-Abuse<br/>(Quadratic Voting + Email Canonicalization + Triage)"]
   end
@@ -202,7 +201,7 @@ Manak provides dedicated interfaces and capabilities tailored specifically to ea
 | **Visitor / Public** | Ceremony Leaderboard | `/events/:slug/live` | Stage podium display with Gold, Silver, and Bronze cards; native 5s auto-refresh via HTTP headers. |
 | **Builder / Hacker** | Team Workspace | `/events/:slug/my-project` | Draft auto-saving, Markdown stories, video embeds, and server-enforced deadline timers. |
 | **Builder / Hacker** | Team Member Lifecycle | `/events/:slug/team/leave` & `/team/invite` | Captain invite code rotation and pre-submission member departure controls. |
-| **Builder / Hacker** | "Explain My Rank" Portal | `/events/:slug/projects/:id/explain` | Additive decomposition ($\mu + \alpha_i + \bar{\beta}$), 95% bootstrap CIs, and salted HMAC judge anonymization (`Judge #A1B2`). |
+| **Builder / Hacker** | "Explain My Rank" Portal | `/events/:slug/results/explain` | Information-weighted mean of calibrated reviewer contributions, reported uncertainty band, and project-local sequential anonymous review labels. |
 | **Builder / Hacker** | Participant Appeals | `/events/:slug/appeals` | Private appeal filing within 7 days of publication; confidential organizer deliberation and resolution. |
 | **Builder / Hacker** | Scoped API Tokens | `/me/tokens` | Developer console to issue and revoke fine-grained SHA-256 hashed API tokens (`read:projects`, `write:projects`). |
 | **Judge** | Rubric Evaluation Queue | `/events/:slug/judging` | Multi-criterion weighted sliders, private draft persistence, and blind scoring (peer scores concealed). |
@@ -212,7 +211,7 @@ Manak provides dedicated interfaces and capabilities tailored specifically to ea
 | **Organizer** | Duplicate Submission Triage | `/events/:slug/dashboard/duplicates` | Dedicated triage UI for inspecting automated repo URL and title collisions; 1-click clear or confirm. |
 | **Organizer** | Multi-Method Sandbox | `/events/:slug/dashboard/sandbox` | Live comparative evaluation of Raw Trimmed Mean, Z-Score, Bayesian Backfitting, and Bradley-Terry with Spearman $\rho$ and Kendall $\tau$. |
 | **Organizer** | Evidence Lab Diagnostics | `/events/:slug/dashboard?lab=true` | Combinatorial Hodge cycle decomposition, 1D Wasserstein calibration, and Fisher information curvature leverage. |
-| **Organizer** | Finalist Tie-Breaker Assistant | `/events/:slug/tie-breaker` | Head-to-head shootout cards, 95% bootstrap confidence band overlaps, and Bradley-Terry win probabilities. |
+| **Organizer** | Finalist Tie-Breaker Assistant | `/events/:slug/tie-breaker` | Head-to-head shootout cards, approximate 95% rubric-score bands, and separate Bradley-Terry win probabilities with bootstrap uncertainty. Band overlap prompts review; it does not establish equivalence. |
 | **Organizer** | Vector Certificate Studio | `/events/:slug/certificates/studio` | Live WYSIWYG SVG certificate template designer with custom signatories, copy, and uploaded event logos. |
 | **Organizer** | Dedicated CSV Suite | `/events/:slug/export/*.csv` | 6 dedicated CSV downloads (registrations, submissions, scores, rankings, votes, audit) with formula neutralization. |
 | **Organizer** | Transactional Webhooks | `/events/:slug/webhooks` | Outbox status inspection with HMAC-SHA256 signatures, retry schedules, and SSRF private-IP blocking. |
@@ -226,7 +225,7 @@ Manak provides dedicated interfaces and capabilities tailored specifically to ea
 
 Manak implements and claims **all four tiers (T1, T2, T3, T4)**. The official DogFood acceptance harness (`python run.py .dogfood.toml`) verifies the deployment against `fixtures.json`:
 
-| Tier | Claimed Requirement | Official Harness Verification | Status |
+| Tier | Claimed Requirement | Evidence (official probes or separate project tests) | Status |
 | :--- | :--- | :--- | :---: |
 | **T1** | Public project gallery | `T1  gallery is public` | **PASS** |
 | **T1** | Project fixture rendering | `T1  project from fixtures shown` | **PASS** |
@@ -235,8 +234,8 @@ Manak implements and claims **all four tiers (T1, T2, T3, T4)**. The official Do
 | **T2** | Blind evaluation / score secrecy | `T2  judge cannot see peer scores` | **PASS** |
 | **T2** | Unauthorized participant lockout | `T2  participant blocked` | **PASS** |
 | **T2** | Tamper-neutral CSV export | `T2  csv export works` | **PASS** |
-| **T3** | Bayesian judge-effect normalization | `npm run prove:normalization -- --check` (1,180 simulated runs) | **PASS** |
-| **T4** | Ed25519 signatures & Certificate Studio | `npm run prove:isolation -- --check` (102 operations) | **PASS** |
+| **T2** | Judge-effect normalization | Separate project proof: `npm run prove:normalization -- --check` (1,180 simulated runs) | **PASS** |
+| **T3/T4** | Voting, records, delivery and transfer | Separate tests and proofs; the official seven probes do not verify these tiers | **PROJECT EVIDENCE** |
 
 <details>
 <summary><b>View Raw <code>run.py .dogfood.toml</code> Output</b></summary>
@@ -273,14 +272,14 @@ python tools/check_extended.py .dogfood.toml --allow-incomplete
 | Verification Domain | Probe Description | Status |
 | :--- | :--- | :---: |
 | **HTTP & Ledger** | Service health and advertised SHA-256 ledger head | **VERIFIED** |
-| **API Catalog** | Live 96-operation catalog from running server | **VERIFIED** |
+| **API Catalog** | Live 102-operation catalog from running server | **VERIFIED** |
 | **OpenAPI** | Live OpenAPI 3.1.1 document and path inventory | **VERIFIED** |
 | **Public Gallery** | Anonymous gallery exposes submitted work with public visibility | **VERIFIED** |
 | **Comment Security** | Anonymous comment writes rejected with 401 Unauthorized | **VERIFIED** |
 | **CSV Exports** | Registrations, teams, projects, scores, rankings, audit CSV downloads | **VERIFIED (6/6)** |
 | **Webhooks** | HMAC-SHA256 signature algorithm and contract specification | **VERIFIED** |
 | **Prometheus** | Live `/metrics` endpoint with memory, requests, and latency text metrics | **VERIFIED** |
-| **Overall Summary** | **verified=13 &nbsp; failed=0 &nbsp; partial=3 &nbsp; blocked=7 &nbsp; unsupported=4** | **0 FAILURES** |
+| **Overall Summary** | Results depend on event state; use the current report. Contract/manifest/catalog inspection does not prove external delivery, archive restoration or assignment replacement. | **SCOPED EVIDENCE** |
 
 *See [`acceptance-report-extended.txt`](acceptance-report-extended.txt) for the full probe transcript.*
 
@@ -361,7 +360,7 @@ Manak includes friendly mascot guides for each participant role:
 | Metric | Value | Verification Source |
 | :--- | :--- | :--- |
 | **Production npm dependencies** | **0** | `package.json` (zero runtime dependencies) |
-| **Automated test suite** | **606** tests declared | `npm test` on native `node:test`; 605 passed and one live SMTP case skipped on Windows |
+| **Automated test suite** | Native `node:test` suite | One Windows-only SIGTERM case is skipped; use current run output for counts |
 | **Command declarations** | **102 operations** | `src/api/commands/index.ts` & `/api/openapi.json` |
 | **Route inventory** | **102 operations** | Declared commands plus transport exceptions in `docs/ROUTES.md` |
 | **Process architecture** | **1 process** | `bin/manak.ts` (single Node process, single SQLite writer) |
@@ -408,8 +407,8 @@ Tailored for hackathons where top finalists score within hundredths of a point (
 ### 8. Formal Participant Appeals (`/appeals`)
 Teams can file a private appeal within 7 days of publication. Messages remain strictly confidential to the appealing team and organizers. Organizers inspect evidence, log internal deliberations, and upon acceptance, atomically publish a corrected result revision with signed audit records.
 
-### 9. "Explain My Rank" Participant Breakdown Portal (`/events/:slug/projects/:id/explain`)
-Transparently breaks down a team's final standing into baseline grand mean, latent project effect $\alpha_i$, and reviewer leniency offsets $\beta_j$. Individual reviewers are anonymized with HMAC-SHA256 salted tokens (`Reviewer #A3B1`), pairing radical mathematical transparency with reviewer protection.
+### 9. "Explain My Rank" Participant Breakdown Portal (`/events/:slug/results/explain`)
+Shows raw and calibrated standing, reviewer-level calibrated contributions, and reported uncertainty. Anonymous review labels are sequential within a project and restart for other projects; they do not identify a judge or link reviews across projects. The adjusted score is an information-weighted mean of calibrated contributions, not a simple additive sum of a project effect and panel offset.
 
 ### 10. Multi-Method Normalization Sandbox (`/events/:slug/dashboard/sandbox`)
 Interactive comparative sandbox running four normalization algorithms concurrently (Raw Trimmed Mean, Standardized Z-Score, Additive Bayesian, Bradley-Terry MM) with Spearman $\rho$ and Kendall $\tau$ concordance metrics.
@@ -477,7 +476,7 @@ Run the complete verification pipeline locally:
 
 ```sh
 npm ci
-npm test       # 606 tests
+npm test       # 608 tests
 npm run typecheck
 npm run prove:normalization -- --check
 npm run prove:convergence -- --check
@@ -500,7 +499,7 @@ All latest execution outputs are stored directly in the repository under [`logs/
 | Log File | Verification Scope | Tests / Invariants | Status |
 | :--- | :--- | :--- | :---: |
 | [`logs/01-acceptance-dogfood.log`](logs/01-acceptance-dogfood.log) | Official DogFood Acceptance Harness (`run.py`) | 7 of 7 probes passing against live server (T1-T4 claimed) | **PASS** |
-| [`logs/02-unit-test-suite.log`](logs/02-unit-test-suite.log) | Full Node Test Runner (`tests/*.test.ts`) | 605 tests passing across all layers and engines | **PASS** |
+| [`logs/02-unit-test-suite.log`](logs/02-unit-test-suite.log) | Full Node Test Runner (`tests/*.test.ts`) | Historical run output; current checkout may differ | **PASS** |
 | [`logs/03-docker-test.log`](logs/03-docker-test.log) | Dockerfile, Compose & Network Boundaries | Security options, non-root user, offline air-gap | **PASS** |
 | [`logs/04-isolation-proof.log`](logs/04-isolation-proof.log) | API Role & Route Isolation Proof | 1,152 HTTP requests verifying strict role boundaries | **PASS** |
 | [`logs/05-normalization-proof.log`](logs/05-normalization-proof.log) | Bayesian Score Normalization Proof | 1,180 simulated events across 59 configurations | **PASS** |
@@ -511,14 +510,14 @@ All latest execution outputs are stored directly in the repository under [`logs/
 
 - `npm ci` installs development types and TypeScript for `typecheck`; `npm start` does not install packages.
 - The proof scripts compare mathematical convergence, isolation, and round trips against committed evidence in `docs/proof/`.
-- One live SMTP delivery test is skipped when no SMTP relay is present; see [`logs/02-unit-test-suite.log`](logs/02-unit-test-suite.log) for the exact count.
+- The skipped test is a Windows-only SIGTERM case. Test totals vary with the current checkout; use the latest run output rather than a hard-coded count.
 - The registry currently declares **102 operations**. Generated [OpenAPI](openapi.json) and the [browser API reference](https://manak.up.railway.app/docs) expose their current contracts. Run `npm run docs:generate` after adding commands or changing measured source counts.
 
 ---
 
 ## Deployment and Limits
 
-`Dockerfile`, `compose.yaml`, and `railway.json` describe a one-port deployment. Persist the database and certificate key directory together. The Docker container runs securely with persistent volume permissions handled via `su-exec` to drop privileges to `node`.
+`Dockerfile`, `compose.yaml`, and `railway.json` describe a one-port deployment. Persist the database and certificate key directory together. The Docker container runs securely as the unprivileged `node` user without running a privileged shell or su-exec wrapper.
 
 For strict air-gapped or offline deployment without external network access, overlay `compose.offline.yaml` to enforce container network isolation (`internal: true`):
 

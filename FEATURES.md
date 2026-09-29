@@ -283,27 +283,27 @@ Roles are scoped to one event. A judge invited to one event does not gain access
 **Current behavior:**
 - `tools/check_extended.py` executes against `.dogfood.toml`.
 - Probes all 12 extended criteria: ballot shuffle stability, active voting privacy gates, authenticated comment gating, duplicate project quarantine, hash chain continuity, CSV export validity, webhook contracts, Ed25519 certificates, and Prometheus `/metrics`.
-- Generates `acceptance-report-extended.txt` with zero failures (13 verified, 0 failed).
+- Generates `acceptance-report-extended.txt` with zero failures (18 verified, 7 partial, 3 blocked, 0 unsupported, 0 failed).
 
 ---
 
 ## Command inventory
 
-The **96 registered operations** are grouped below. `/docs` supplies the current method, path, fields, and role rule for each one. Generated [OpenAPI](openapi.json) documents the full machine-checked specification.
+The **102 registered operations** are grouped below. `/docs` supplies the current method, path, fields, and role rule for each one. Generated [OpenAPI](openapi.json) documents the full machine-checked specification.
 
 | Area | Operations |
 | --- | --- |
 | Sign-in | `auth.signin`, `auth.request`, `auth.link`, `auth.session`, `auth.whoami`, `auth.signout` |
 | Personal tokens | `tokens.list`, `tokens.create`, `tokens.revoke` |
 | Events | `events.list`, `events.show`, `events.create`, `events.update`, `events.mine`, `events.invite`, `events.judges`, `events.clock`, `events.warp_clock`, `events.webhooks`, `events.ping_webhook`, `events.revoke_role` |
-| Teams and tracks | `tracks.create`, `teams.list`, `teams.join` |
+| Teams and tracks | `tracks.create`, `teams.list`, `teams.join`, `teams.invite_rotate`, `teams.leave` |
 | Projects & duplicates | `projects.list`, `projects.show`, `projects.create`, `projects.update`, `projects.submit`, `projects.withdraw`, `projects.pull`, `projects.disqualify`, `duplicates.list`, `duplicates.triage` |
 | Comments | `comments.add`, `comments.hide` |
 | Rubrics | `rubrics.show`, `rubrics.create`, `rubrics.publish` |
 | Judge work | `judging.queue`, `ballots.save`, `duels.next`, `duels.decide`, `assignments.draw`, `assignments.preview`, `judges.roster`, `judges.configure`, `judges.recusal`, `judges.self_recusal`, `reviews.requests`, `reviews.request`, `reviews.cancel` |
 | Results & sandbox | `results.show`, `results.confidence`, `events.dashboard`, `results.preflight`, `results.evidence_packet`, `results.history`, `results.publish`, `results.unpublish`, `results.certificates`, `results.certificate_studio`, `results.configure_certificate_template`, `results.public_certificate`, `results.issue_certs`, `results.certificate_status`, `results.correct_cert`, `results.judge_evidence`, `results.explain`, `results.sandbox` |
 | Awards & appeals | `awards.list`, `awards.decide`, `appeals.list`, `appeals.open`, `appeals.resolve` |
-| Community voting | `votes.start`, `votes.cast`, `votes.results`, `votes.ballot`, `votes.abuse`, `votes.configure_abuse`, `votes.review_abuse`, `votes.discount_cluster` |
-| Dedicated exports | `exports.download`, `exports.registrations_csv`, `exports.teams_csv`, `exports.projects_csv`, `exports.scores_csv`, `exports.results_csv`, `exports.audit_csv` |
-| System | `system.home`, `system.about`, `system.docs`, `system.openapi`, `system.capabilities`, `system.healthz` |
+| Community voting | `votes.start`, `votes.cast`, `votes.results`, `votes.ballot`, `votes.abuse`, `votes.configure_abuse`, `votes.review_abuse`, `votes.discount_cluster`, `votes.void_voter` |
+| Dedicated exports | `exports.download`, `exports.registrations_csv`, `exports.teams_csv`, `exports.projects_csv`, `exports.scores_csv`, `exports.results_csv`, `exports.audit_csv`, `exports.archive_manifest` |
+| System | `system.home`, `system.about`, `system.docs`, `system.openapi`, `system.capabilities`, `system.healthz`, `system.limits`, `system.rate_probe` |
 

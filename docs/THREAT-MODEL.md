@@ -14,7 +14,7 @@ the reason".
 
 Every claim below is one of three kinds, and the kind is stated.
 
-A claim that names a test is re-checked by `npm test`, all 606 of them, on every run. A claim that
+A claim that names a test is re-checked by `npm test`, all 608 of them; one Windows-only SIGTERM test is skipped on Windows. A claim that
 names a proof was executed against a server on a real socket and its output is committed:
 `npm run prove:isolation -- --check` re-sends all 1224 requests and fails if a single byte of
 `docs/proof/isolation.md` no longer matches. A claim with neither is an argument, and it is marked
@@ -540,7 +540,7 @@ resolved silently.
 | # | Weakness | Severity | What closing it takes |
 | --- | --- | --- | --- |
 | 1 | Sign-in links are printed to stdout unless `deliver` is wired, so log access is account access | High | Wire a delivery function before the deployment holds anybody else's address, and treat the log as a credential store until then |
-| 2 | There is no delivery configuration, `AppOptions.deliver` is a code seam, and no SMTP support ships in 0.1.0 | Medium, and the cause of #1 | An entry point of your own that calls `listen` with a `deliver`; a first-class mail setting is unbuilt work, not a decision |
+| 2 | SMTP and hosted HTTPS mail adapters are implemented, but deployment-specific delivery has not been exercised as submission evidence | Medium, and the cause of #1 | Configure the appropriate relay or provider and record a successful end-to-end delivery check; without delivery configured, links still go to stdout |
 | 3 | `POST /api/session` returns a 14-day bearer token in its body, and a bearer token in a shell history or CI log is a live session | Medium | Shorter lifetime for bearer credentials than for cookies, or a separate token class. Today the answer is `POST /signout` with `everywhere` |
 | 4 | An export is a plain-text directory holding every address in the deployment, and the session hashes in it are live again once imported | Medium | Encrypt it where it lands and delete it when the event is over. Encryption in the tool would mean key management this product has no way to do well |
 | 5 | No CSRF token; cross-origin writes are refused by `SameSite=Lax` and `form-action 'self'` alone | Low, accepted | A minted per-form token, at the cost of three places a new route could forget it |

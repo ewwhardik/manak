@@ -70,21 +70,22 @@ export function demoNoticeModal(openByDefault = false): string {
 </div>
 <div class="demo-modal-body">
 <h2 id="demo-disclaimer-title" class="demo-modal-heading">Demo &amp; Testing Features Notice</h2>
-<p class="demo-modal-intro">This deployment includes specialized utilities built specifically for rapid judging and prototype evaluation. In a production deployment, these features are cleanly removed, disabled, or configured via simple environment flags:</p>
+<p class="demo-modal-intro">Explore seeded example events and switch between organizer, judge, and participant roles with Fast login. Use disposable data for testing; production deployments use email sign-in.</p>
+<details><summary>Demo setup and production settings</summary>
 <div class="demo-feature-grid">
 <div class="demo-feature-card">
 <div class="demo-feature-icon" aria-hidden="true">⚡</div>
 <div class="demo-feature-content">
 <h3>Fast Login &amp; Role Switcher</h3>
 <p>1-click instant persona switching (Organizer, Judges, Builders) in the header without email OTP challenges.</p>
-<span class="demo-feature-note">Production: Disabled via <code>MANAK_DEMO=false</code>; authenticates via cryptographically signed email magic links.</span>
+<span class="demo-feature-note">Production: Disabled via <code>MANAK_DEMO=false</code>; authenticates via email magic links.</span>
 </div>
 </div>
 <div class="demo-feature-card">
 <div class="demo-feature-icon" aria-hidden="true">🧭</div>
 <div class="demo-feature-content">
 <h3>Evaluator Golden Path</h3>
-<p>Guided 3-minute speed-run (<code>/guide#golden-path</code>) allowing evaluators to verify all T1–T4 claims with zero friction.</p>
+<p>Guided walkthrough (<code>/guide#golden-path</code>) of the main role workflows. See the acceptance report and proof reports for verification scope.</p>
 <span class="demo-feature-note">Production: Fully configurable or replaced with your organization&#39;s custom instructions.</span>
 </div>
 </div>
@@ -105,6 +106,7 @@ export function demoNoticeModal(openByDefault = false): string {
 </div>
 </div>
 </div>
+</details>
 </div>
 <div class="demo-modal-footer">
 <form method="post" action="/demo/dismiss" class="demo-modal-dismiss-form">

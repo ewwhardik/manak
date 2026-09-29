@@ -1,6 +1,6 @@
 # Data Model
 
-The database is one SQLite file opened through `src/db/open.ts`. It uses strict tables, foreign keys, WAL mode, integer epoch-millisecond timestamps, and migration hashes.
+The database is one SQLite file opened through `src/db/open.ts`. It uses 36 strict application tables across 19 forward migrations, foreign keys, WAL mode, integer epoch-millisecond timestamps, and migration hashes.
 
 ```mermaid
 erDiagram
@@ -45,7 +45,7 @@ erDiagram
 
 The authoritative schema is the ordered SQL files in `src/db/migrations/`. Old migration hashes are immutable. Event-scoped foreign keys include `event_id`, preventing cross-event parent references. Ballots and comparisons pin the judge role through generated foreign-key columns. The ledger intentionally has no foreign keys so audit entries survive deletion of their subjects.
 
-The archive tools export every application table as deterministic JSONL plus a manifest containing migration hashes and per-file SHA-256 digests. Import is restricted to an empty compatible database.
+The archive tools export 33 application tables as deterministic JSONL plus a manifest containing migration hashes and per-file SHA-256 digests. 3 tables (`api_token`, `webhook_subscription`, `webhook_delivery`) are intentionally omitted from instance archives to isolate deployment-specific bearer credentials, webhook subscriptions, and retry outbox state. Import is restricted to an empty compatible database.
 
 ## Public content
 

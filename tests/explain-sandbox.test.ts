@@ -3,6 +3,35 @@ import assert from "node:assert/strict";
 import { judged } from "./support/judged.ts";
 import { normalizationSandbox, reviewExplanations, normalizeScores } from "../src/judging/index.ts";
 import { loadJudgingInput, setResultsPublic } from "../src/db/index.ts";
+import { explainPage } from "../src/view/explain.ts";
+import { ALL_COMMANDS } from "../src/api/commands/index.ts";
+import { makeRegistry } from "../src/api/registry.ts";
+
+test("native 1–5 waterfall has readable bars and truthful contribution and interval labels", () => {
+  const html = explainPage({ command: ALL_COMMANDS.find(c => c.name === "results.explain")!,
+    input: {}, whoami: "Participant", accountId: null, event: null, gates: null,
+    now: 0, registry: makeRegistry(ALL_COMMANDS), founder: false,
+    result: { revision: 1, notice: "Frozen result", projects: [{ title: "Native rubric",
+      grandMean: 3, adjusted: 3.5, low: 3, high: 4, rank: 1, rankRaw: 2, rankMove: 1,
+      reviews: [
+        { label: "Review A", raw: 2, baseline: 4, calibrated: 5, weight: 1, scale: 1 },
+        { label: "Review B", raw: 5, baseline: 2, calibrated: 2, weight: 1, scale: 1 },
+      ],
+    }] } });
+  const svg = /<svg[\s\S]*?<\/svg>/.exec(html)![0];
+  const heights = [...svg.matchAll(/<rect[^>]*height="([\d.]+)"/g)].map(m => Number(m[1]));
+  assert.equal(heights.length, 4);
+  assert.ok(heights[0]! >= 75 && heights[3]! >= 90, "1–5 totals must occupy meaningful chart height");
+  const ticks = [...svg.matchAll(/<text x="52"[^>]*>([^<]+)<\/text>/g)].map(m => Number(m[1]));
+  assert.ok(ticks.length >= 3 && Math.max(...ticks) <= 6, "axis must follow native score units");
+  assert.match(svg, /Above panel baseline/);
+  assert.match(svg, /Below panel baseline/);
+  assert.match(svg, /\+1\.00/);
+  assert.match(svg, /-0\.50/);
+  assert.match(html, /Reported rubric interval/);
+  assert.match(html, /<table[\s\S]*Calibrated contribution/);
+  assert.doesNotMatch(html, /Bootstrap CI|Harsh judge uplift|Lenient judge discount|Lenient judge offset|Harsh judge offset|αᵢ/);
+});
 
 test("anonymous review contributions reconstruct the production adjusted score", () => {
   const rig = judged();

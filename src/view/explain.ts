@@ -40,7 +40,6 @@ function renderWaterfallChart(project: Record<string, unknown>): string {
     const calibrated = typeof r.calibrated === "number" ? r.calibrated : grandMean;
     const raw = typeof r.raw === "number" ? r.raw : 0;
     const baseline = typeof r.baseline === "number" ? r.baseline : grandMean;
-    const leniency = baseline - grandMean;
     const scale = typeof r.scale === "number" ? r.scale : 1;
     const shrinkage = typeof r.shrinkage === "number" ? r.shrinkage : 1;
     const delta = (weight / totalWeight) * (calibrated - grandMean);
@@ -48,12 +47,12 @@ function renderWaterfallChart(project: Record<string, unknown>): string {
 
     steps.push({
       label: String(r.label || `Review ${i + 1}`),
-      sublabel: leniency > 0.05 ? "Lenient judge offset" : leniency < -0.05 ? "Harsh judge offset" : "Neutral judge",
+      sublabel: delta > 0 ? "Above panel baseline" : delta < 0 ? "Below panel baseline" : "At panel baseline",
       start: currentLevel,
       end: nextLevel,
       delta,
       type: "delta",
-      detail: `Raw: ${raw.toFixed(1)} · β: ${leniency >= 0 ? "+" : ""}${leniency.toFixed(2)} · σ: ${scale.toFixed(2)} · γ: ${shrinkage.toFixed(2)} · Δ: ${delta >= 0 ? "+" : ""}${delta.toFixed(2)}`,
+      detail: `Raw: ${raw.toFixed(2)} · Reviewer baseline: ${baseline.toFixed(2)} · Scale: ${scale.toFixed(2)} · Shrinkage trust: ${shrinkage.toFixed(2)} · Weighted contribution above/below panel baseline: ${delta >= 0 ? "+" : ""}${delta.toFixed(2)}`,
     });
     currentLevel = nextLevel;
   }
@@ -62,13 +61,13 @@ function renderWaterfallChart(project: Record<string, unknown>): string {
   const high = typeof project.high === "number" ? project.high : null;
 
   steps.push({
-    label: "Calibrated (αᵢ)",
-    sublabel: low !== null && high !== null ? `95% CI: [${low.toFixed(1)}, ${high.toFixed(1)}]` : "Final score",
+    label: "Published score",
+    sublabel: low !== null && high !== null ? `Rubric interval: [${low.toFixed(1)}, ${high.toFixed(1)}]` : "Final score",
     start: 0,
     end: adjusted,
     delta: adjusted,
     type: "final",
-    detail: `Calibrated Score: ${adjusted.toFixed(2)}${low !== null && high !== null ? ` (95% CI: [${low.toFixed(2)}, ${high.toFixed(2)}])` : ""}`,
+    detail: `Published score: ${adjusted.toFixed(2)}${low !== null && high !== null ? ` (reported rubric interval: [${low.toFixed(2)}, ${high.toFixed(2)}])` : ""}`,
   });
 
   const svgWidth = 760;
@@ -81,21 +80,29 @@ function renderWaterfallChart(project: Record<string, unknown>): string {
   const chartHeight = svgHeight - padTop - padBottom;
 
   let minVal = 0;
-  let maxVal = Math.max(100, grandMean, adjusted);
+  let maxVal = Math.max(0, grandMean, adjusted);
   if (low !== null) minVal = Math.min(minVal, low);
   if (high !== null) maxVal = Math.max(maxVal, high);
   for (const s of steps) {
     minVal = Math.min(minVal, s.start, s.end);
     maxVal = Math.max(maxVal, s.start, s.end);
   }
-  maxVal = Math.ceil(maxVal * 1.08);
+  // Fit the actual score units, including cumulative contributions and intervals.
+  // Nice adaptive ticks keep a 1–5 rubric readable without assuming a 0–100 scale.
+  const span = maxVal - minVal || 1;
+  const roughStep = span * 1.08 / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const tickStep = [1, 2, 2.5, 5, 10].find(step => step * magnitude >= roughStep)! * magnitude;
+  minVal = Math.floor(minVal / tickStep) * tickStep;
+  maxVal = Math.ceil((maxVal + span * 0.08) / tickStep) * tickStep;
 
   const yScale = (v: number) => padTop + chartHeight - ((v - minVal) / (maxVal - minVal)) * chartHeight;
   const colWidth = chartWidth / steps.length;
   const barWidth = Math.min(68, colWidth * 0.72);
 
   let elements = "";
-  const gridTicks = [0, 25, 50, 75, 100].filter((t) => t >= minVal && t <= maxVal);
+  const gridTicks = Array.from({ length: Math.round((maxVal - minVal) / tickStep) + 1 },
+    (_, i) => Number((minVal + i * tickStep).toPrecision(6)));
   for (const tick of gridTicks) {
     const y = yScale(tick);
     elements += `<line x1="${padLeft}" y1="${y}" x2="${svgWidth - padRight}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-dasharray="3,3" />`;
@@ -127,16 +134,17 @@ function renderWaterfallChart(project: Record<string, unknown>): string {
       stroke = "rgba(99, 102, 241, 0.8)";
     }
 
-    if (i > 0 && steps[i - 1]!.type !== "total") {
+    if (i > 0) {
       const prevX = padLeft + (i - 1) * colWidth + colWidth / 2 + barWidth / 2;
-      elements += `<line x1="${prevX}" y1="${yStart}" x2="${x}" y2="${yStart}" stroke="rgba(255,255,255,0.25)" stroke-dasharray="2,2" />`;
+      const connectionY = yScale(steps[i - 1]!.end);
+      elements += `<line x1="${prevX}" y1="${connectionY}" x2="${x}" y2="${connectionY}" stroke="rgba(255,255,255,0.25)" stroke-dasharray="2,2" />`;
     }
 
     elements += `<rect x="${x}" y="${yTop}" width="${barWidth}" height="${barH}" rx="4" fill="${fill}" stroke="${stroke}" fill-opacity="${s.type === 'total' || s.type === 'final' ? '0.85' : '0.75'}">`;
     elements += `<title>${esc(s.detail)}</title></rect>`;
 
     const labelY = yTop - 6;
-    const valText = s.type === "delta" ? `${s.delta >= 0 ? "+" : ""}${s.delta.toFixed(1)}` : s.end.toFixed(1);
+    const valText = s.type === "delta" ? `${s.delta >= 0 ? "+" : ""}${s.delta.toFixed(2)}` : s.end.toFixed(2);
     elements += `<text x="${cx}" y="${labelY}" fill="#F3F4F6" font-size="11" font-weight="600" text-anchor="middle" font-family="system-ui,sans-serif">${valText}</text>`;
 
     elements += `<text x="${cx}" y="${svgHeight - padBottom + 18}" fill="#E2E8F0" font-size="11" font-weight="500" text-anchor="middle" font-family="system-ui,sans-serif">${esc(s.label)}</text>`;
@@ -156,8 +164,8 @@ function renderWaterfallChart(project: Record<string, unknown>): string {
 
   return `<figure class="panel">
 <figcaption>
-<strong>Calibration Waterfall: Grand Mean (μ) &rarr; Reviewer Offsets (βⱼ) &rarr; Final Score (αᵢ)</strong>
-${low !== null && high !== null ? `<span> · 95% Bootstrap CI: [${low.toFixed(2)}, ${high.toFixed(2)}]</span>` : ""}
+<strong>Calibration Waterfall: Panel Grand Mean &rarr; Weighted Review Contributions &rarr; Published Score</strong>
+${low !== null && high !== null ? `<span> · Reported rubric interval: [${low.toFixed(2)}, ${high.toFixed(2)}]</span>` : ""}
 </figcaption>
 <div class="scroll">
 <svg width="100%" height="auto" viewBox="0 0 ${svgWidth} ${svgHeight}" role="img" aria-label="Waterfall breakdown of score calibration">
@@ -165,7 +173,7 @@ ${elements}
 </svg>
 </div>
 <p class="detail">
-Grand Mean (μ) in cyan · Harsh judge uplift in green · Lenient judge discount in amber · Calibrated Score (αᵢ) in indigo with 95% Bootstrap CI error bar.
+Panel grand mean in cyan · Contribution above panel baseline in green · Contribution below panel baseline in amber · Published score in indigo${low !== null && high !== null ? " with the reported analytic rubric interval" : ""}. Colors describe calibrated review contributions, not reviewer severity.
 </p>
 </figure>`;
 }

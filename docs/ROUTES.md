@@ -18,11 +18,11 @@ Registered JSON routes and their browser spellings are generated from the [OpenA
 
 ## Notable Registered API & UI Endpoints
 
-The 96 registered operations in `src/api/commands/` declare typed JSON and form handlers. Key additions include:
+The 102 registered operations in `src/api/commands/` declare typed JSON and form handlers. Key additions include:
 
 | Route Path | Capability / Access | Description |
 | --- | --- | --- |
-| `/events/:event/projects/:project/explain` | Participant / Public | **Explain My Rank**: Decomposes project standing into grand baseline, latent merit, reviewer offsets, criterion breakdown, and bootstrap CI with HMAC judge anonymization. |
+| `/events/:event/results/explain` | Participant / Public | **Explain My Rank**: Shows calibrated reviewer contributions and reported uncertainty with project-local sequential anonymous review labels. |
 | `/events/:event/dashboard/sandbox` | Organizer | **Multi-Method Normalization Sandbox**: Concurrently computes Raw Trimmed Mean, Standardized Z-Score, Additive Bayesian, and Bradley-Terry MM models with Spearman $\rho$ and Kendall $\tau$ concordances. |
 | `/events/:event/dashboard/duplicates` | Organizer | **Duplicate Submission Triage**: Lists automated title/URL collisions held in quarantine; allows organizers to clear or confirm duplicates. |
 | `/me/tokens` | Authenticated Account | **Scoped API Tokens Console**: Generates and revokes cryptographically hashed API tokens with fine-grained scopes (`read:projects`, `read:results`, `write:projects`, `write:judging`). |
@@ -33,4 +33,4 @@ The 96 registered operations in `src/api/commands/` declare typed JSON and form 
 | `/events/:event/export/votes.csv` | Organizer | Dedicated CSV export of community votes, voters, and discount audit. |
 | `/events/:event/export/audit.csv` | Organizer | Dedicated CSV export of append-only cryptographic ledger sequence transactions. |
 
-Unknown paths return 404 and wrong methods return 405, except the disabled demo shortcut, which returns 404. The custom route regressions in `tests/audit-regressions.test.ts`, `tests/http.test.ts`, and `tests/metrics.test.ts` cover access and output behavior. The command isolation proof measures only registry operations; its 1,152-request count does not include this table.
+Unknown paths return 404 and wrong methods return 405, except the disabled demo shortcut, which returns 404. The custom route regressions in `tests/audit-regressions.test.ts`, `tests/http.test.ts`, and `tests/metrics.test.ts` cover access and output behavior. The command isolation proof measures only registry operations; its recorded request count does not include this table.

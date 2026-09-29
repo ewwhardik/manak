@@ -28,7 +28,9 @@ test("dockerfile exists and specifies pinned base image, healthcheck, and securi
 
   // Non-root execution and security
   assert.match(text, /COPY --chown=node:node/, "Dockerfile must copy application files with node ownership");
-  assert.match(text, /su-exec node/, "Dockerfile must run node process as unprivileged user");
+  const users = text.split(/\r?\n/).filter((line) => /^USER\s+/.test(line));
+  assert.equal(users.at(-1), "USER node", "The effective image user must stay unprivileged even when Compose overrides CMD");
+  assert.match(text, /^CMD \["node",/m, "Node must receive stop signals directly without a privileged startup shell");
 
   // Healthcheck endpoint
   assert.match(text, /HEALTHCHECK.*\/api\/healthz/, "Dockerfile must declare a HEALTHCHECK probing /api/healthz");
