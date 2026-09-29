@@ -89,11 +89,11 @@ results.push(
   ),
 );
 
-// 2. Unit & Integration Test Suite (594 tests)
+// 2. Unit & Integration Test Suite (606 tests)
 results.push(
   runStep(
     "unit-tests",
-    "Node Test Suite (594 Tests)",
+    "Node Test Suite (606 Tests)",
     "node",
     ["--experimental-strip-types", "--test", "\"tests/*.test.ts\""],
     "02-unit-test-suite.log",
@@ -125,12 +125,12 @@ results.push(
 results.push(
   runStep(
     "isolation-proof",
-    "Role Isolation & Refusal Proof (984 Requests)",
+    "Role Isolation & Refusal Proof (1,152 Requests)",
     "node",
     ["--experimental-strip-types", "tools/prove-isolation.ts", "--", "--check"],
     "04-isolation-proof.log",
     (output, code) => {
-      if (output.includes("prove:isolation OK")) return `Exit ${code}: 984 requests verified byte-for-byte`;
+      if (output.includes("prove:isolation OK")) return `Exit ${code}: 1,152 requests verified byte-for-byte`;
       return `Exit ${code}`;
     },
   ),
@@ -172,7 +172,7 @@ results.push(
     ["--experimental-strip-types", "tools/prove-roundtrip.ts", "--", "--check"],
     "07-roundtrip-proof.log",
     (output, code) => {
-      if (output.includes("prove:roundtrip OK")) return `Exit ${code}: 161 rows across 32 files verified`;
+      if (output.includes("prove:roundtrip OK")) return `Exit ${code}: 162 rows across 33 files verified`;
       return `Exit ${code}`;
     },
   ),
@@ -246,9 +246,9 @@ readmeLines.push(
   "   - T1 (Public submission gallery, project inspection, closed event enforcement) and T2 (Role isolation, peer review concealment, participant blocking, CSV export) claims verified.",
   "   - See [`01-acceptance-dogfood.log`](./01-acceptance-dogfood.log).",
   "",
-  "2. **Full Node Test Suite (594 Tests)**:",
-  "   - 594 total tests declared across all sub-modules (`tests/*.test.ts`).",
-  "   - 593 passed, 0 failed, 1 skipped (live SMTP network delivery without mock).",
+  "2. **Full Node Test Suite (606 Tests)**:",
+  "   - 606 total tests declared across all sub-modules (`tests/*.test.ts`).",
+  "   - 605 passed, 0 failed, 1 skipped (live SMTP network delivery without mock).",
   "   - Zero external testing frameworks: runs purely on Node 22 built-in test runner.",
   "   - See [`02-unit-test-suite.log`](./02-unit-test-suite.log).",
   "",
@@ -259,9 +259,9 @@ readmeLines.push(
   "   - See [`03-docker-test.log`](./03-docker-test.log).",
   "",
   "4. **Architectural & Cryptographic Proofs**:",
-  "   - **Isolation**: 984 HTTP requests verifying strict role boundaries byte-for-byte ([`04-isolation-proof.log`](./04-isolation-proof.log)).",
+  "   - **Isolation**: 1,152 HTTP requests verifying strict role boundaries byte-for-byte ([`04-isolation-proof.log`](./04-isolation-proof.log)).",
   "   - **Bayesian Normalization**: 1,180 simulated events across 59 configurations verifying numerical convergence ([`05-normalization-proof.log`](./05-normalization-proof.log)).",
-  "   - **Roundtrip**: 161 rows across 32 files verifying exact bit-for-bit database export/import integrity ([`07-roundtrip-proof.log`](./07-roundtrip-proof.log)).",
+  "   - **Roundtrip**: 162 rows across 33 files verifying exact bit-for-bit database export/import integrity ([`07-roundtrip-proof.log`](./07-roundtrip-proof.log)).",
   "   - **Strict Type Safety**: TypeScript compiler passes with 0 diagnostic errors ([`09-typecheck.log`](./09-typecheck.log)).",
   "",
   "## Reproducing the Logs",

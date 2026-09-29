@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-28T14:42:35.069Z",
+  "generatedAt": "2026-09-29T08:54:48.669Z",
   "environment": {
     "node": "v24.18.0",
     "platform": "win32",
@@ -12,43 +12,43 @@
       "id": "acceptance",
       "name": "Official DogFood Acceptance Harness (run.py)",
       "command": "python run.py .dogfood.toml",
-      "durationMs": 12355,
+      "durationMs": 24680,
       "exitCode": 0,
       "logFile": "01-acceptance-dogfood.log",
-      "summary": "Exit 0: claimed T1 T2 T3 T4, verified T1 T2 (7/7 probes passed)"
+      "summary": "Exit 0"
     },
     {
       "id": "unit-tests",
-      "name": "Node Test Suite (594 Tests)",
+      "name": "Node Test Suite (606 Tests)",
       "command": "node --experimental-strip-types --test \"tests/*.test.ts\"",
-      "durationMs": 19937,
+      "durationMs": 31737,
       "exitCode": 0,
       "logFile": "02-unit-test-suite.log",
-      "summary": "Exit 0: 593/594 passed (failures: 0)"
+      "summary": "Exit 0: 605/606 passed (failures: 0)"
     },
     {
       "id": "docker-tests",
       "name": "Docker & Compose Security Boundary Tests",
       "command": "node --experimental-strip-types --test tests/docker.test.ts",
-      "durationMs": 181,
+      "durationMs": 220,
       "exitCode": 0,
       "logFile": "03-docker-test.log",
       "summary": "Exit 0: 3 tests passed"
     },
     {
       "id": "isolation-proof",
-      "name": "Role Isolation & Refusal Proof (984 Requests)",
+      "name": "Role Isolation & Refusal Proof (1,152 Requests)",
       "command": "node --experimental-strip-types tools/prove-isolation.ts -- --check",
-      "durationMs": 3118,
+      "durationMs": 4434,
       "exitCode": 0,
       "logFile": "04-isolation-proof.log",
-      "summary": "Exit 0: 984 requests verified byte-for-byte"
+      "summary": "Exit 0: 1,152 requests verified byte-for-byte"
     },
     {
       "id": "normalization-proof",
       "name": "Bayesian Normalization Numerical Proof (1,180 Events)",
       "command": "node --experimental-strip-types tools/prove-normalization.ts -- --check",
-      "durationMs": 6656,
+      "durationMs": 7076,
       "exitCode": 0,
       "logFile": "05-normalization-proof.log",
       "summary": "Exit 0: 1,180 simulated events verified"
@@ -57,7 +57,7 @@
       "id": "convergence-proof",
       "name": "Pairwise Bradley-Terry Convergence Proof",
       "command": "node --experimental-strip-types tools/prove-convergence.ts -- --check",
-      "durationMs": 1600,
+      "durationMs": 2054,
       "exitCode": 0,
       "logFile": "06-convergence-proof.log",
       "summary": "Exit 0: convergence schedules verified"
@@ -66,16 +66,16 @@
       "id": "roundtrip-proof",
       "name": "Database Archive Bit-for-Bit Roundtrip Proof",
       "command": "node --experimental-strip-types tools/prove-roundtrip.ts -- --check",
-      "durationMs": 1356,
+      "durationMs": 1859,
       "exitCode": 0,
       "logFile": "07-roundtrip-proof.log",
-      "summary": "Exit 0: 161 rows across 32 files verified"
+      "summary": "Exit 0: 162 rows across 33 files verified"
     },
     {
       "id": "fixtures-proof",
       "name": "Fixtures & Ballot Consistency Proof",
       "command": "node --experimental-strip-types tools/prove-fixtures.ts -- --check",
-      "durationMs": 498,
+      "durationMs": 664,
       "exitCode": 0,
       "logFile": "08-fixtures-proof.log",
       "summary": "Exit 0: 41 projects and 126 ballots verified"
@@ -84,7 +84,7 @@
       "id": "typecheck",
       "name": "Strict TypeScript Compiler Check",
       "command": "node ./node_modules/typescript/bin/tsc --noEmit",
-      "durationMs": 386,
+      "durationMs": 540,
       "exitCode": 0,
       "logFile": "09-typecheck.log",
       "summary": "Exit 0: 0 errors"

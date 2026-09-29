@@ -13,9 +13,9 @@
   <a href="https://github.com/ewwhardik/manak"><img src="https://img.shields.io/badge/GitHub-ewwhardik%2Fmanak-181717?style=flat-square&logo=github" alt="GitHub Repo" /></a>
   <img src="https://img.shields.io/badge/Version-0.1.0-blue?style=flat-square" alt="Version 0.1.0" />
   <img src="https://img.shields.io/badge/Node.js-22%20%7C%2024-green?style=flat-square&logo=node.js" alt="Node Version" />
-  <img src="https://img.shields.io/badge/Tests-590%20passed%20%7C%201%20skipped-brightgreen?style=flat-square" alt="Tests" />
+  <img src="https://img.shields.io/badge/Tests-605%20passed%20%7C%201%20skipped-brightgreen?style=flat-square" alt="Tests" />
   <img src="https://img.shields.io/badge/Dependencies-0%20runtime%20npm%20packages-success?style=flat-square" alt="0 Dependencies" />
-  <img src="https://img.shields.io/badge/Storage-Native%20SQLite%20(1%20File)-orange?style=flat-square&logo=sqlite" alt="Native SQLite" />
+  <img src="https://img.shields.io/badge/Storage-Native%20SQLite%20(36%20Tables)-orange?style=flat-square&logo=sqlite" alt="Native SQLite" />
   <img src="https://img.shields.io/badge/Cryptography-Ed25519%20%2B%20SHA--256%20Hash%20Chain-purple?style=flat-square" alt="Cryptography" />
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="MIT License" /></a>
 </p>
@@ -111,7 +111,7 @@ Manak implements and claims **all four tiers (T1, T2, T3, T4)**. The official Do
 | **T2** | Unauthorized participant lockout | `T2  participant blocked` | **PASS** |
 | **T2** | Tamper-neutral CSV export | `T2  csv export works` | **PASS** |
 | **T3** | Bayesian judge-effect normalization | `npm run prove:normalization -- --check` (1,180 simulated runs) | **PASS** |
-| **T4** | Ed25519 signatures & Certificate Studio | `npm run prove:isolation -- --check` (82 operations) | **PASS** |
+| **T4** | Ed25519 signatures & Certificate Studio | `npm run prove:isolation -- --check` (96 operations) | **PASS** |
 
 <details>
 <summary><b>View Raw <code>run.py .dogfood.toml</code> Output</b></summary>
@@ -136,6 +136,29 @@ note: claimed but not verified: T3 T4
 
 *The complete execution log is recorded in [`logs/01-acceptance-dogfood.log`](logs/01-acceptance-dogfood.log). All latest suite logs and cryptographic proofs are maintained in [`logs/`](logs/).*
 </details>
+
+### Automated Extended Acceptance Suite (`tools/check_extended.py`)
+
+Because the standard `run.py` harness only exercises basic T1 and T2 probes, Manak includes an automated extended probe suite (`tools/check_extended.py`) auditing T3 and T4 capabilities over live HTTP sockets:
+
+```sh
+python tools/check_extended.py .dogfood.toml --allow-incomplete
+```
+
+| Verification Domain | Probe Description | Status |
+| :--- | :--- | :---: |
+| **HTTP & Ledger** | Service health and advertised SHA-256 ledger head | **VERIFIED** |
+| **API Catalog** | Live 96-operation catalog from running server | **VERIFIED** |
+| **OpenAPI** | Live OpenAPI 3.1.1 document and path inventory | **VERIFIED** |
+| **Public Gallery** | Anonymous gallery exposes submitted work with public visibility | **VERIFIED** |
+| **Comment Security** | Anonymous comment writes rejected with 401 Unauthorized | **VERIFIED** |
+| **CSV Exports** | Registrations, teams, projects, scores, rankings, audit CSV downloads | **VERIFIED (6/6)** |
+| **Webhooks** | HMAC-SHA256 signature algorithm and contract specification | **VERIFIED** |
+| **Prometheus** | Live `/metrics` endpoint with memory, requests, and latency text metrics | **VERIFIED** |
+| **Overall Summary** | **verified=13 &nbsp; failed=0 &nbsp; partial=3 &nbsp; blocked=7 &nbsp; unsupported=4** | **0 FAILURES** |
+
+*See [`acceptance-report-extended.txt`](acceptance-report-extended.txt) for the full probe transcript.*
+
 
 ---
 
@@ -213,11 +236,11 @@ Manak includes friendly mascot guides for each participant role:
 | Metric | Value | Verification Source |
 | :--- | :--- | :--- |
 | **Production npm dependencies** | **0** | `package.json` (zero runtime dependencies) |
-| **Automated test suite** | **591** tests declared | `npm test` on native `node:test`; 590 passed and one SIGTERM case skipped on Windows |
-| **Command declarations** | **82 operations** | `src/api/commands/index.ts` & `/api/openapi.json` |
-| **Route inventory** | **82 operations** | Declared commands plus transport exceptions in `docs/ROUTES.md` |
+| **Automated test suite** | **606** tests declared | `npm test` on native `node:test`; 605 passed and one live SMTP case skipped on Windows |
+| **Command declarations** | **96 operations** | `src/api/commands/index.ts` & `/api/openapi.json` |
+| **Route inventory** | **96 operations** | Declared commands plus transport exceptions in `docs/ROUTES.md` |
 | **Process architecture** | **1 process** | `bin/manak.ts` (single Node process, single SQLite writer) |
-| **Database file** | **1 file** | Native Node SQLite (`data/manak.db`), strict schema, 32 tables, 14 migrations |
+| **Database file** | **1 file** | Native Node SQLite (`data/manak.db`), strict schema, 36 tables, 19 migrations |
 | **Cryptographic keys** | **Ed25519** | Elliptic-curve signed award records (`/.well-known/manak-key.pub`) |
 | **Audit integrity** | **SHA-256** | Append-only hash-chained event ledger (`/api/healthz`) |
 
@@ -260,6 +283,24 @@ Tailored for hackathons where top finalists score within hundredths of a point (
 ### 8. Formal Participant Appeals (`/appeals`)
 Teams can file a private appeal within 7 days of publication. Messages remain strictly confidential to the appealing team and organizers. Organizers inspect evidence, log internal deliberations, and upon acceptance, atomically publish a corrected result revision with signed audit records.
 
+### 9. "Explain My Rank" Participant Breakdown Portal (`/events/:slug/projects/:id/explain`)
+Transparently breaks down a team's final standing into baseline grand mean, latent project effect $\alpha_i$, and reviewer leniency offsets $\beta_j$. Individual reviewers are anonymized with HMAC-SHA256 salted tokens (`Reviewer #A3B1`), pairing radical mathematical transparency with reviewer protection.
+
+### 10. Multi-Method Normalization Sandbox (`/events/:slug/dashboard/sandbox`)
+Interactive comparative sandbox running four normalization algorithms concurrently (Raw Trimmed Mean, Standardized Z-Score, Additive Bayesian, Bradley-Terry MM) with Spearman $\rho$ and Kendall $\tau$ concordance metrics.
+
+### 11. Transactional SQLite Webhook Outbox & SSRF Protection
+Database-backed `webhook_delivery` table driven by an atomic SQLite trigger (`after insert on ledger`). Webhooks survive node crashes without lost deliveries, and HTTP transport strictly validates destinations against RFC 1918, RFC 3927, loopback, and IPv6-mapped private subnets with socket-level IP pinning.
+
+### 12. Pure Python RFC 8032 Offline Certificate Verifier (`tools/verify_record.py`)
+Zero-dependency, standalone CLI tool verifying Ed25519 signatures across all Manak certificate schema revisions (legacy, v2, v3), complete with scalar malleability rejection, high-order point checks, and canonical RFC 8032 test vector conformance.
+
+### 13. User-Managed Scoped API Tokens Console (`/me/tokens`)
+Participants and organizers can create fine-grained, revocable bearer API tokens with specific scopes (`read:projects`, `read:results`, `write:projects`, `write:judging`). Tokens are stored exclusively as SHA-256 hashes.
+
+### 14. In-Process Prometheus Metrics Exporter (`/metrics`)
+Zero-dependency Prometheus text-format exporter measuring request latencies, HTTP status codes, active database ledger height, and process RSS memory footprint.
+
 ---
 
 ## How the Result is Produced
@@ -276,7 +317,7 @@ The [judging guide](JUDGING.md) describes the models and limits. [Proof reports]
 
 ## Architecture and Access
 
-Manak has **82 operations** in the command registry. The same declarations drive API dispatch, access checks, browser forms, and OpenAPI generation. A few transport routes, including the guide, ceremony, verifier, widget, and demo shortcut, are separately covered by tests in the [route inventory](docs/ROUTES.md). JSON API routes live under `/api`; most browser pages use the corresponding path without that prefix. See [the architecture](docs/ARCHITECTURE.md), [threat model](docs/THREAT-MODEL.md), and `/api/openapi.json`.
+Manak has **96 operations** in the command registry. The same declarations drive API dispatch, access checks, browser forms, and OpenAPI generation. A few transport routes, including the guide, ceremony, verifier, widget, and demo shortcut, are separately covered by tests in the [route inventory](docs/ROUTES.md). JSON API routes live under `/api`; most browser pages use the corresponding path without that prefix. See [the architecture](docs/ARCHITECTURE.md), [threat model](docs/THREAT-MODEL.md), and `/api/openapi.json`.
 
 | Layer | Responsibility |
 | --- | --- |
@@ -297,7 +338,7 @@ Run the complete verification pipeline locally:
 
 ```sh
 npm ci
-npm test       # 594 tests
+npm test       # 606 tests
 npm run typecheck
 npm run prove:normalization -- --check
 npm run prove:convergence -- --check
@@ -320,19 +361,19 @@ All latest execution outputs are stored directly in the repository under [`logs/
 | Log File | Verification Scope | Tests / Invariants | Status |
 | :--- | :--- | :--- | :---: |
 | [`logs/01-acceptance-dogfood.log`](logs/01-acceptance-dogfood.log) | Official DogFood Acceptance Harness (`run.py`) | 7 of 7 probes passing against live server (T1-T4 claimed) | **PASS** |
-| [`logs/02-unit-test-suite.log`](logs/02-unit-test-suite.log) | Full Node Test Runner (`tests/*.test.ts`) | 594 tests passing across all layers and engines | **PASS** |
+| [`logs/02-unit-test-suite.log`](logs/02-unit-test-suite.log) | Full Node Test Runner (`tests/*.test.ts`) | 605 tests passing across all layers and engines | **PASS** |
 | [`logs/03-docker-test.log`](logs/03-docker-test.log) | Dockerfile, Compose & Network Boundaries | Security options, non-root user, offline air-gap | **PASS** |
-| [`logs/04-isolation-proof.log`](logs/04-isolation-proof.log) | API Role & Route Isolation Proof | 984 HTTP requests verifying strict role boundaries | **PASS** |
+| [`logs/04-isolation-proof.log`](logs/04-isolation-proof.log) | API Role & Route Isolation Proof | 1,152 HTTP requests verifying strict role boundaries | **PASS** |
 | [`logs/05-normalization-proof.log`](logs/05-normalization-proof.log) | Bayesian Score Normalization Proof | 1,180 simulated events across 59 configurations | **PASS** |
 | [`logs/06-convergence-proof.log`](logs/06-convergence-proof.log) | Pairwise Bradley-Terry Convergence | Bradley-Terry schedule convergence verified | **PASS** |
-| [`logs/07-roundtrip-proof.log`](logs/07-roundtrip-proof.log) | SQLite Database Export/Import Roundtrip | 161 rows across 32 files verified bit-for-bit | **PASS** |
+| [`logs/07-roundtrip-proof.log`](logs/07-roundtrip-proof.log) | SQLite Database Export/Import Roundtrip | 162 rows across 33 files verified bit-for-bit | **PASS** |
 | [`logs/08-fixtures-proof.log`](logs/08-fixtures-proof.log) | Fixtures Integrity & Ballot Consistency | 41 projects and 126 ballots verified | **PASS** |
 | [`logs/09-typecheck.log`](logs/09-typecheck.log) | Strict TypeScript Compiler (`tsc --noEmit`) | 0 type errors across whole codebase | **PASS** |
 
 - `npm ci` installs development types and TypeScript for `typecheck`; `npm start` does not install packages.
 - The proof scripts compare mathematical convergence, isolation, and round trips against committed evidence in `docs/proof/`.
 - One live SMTP delivery test is skipped when no SMTP relay is present; see [`logs/02-unit-test-suite.log`](logs/02-unit-test-suite.log) for the exact count.
-- The registry currently declares **82 operations**. Generated [OpenAPI](openapi.json) and the [browser API reference](https://manak.up.railway.app/docs) expose their current contracts. Run `npm run docs:generate` after adding commands or changing measured source counts.
+- The registry currently declares **96 operations**. Generated [OpenAPI](openapi.json) and the [browser API reference](https://manak.up.railway.app/docs) expose their current contracts. Run `npm run docs:generate` after adding commands or changing measured source counts.
 
 ---
 
@@ -360,7 +401,6 @@ The current UI uses linked HTTPS media rather than storing uploads. Search is ca
 - [OPERATIONS](OPERATIONS.md) — Production deployment, durable webhooks, backups, and key rotation.
 - [THREAT MODEL](docs/THREAT-MODEL.md) — Security boundaries, trust assumptions, and known constraints.
 - [TIER MATRIX](TIER-MATRIX.md) — Feature matrix and evidence breakdown for hackathon tiers.
-- [IMPLEMENTATION STATUS](IMPLEMENTATION-STATUS.md) — Audit completion status and locally verified claims.
 
 ---
 
