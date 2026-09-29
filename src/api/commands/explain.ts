@@ -28,6 +28,7 @@ const explain = defineCommand({
     const projects = (frozen.projects as Record<string, unknown>[]).filter(p => own.has(String(p.project))).map(p => {
       const details = explanations.find(x => x.project === p.project);
       return { project: p.project, title: p.title, rawMean: p.rawMean ?? null, adjusted: p.adjusted,
+        low: p.low ?? null, high: p.high ?? null,
         rankRaw: p.rankRaw ?? null, rank: p.rank, rankMove: p.rankMove ?? null,
         grandMean: details?.grandMean ?? null, reviews: details?.reviews ?? [] };
     });

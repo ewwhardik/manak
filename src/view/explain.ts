@@ -4,6 +4,172 @@ import type { ViewContext } from "./pages.ts";
 
 const num = (x: unknown) => typeof x === "number" && Number.isFinite(x) ? x.toFixed(4) : "Unavailable";
 
+function renderWaterfallChart(project: Record<string, unknown>): string {
+  const grandMean = typeof project.grandMean === "number" ? project.grandMean : null;
+  const adjusted = typeof project.adjusted === "number" ? project.adjusted : null;
+  const reviews = Array.isArray(project.reviews) ? (project.reviews as Record<string, unknown>[]) : [];
+  if (grandMean === null || adjusted === null || reviews.length === 0) return "";
+
+  const totalWeight = reviews.reduce((sum, r) => sum + (typeof r.weight === "number" ? r.weight : 1), 0) || 1;
+
+  type Step = {
+    label: string;
+    sublabel: string;
+    start: number;
+    end: number;
+    delta: number;
+    type: "total" | "delta" | "final";
+    detail: string;
+  };
+
+  const steps: Step[] = [];
+  steps.push({
+    label: "Grand Mean (μ)",
+    sublabel: "Panel Base",
+    start: 0,
+    end: grandMean,
+    delta: grandMean,
+    type: "total",
+    detail: `Panel average: ${grandMean.toFixed(2)}`,
+  });
+
+  let currentLevel = grandMean;
+  for (let i = 0; i < reviews.length; i++) {
+    const r = reviews[i]!;
+    const weight = typeof r.weight === "number" ? r.weight : 1;
+    const calibrated = typeof r.calibrated === "number" ? r.calibrated : grandMean;
+    const raw = typeof r.raw === "number" ? r.raw : 0;
+    const baseline = typeof r.baseline === "number" ? r.baseline : grandMean;
+    const leniency = baseline - grandMean;
+    const scale = typeof r.scale === "number" ? r.scale : 1;
+    const shrinkage = typeof r.shrinkage === "number" ? r.shrinkage : 1;
+    const delta = (weight / totalWeight) * (calibrated - grandMean);
+    const nextLevel = currentLevel + delta;
+
+    steps.push({
+      label: String(r.label || `Review ${i + 1}`),
+      sublabel: leniency > 0.05 ? "Lenient judge offset" : leniency < -0.05 ? "Harsh judge offset" : "Neutral judge",
+      start: currentLevel,
+      end: nextLevel,
+      delta,
+      type: "delta",
+      detail: `Raw: ${raw.toFixed(1)} · β: ${leniency >= 0 ? "+" : ""}${leniency.toFixed(2)} · σ: ${scale.toFixed(2)} · γ: ${shrinkage.toFixed(2)} · Δ: ${delta >= 0 ? "+" : ""}${delta.toFixed(2)}`,
+    });
+    currentLevel = nextLevel;
+  }
+
+  const low = typeof project.low === "number" ? project.low : null;
+  const high = typeof project.high === "number" ? project.high : null;
+
+  steps.push({
+    label: "Calibrated (αᵢ)",
+    sublabel: low !== null && high !== null ? `95% CI: [${low.toFixed(1)}, ${high.toFixed(1)}]` : "Final score",
+    start: 0,
+    end: adjusted,
+    delta: adjusted,
+    type: "final",
+    detail: `Calibrated Score: ${adjusted.toFixed(2)}${low !== null && high !== null ? ` (95% CI: [${low.toFixed(2)}, ${high.toFixed(2)}])` : ""}`,
+  });
+
+  const svgWidth = 760;
+  const svgHeight = 280;
+  const padLeft = 60;
+  const padRight = 40;
+  const padTop = 40;
+  const padBottom = 60;
+  const chartWidth = svgWidth - padLeft - padRight;
+  const chartHeight = svgHeight - padTop - padBottom;
+
+  let minVal = 0;
+  let maxVal = Math.max(100, grandMean, adjusted);
+  if (low !== null) minVal = Math.min(minVal, low);
+  if (high !== null) maxVal = Math.max(maxVal, high);
+  for (const s of steps) {
+    minVal = Math.min(minVal, s.start, s.end);
+    maxVal = Math.max(maxVal, s.start, s.end);
+  }
+  maxVal = Math.ceil(maxVal * 1.08);
+
+  const yScale = (v: number) => padTop + chartHeight - ((v - minVal) / (maxVal - minVal)) * chartHeight;
+  const colWidth = chartWidth / steps.length;
+  const barWidth = Math.min(68, colWidth * 0.72);
+
+  let elements = "";
+  const gridTicks = [0, 25, 50, 75, 100].filter((t) => t >= minVal && t <= maxVal);
+  for (const tick of gridTicks) {
+    const y = yScale(tick);
+    elements += `<line x1="${padLeft}" y1="${y}" x2="${svgWidth - padRight}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-dasharray="3,3" />`;
+    elements += `<text x="${padLeft - 8}" y="${y + 4}" fill="rgba(255,255,255,0.4)" font-size="11" text-anchor="end" font-family="system-ui,sans-serif">${tick}</text>`;
+  }
+
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i]!;
+    const cx = padLeft + i * colWidth + colWidth / 2;
+    const x = cx - barWidth / 2;
+
+    const yStart = yScale(s.start);
+    const yEnd = yScale(s.end);
+    const yTop = Math.min(yStart, yEnd);
+    const barH = Math.max(2, Math.abs(yStart - yEnd));
+
+    let fill = "#5EC8D8";
+    let stroke = "rgba(94, 200, 216, 0.6)";
+    if (s.type === "delta") {
+      if (s.delta >= 0) {
+        fill = "#10B981";
+        stroke = "rgba(16, 185, 129, 0.7)";
+      } else {
+        fill = "#F59E0B";
+        stroke = "rgba(245, 158, 11, 0.7)";
+      }
+    } else if (s.type === "final") {
+      fill = "#6366F1";
+      stroke = "rgba(99, 102, 241, 0.8)";
+    }
+
+    if (i > 0 && steps[i - 1]!.type !== "total") {
+      const prevX = padLeft + (i - 1) * colWidth + colWidth / 2 + barWidth / 2;
+      elements += `<line x1="${prevX}" y1="${yStart}" x2="${x}" y2="${yStart}" stroke="rgba(255,255,255,0.25)" stroke-dasharray="2,2" />`;
+    }
+
+    elements += `<rect x="${x}" y="${yTop}" width="${barWidth}" height="${barH}" rx="4" fill="${fill}" stroke="${stroke}" fill-opacity="${s.type === 'total' || s.type === 'final' ? '0.85' : '0.75'}">`;
+    elements += `<title>${esc(s.detail)}</title></rect>`;
+
+    const labelY = yTop - 6;
+    const valText = s.type === "delta" ? `${s.delta >= 0 ? "+" : ""}${s.delta.toFixed(1)}` : s.end.toFixed(1);
+    elements += `<text x="${cx}" y="${labelY}" fill="#F3F4F6" font-size="11" font-weight="600" text-anchor="middle" font-family="system-ui,sans-serif">${valText}</text>`;
+
+    elements += `<text x="${cx}" y="${svgHeight - padBottom + 18}" fill="#E2E8F0" font-size="11" font-weight="500" text-anchor="middle" font-family="system-ui,sans-serif">${esc(s.label)}</text>`;
+    elements += `<text x="${cx}" y="${svgHeight - padBottom + 32}" fill="rgba(255,255,255,0.5)" font-size="9.5" text-anchor="middle" font-family="system-ui,sans-serif">${esc(s.sublabel)}</text>`;
+
+    if (s.type === "final" && low !== null && high !== null) {
+      const yLow = yScale(low);
+      const yHigh = yScale(high);
+      const capWidth = 14;
+      elements += `<line x1="${cx}" y1="${yHigh}" x2="${cx}" y2="${yLow}" stroke="#A5B4FC" stroke-width="2" />`;
+      elements += `<line x1="${cx - capWidth / 2}" y1="${yHigh}" x2="${cx + capWidth / 2}" y2="${yHigh}" stroke="#A5B4FC" stroke-width="2" />`;
+      elements += `<line x1="${cx - capWidth / 2}" y1="${yLow}" x2="${cx + capWidth / 2}" y2="${yLow}" stroke="#A5B4FC" stroke-width="2" />`;
+      elements += `<text x="${cx + capWidth / 2 + 4}" y="${yHigh + 4}" fill="#A5B4FC" font-size="9" font-family="system-ui,sans-serif">High: ${high.toFixed(1)}</text>`;
+      elements += `<text x="${cx + capWidth / 2 + 4}" y="${yLow + 4}" fill="#A5B4FC" font-size="9" font-family="system-ui,sans-serif">Low: ${low.toFixed(1)}</text>`;
+    }
+  }
+
+  return `<figure class="panel">
+<figcaption>
+<strong>Calibration Waterfall: Grand Mean (μ) &rarr; Reviewer Offsets (βⱼ) &rarr; Final Score (αᵢ)</strong>
+${low !== null && high !== null ? `<span> · 95% Bootstrap CI: [${low.toFixed(2)}, ${high.toFixed(2)}]</span>` : ""}
+</figcaption>
+<div class="scroll">
+<svg width="100%" height="auto" viewBox="0 0 ${svgWidth} ${svgHeight}" role="img" aria-label="Waterfall breakdown of score calibration">
+${elements}
+</svg>
+</div>
+<p class="detail">
+Grand Mean (μ) in cyan · Harsh judge uplift in green · Lenient judge discount in amber · Calibrated Score (αᵢ) in indigo with 95% Bootstrap CI error bar.
+</p>
+</figure>`;
+}
+
 export function explainPage(context: ViewContext): string {
   const result = context.result as Record<string, unknown>;
   return page({ title: "Explain my rank", whoami: context.whoami, demoMode: context.demoMode,
@@ -12,6 +178,7 @@ export function explainPage(context: ViewContext): string {
     body: `<p>${esc(result.notice)}</p>${rows(result, "projects").map(project => `<section>
 <h2>${esc(project.title)}</h2><p>Raw rank: ${esc(project.rankRaw ?? "Unavailable")} · Calibrated rank: ${esc(project.rank)} · Rank movement: ${esc(project.rankMove ?? "Unavailable")}</p>
 <p>Raw mean: ${num(project.rawMean)} · Published score: ${num(project.adjusted)} · Panel grand mean: ${num(project.grandMean)}</p>
+${renderWaterfallChart(project)}
 ${rows(project, "reviews").length ? scroller(table(["Review", "Raw total", "Baseline", "Scale", "Information weight", "Shrinkage trust", "Calibrated contribution"],
 rows(project, "reviews").map(r => [String(r.label), num(r.raw), num(r.baseline), num(r.scale), num(r.weight), r.slopeFitted ? num(r.shrinkage) : "Scale held at 1", num(r.calibrated)])), "Anonymous review contributions") : '<p>No frozen rubric breakdown is available for this revision.</p>'}
 </section>`).join("") || '<p>Your team has no project in this published ranking.</p>'}
