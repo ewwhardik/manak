@@ -2008,15 +2008,20 @@ test("a ballot, assignment or comparison for somebody who is not a judge cannot 
       ),
     /FOREIGN KEY/,
   );
-  // Granting the role makes the same insert legal, which is what proves the refusal
-  // was about the role and not about something else in the row.
+  // Granting the role permits a different team's project. The member's own
+  // project is still forbidden by the cross-row conflict trigger.
   grantRole(h.system, h.event.id, builder.id, "judge");
+  assert.throws(() => write(
+    `insert into ballot (id, event_id, judge_id, project_id, rubric_version, comment,
+       created_at, submitted_at) values ('B1', :e, :j, :p, 1, '', :at, :at)`,
+    { e: h.event.id, j: builder.id, p: project, at: T0 },
+  ), /own team/);
   assert.doesNotThrow(() =>
     write(
       `insert into ballot (id, event_id, judge_id, project_id, rubric_version, comment,
          created_at, submitted_at)
        values ('B1', :e, :j, :p, 1, '', :at, :at)`,
-      { e: h.event.id, j: builder.id, p: project, at: T0 },
+      { e: h.event.id, j: builder.id, p: other, at: T0 },
     ),
   );
   h.close();
