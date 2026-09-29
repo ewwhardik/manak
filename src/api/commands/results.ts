@@ -1869,9 +1869,8 @@ export const publicIssuedCertificate = defineCommand({
     replacementSerial: { type: ["string", "null"] },
     eventSlug: { type: "string" },
   }, required: ["serial", "recipientName", "status"] } },
-  handler: ({ ctx, event, input, roles }) => {
+  handler: ({ ctx, event, input }) => {
     const row = event as EventRow;
-    if (!roles.includes("organizer")) { assertVotingClosed(row, ctx.now()); assertGate(row, ctx.now(), "results"); }
     const cert = publicCertificate(ctx.db, row.id, String(input.serial));
     if (!cert) throw new RuleError("certificate.unknown", "No issued certificate has this serial for this event.");
     return { ...cert, eventSlug: row.slug };
