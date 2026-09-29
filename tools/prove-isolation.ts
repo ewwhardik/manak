@@ -208,6 +208,7 @@ type Planted = {
   readonly criteria: Readonly<Record<string, number>>;
   readonly voterHash: string;
   readonly certSerial: string;
+  readonly leaveTeam: string;
 };
 
 type Fixture = {
@@ -325,6 +326,7 @@ function plant(): Fixture {
   // project another probe still depends on.
   const pulled = rival("Sage", "Sage");
   const culled = rival("Clove", "Clove");
+  const leaverTeam = createTeam(system, here.id, "Leaver");
 
   // A published rubric, because `saveBallot` refuses without one and then refuses again — with
   // a 422 — for a score set that does not cover every criterion of the version in force.
@@ -393,6 +395,7 @@ function plant(): Fixture {
       criteria,
       voterHash,
       certSerial,
+      leaveTeam: leaverTeam.id,
     },
     accountOf,
     sessionFor: (witness) => {
@@ -560,11 +563,14 @@ function valuesFor(
     case "projects.list":
       return { event: SCOPED };
     case "teams.join":
+    case "teams.invite_rotate":
       // The witness's *own* team. Only the participant reaches this handler, and joining the
       // team it is already on is an early return rather than `team.alreadyJoined` — a 409 would
       // pass too, but a probe that has to be refused to be counted as allowed is a probe
       // somebody will one day mistake for the bug it resembles.
       return { event: SCOPED, team: planted.team };
+    case "teams.leave":
+      return { event: SCOPED, team: planted.leaveTeam };
     // Projects. `show` names a submitted project because its handler hides anything else
     // behind `notFound` from all but the owning team and an organizer, and it is public: aimed
     // at the draft, four of its six `allow` cells would answer 404 and the whole table's
@@ -658,6 +664,14 @@ function valuesFor(
         discountPercent: 100,
         reason: "Co-voting Sybil clique",
       };
+    case "votes.void_voter":
+      return {
+        event: SCOPED,
+        voterToken: planted.voterHash,
+        reason: "Isolation probe voter void",
+      };
+    case "exports.archive_manifest":
+      return { event: SCOPED };
     case "ballots.save":
       // Every criterion of the published version, each inside its range. A missing one is
       // `ballot.incomplete` and an out-of-range one is `score.range`, and both are 422s. The

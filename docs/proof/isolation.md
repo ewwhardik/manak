@@ -12,12 +12,12 @@ derived from the declarations.
 
 | Measured                                     | Count |
 | -------------------------------------------- | ----- |
-| Operations declared                          | 96    |
+| Operations declared                          | 102   |
 | Witnesses impersonated                       | 6     |
 | Renderings per operation                     | 2     |
-| Requests sent over a socket                  | 1152  |
-| Answers that were a refusal                  | 634   |
-| Refusals of an operation that writes         | 388   |
+| Requests sent over a socket                  | 1224  |
+| Answers that were a refusal                  | 674   |
+| Refusals of an operation that writes         | 418   |
 | Ledger entries appended by a refused request | 0     |
 | Sign-in and invitation messages delivered    | 14    |
 | Breaks in the ledger's hash chain afterwards | 0     |
@@ -64,6 +64,8 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 | system.openapi                         | `GET /api/openapi.json`                                   | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | system.capabilities                    | `GET /api/capabilities`                                   | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | system.healthz                         | `GET /api/healthz`                                        | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| system.limits                          | `GET /api/system/limits`                                  | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
+| system.rate_probe                      | `POST /api/system/rate-probe`                             | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | auth.signin                            | `GET /api/signin`                                         | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | auth.request                           | `POST /api/signin`                                        | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | auth.link                              | `GET /api/signin/:token`                                  | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
@@ -90,6 +92,8 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 | tracks.create                          | `POST /api/events/:event/tracks`                          | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 | teams.list                             | `GET /api/events/:event/teams`                            | participant                             | 401       | 404      | 404     | yes         | 403   | 403       |
 | teams.join                             | `POST /api/events/:event/teams/:team/members`             | participant, submissions open           | 401       | 404      | 404     | yes         | 403   | 403       |
+| teams.leave                            | `POST /api/events/:event/teams/:team/leave`               | participant, submissions open           | 401       | 404      | 404     | yes         | 403   | 403       |
+| teams.invite_rotate                    | `POST /api/events/:event/teams/:team/invites/rotate`      | participant, submissions open           | 401       | 404      | 404     | yes         | 403   | 403       |
 | projects.list                          | `GET /api/events/:event/projects`                         | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | projects.show                          | `GET /api/events/:event/projects/:project`                | public                                  | yes       | yes      | yes     | yes         | yes   | yes       |
 | projects.create                        | `POST /api/events/:event/projects`                        | participant, submissions open           | 401       | 404      | 404     | yes         | 403   | 403       |
@@ -147,7 +151,9 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 | votes.configure_abuse                  | `POST /api/events/:event/voting/abuse/policy`             | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 | votes.review_abuse                     | `POST /api/events/:event/voting/abuse/review`             | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 | votes.discount_cluster                 | `POST /api/events/:event/voting/discount`                 | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| votes.void_voter                       | `POST /api/events/:event/voting/void`                     | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 | exports.download                       | `GET /api/events/:event/csv/:stage`                       | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
+| exports.archive_manifest               | `GET /api/events/:event/archive`                          | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 | exports.registrations_csv              | `GET /api/events/:event/export/registrations.csv`         | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 | exports.teams_csv                      | `GET /api/events/:event/export/teams.csv`                 | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
 | exports.projects_csv                   | `GET /api/events/:event/export/projects.csv`              | organizer                               | 401       | 404      | 404     | 403         | 403   | yes       |
@@ -207,6 +213,14 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 | teams.join                             | stranger | html      |,               | 200         |
 | teams.join                             | founder  | json      | `event.missing` | 200         |
 | teams.join                             | founder  | html      |,               | 200         |
+| teams.leave                            | stranger | json      | `event.missing` | 200         |
+| teams.leave                            | stranger | html      |,               | 200         |
+| teams.leave                            | founder  | json      | `event.missing` | 200         |
+| teams.leave                            | founder  | html      |,               | 200         |
+| teams.invite_rotate                    | stranger | json      | `event.missing` | 200         |
+| teams.invite_rotate                    | stranger | html      |,               | 200         |
+| teams.invite_rotate                    | founder  | json      | `event.missing` | 200         |
+| teams.invite_rotate                    | founder  | html      |,               | 200         |
 | projects.create                        | stranger | json      | `event.missing` | 200         |
 | projects.create                        | stranger | html      |,               | 200         |
 | projects.create                        | founder  | json      | `event.missing` | 200         |
@@ -375,10 +389,18 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 | votes.discount_cluster                 | stranger | html      |,               | 200         |
 | votes.discount_cluster                 | founder  | json      | `event.missing` | 200         |
 | votes.discount_cluster                 | founder  | html      |,               | 200         |
+| votes.void_voter                       | stranger | json      | `event.missing` | 200         |
+| votes.void_voter                       | stranger | html      |,               | 200         |
+| votes.void_voter                       | founder  | json      | `event.missing` | 200         |
+| votes.void_voter                       | founder  | html      |,               | 200         |
 | exports.download                       | stranger | json      | `event.missing` | 200         |
 | exports.download                       | stranger | html      |,               | 200         |
 | exports.download                       | founder  | json      | `event.missing` | 200         |
 | exports.download                       | founder  | html      |,               | 200         |
+| exports.archive_manifest               | stranger | json      | `event.missing` | 200         |
+| exports.archive_manifest               | stranger | html      |,               | 200         |
+| exports.archive_manifest               | founder  | json      | `event.missing` | 200         |
+| exports.archive_manifest               | founder  | html      |,               | 200         |
 | exports.registrations_csv              | stranger | json      | `event.missing` | 200         |
 | exports.registrations_csv              | stranger | html      |,               | 200         |
 | exports.registrations_csv              | founder  | json      | `event.missing` | 200         |
@@ -408,12 +430,12 @@ somebody else's organizer apart from a passer-by, this is the column where it wo
 
 | Status | Code                     | Media type                 | Answers |
 | ------ | ------------------------ | -------------------------- | ------- |
-| 401    |,                        | `text/html`                | 69      |
-| 401    | `access.unauthenticated` | `application/problem+json` | 69      |
-| 403    |,                        | `text/html`                | 126     |
-| 403    | `access.forbidden`       | `application/problem+json` | 126     |
-| 404    |,                        | `text/html`                | 122     |
-| 404    | `event.missing`          | `application/problem+json` | 122     |
+| 401    |,                        | `text/html`                | 73      |
+| 401    | `access.unauthenticated` | `application/problem+json` | 73      |
+| 403    |,                        | `text/html`                | 134     |
+| 403    | `access.forbidden`       | `application/problem+json` | 134     |
+| 404    |,                        | `text/html`                | 130     |
+| 404    | `event.missing`          | `application/problem+json` | 130     |
 
 ## What this does not prove
 

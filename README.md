@@ -236,7 +236,7 @@ Manak implements and claims **all four tiers (T1, T2, T3, T4)**. The official Do
 | **T2** | Unauthorized participant lockout | `T2  participant blocked` | **PASS** |
 | **T2** | Tamper-neutral CSV export | `T2  csv export works` | **PASS** |
 | **T3** | Bayesian judge-effect normalization | `npm run prove:normalization -- --check` (1,180 simulated runs) | **PASS** |
-| **T4** | Ed25519 signatures & Certificate Studio | `npm run prove:isolation -- --check` (96 operations) | **PASS** |
+| **T4** | Ed25519 signatures & Certificate Studio | `npm run prove:isolation -- --check` (102 operations) | **PASS** |
 
 <details>
 <summary><b>View Raw <code>run.py .dogfood.toml</code> Output</b></summary>
@@ -362,8 +362,8 @@ Manak includes friendly mascot guides for each participant role:
 | :--- | :--- | :--- |
 | **Production npm dependencies** | **0** | `package.json` (zero runtime dependencies) |
 | **Automated test suite** | **606** tests declared | `npm test` on native `node:test`; 605 passed and one live SMTP case skipped on Windows |
-| **Command declarations** | **96 operations** | `src/api/commands/index.ts` & `/api/openapi.json` |
-| **Route inventory** | **96 operations** | Declared commands plus transport exceptions in `docs/ROUTES.md` |
+| **Command declarations** | **102 operations** | `src/api/commands/index.ts` & `/api/openapi.json` |
+| **Route inventory** | **102 operations** | Declared commands plus transport exceptions in `docs/ROUTES.md` |
 | **Process architecture** | **1 process** | `bin/manak.ts` (single Node process, single SQLite writer) |
 | **Database file** | **1 file** | Native Node SQLite (`data/manak.db`), strict schema, 36 tables, 19 migrations |
 | **Cryptographic keys** | **Ed25519** | Elliptic-curve signed award records (`/.well-known/manak-key.pub`) |
@@ -442,7 +442,7 @@ The [judging guide](JUDGING.md) describes the models and limits. [Proof reports]
 
 ## Architecture and Access
 
-Manak has **96 operations** in the command registry. The same declarations drive API dispatch, access checks, browser forms, and OpenAPI generation. A few transport routes, including the guide, ceremony, verifier, widget, and demo shortcut, are separately covered by tests in the [route inventory](docs/ROUTES.md). JSON API routes live under `/api`; most browser pages use the corresponding path without that prefix. See [the architecture](docs/ARCHITECTURE.md), [threat model](docs/THREAT-MODEL.md), and `/api/openapi.json`.
+Manak has **102 operations** in the command registry. The same declarations drive API dispatch, access checks, browser forms, and OpenAPI generation. A few transport routes, including the guide, ceremony, verifier, widget, and demo shortcut, are separately covered by tests in the [route inventory](docs/ROUTES.md). JSON API routes live under `/api`; most browser pages use the corresponding path without that prefix. See [the architecture](docs/ARCHITECTURE.md), [threat model](docs/THREAT-MODEL.md), and `/api/openapi.json`.
 
 | Layer | Responsibility |
 | --- | --- |
@@ -512,7 +512,7 @@ All latest execution outputs are stored directly in the repository under [`logs/
 - `npm ci` installs development types and TypeScript for `typecheck`; `npm start` does not install packages.
 - The proof scripts compare mathematical convergence, isolation, and round trips against committed evidence in `docs/proof/`.
 - One live SMTP delivery test is skipped when no SMTP relay is present; see [`logs/02-unit-test-suite.log`](logs/02-unit-test-suite.log) for the exact count.
-- The registry currently declares **96 operations**. Generated [OpenAPI](openapi.json) and the [browser API reference](https://manak.up.railway.app/docs) expose their current contracts. Run `npm run docs:generate` after adding commands or changing measured source counts.
+- The registry currently declares **102 operations**. Generated [OpenAPI](openapi.json) and the [browser API reference](https://manak.up.railway.app/docs) expose their current contracts. Run `npm run docs:generate` after adding commands or changing measured source counts.
 
 ---
 
