@@ -37,7 +37,7 @@ import { defineCommand } from "../registry.ts";
 import type { Command } from "../registry.ts";
 import { InputError } from "../schema.ts";
 import type { Field, Fields, Parsed, Problem } from "../schema.ts";
-import { notFound } from "../errors.ts";
+import { notFound, forbidden } from "../errors.ts";
 import { EVENT_REF } from "./events.ts";
 import {
   addTeamMember,
@@ -53,6 +53,8 @@ import {
   listProjects,
   listTeams,
   listTracks,
+  removeTeamMember,
+  rotateTeamInvite,
   submitProject,
   isQuarantined,
   teamMembers,
@@ -467,6 +469,82 @@ export const teamJoin = defineCommand({
     addTeamMember(ctx, team, accountId ?? "");
     return {
       team: { id: team.id, name: team.name, size: teamMembers(ctx.db, row.id, team.id).length },
+    };
+  },
+});
+
+export const teamLeave = defineCommand({
+  name: "teams.leave",
+  summary: "Leave a team in an event.",
+  method: "POST",
+  path: "/api/events/:event/teams/:team/leave",
+  capability: { audience: "participant", scope: "event", gate: "submissions" },
+  input: { event: EVENT_REF, team: TEAM_REF },
+  returns: {
+    kind: "json",
+    schema: {
+      type: "object",
+      properties: {
+        ok: { type: "boolean" },
+        team: {
+          type: "object",
+          properties: { id: { type: "string" }, name: { type: "string" }, size: { type: "integer" } },
+          required: ["id", "name", "size"],
+        },
+      },
+      required: ["ok", "team"],
+    },
+  },
+  limit: "submission",
+  records: ["team.left"],
+  form: { title: "Leave this team", submit: "Leave team", redirect: ({ input }) => `/events/${encodeURIComponent(String(input.event))}/teams` },
+  handler: ({ ctx, input, event, accountId }) => {
+    const row = event as EventRow;
+    const team = findTeamIn(ctx.db, row.id, String(input.team));
+    if (team === undefined) throw notFound("team", String(input.team));
+    removeTeamMember(ctx, team, accountId ?? "");
+    return {
+      ok: true,
+      team: { id: team.id, name: team.name, size: teamMembers(ctx.db, row.id, team.id).length },
+    };
+  },
+});
+
+export const teamInviteRotate = defineCommand({
+  name: "teams.invite_rotate",
+  summary: "Rotate the private invitation link for this team.",
+  method: "POST",
+  path: "/api/events/:event/teams/:team/invites/rotate",
+  capability: { audience: "participant", scope: "event", gate: "submissions" },
+  input: { event: EVENT_REF, team: TEAM_REF },
+  returns: {
+    kind: "json",
+    schema: {
+      type: "object",
+      properties: {
+        teamId: { type: "string" },
+        code: { type: "string" },
+        generation: { type: "integer" },
+      },
+      required: ["teamId", "code", "generation"],
+    },
+  },
+  limit: "submission",
+  records: ["team.invite_rotated"],
+  form: { title: "Rotate team invite", submit: "Rotate invite", redirect: ({ input }) => `/events/${encodeURIComponent(String(input.event))}/teams` },
+  handler: ({ ctx, input, event, accountId, roles }) => {
+    const row = event as EventRow;
+    const team = findTeamIn(ctx.db, row.id, String(input.team));
+    if (team === undefined) throw notFound("team", String(input.team));
+    const members = teamMembers(ctx.db, row.id, team.id);
+    if (!roles.includes("organizer") && !members.includes(accountId ?? "")) {
+      throw forbidden("Only team members or organizers may rotate team invites.");
+    }
+    const result = rotateTeamInvite(ctx, row.id, team.id);
+    return {
+      teamId: team.id,
+      code: result.code,
+      generation: result.generation,
     };
   },
 });
@@ -1028,6 +1106,8 @@ export const PROJECT_COMMANDS: readonly Command[] = [
   trackCreate,
   teamList,
   teamJoin,
+  teamLeave,
+  teamInviteRotate,
   list,
   show,
   create,

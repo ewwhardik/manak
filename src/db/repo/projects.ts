@@ -12,6 +12,8 @@
  * columns consistent so no code path can lose it.
  */
 
+import { randomBytes } from "node:crypto";
+
 import type { Ctx } from "../context.ts";
 import { RuleError } from "../context.ts";
 import type { Db } from "../open.ts";
@@ -215,6 +217,46 @@ export function addTeamMember(ctx: Ctx, team: TeamRow, accountId: string): void 
           );
         },
       );
+  });
+}
+
+export function removeTeamMember(ctx: Ctx, team: TeamRow, accountId: string): void {
+  ctx.db.tx(() => {
+    const members = teamMembers(ctx.db, team.event_id, team.id);
+    if (!members.includes(accountId)) return;
+    ctx.recorded(
+      { action: "team.left", eventId: team.event_id, subject: team.id, payload: { account: accountId } },
+      () => {
+        ctx.write(
+          `delete from team_member where event_id = :e and team_id = :t and account_id = :a`,
+          { e: team.event_id, t: team.id, a: accountId },
+        );
+      },
+    );
+  });
+}
+
+export function rotateTeamInvite(ctx: Ctx, eventId: string, teamId: string): { code: string; generation: number } {
+  return ctx.db.tx(() => {
+    const existing = ctx.db.get<{ generation: number }>(
+      "select generation from team_invite where event_id = :e and team_id = :t",
+      { e: eventId, t: teamId },
+    );
+    const gen = (existing?.generation ?? 0) + 1;
+    const code = randomBytes(32).toString("base64url");
+    const now = ctx.now();
+    ctx.recorded(
+      { action: "team.invite_rotated", eventId, subject: teamId, payload: { generation: gen } },
+      () => {
+        ctx.write(
+          `insert into team_invite (event_id, team_id, code, generation, updated_at)
+           values (:e, :t, :c, :g, :at)
+           on conflict (event_id, team_id) do update set code = :c, generation = :g, updated_at = :at`,
+          { e: eventId, t: teamId, c: code, g: gen, at: now },
+        );
+      },
+    );
+    return { code, generation: gen };
   });
 }
 

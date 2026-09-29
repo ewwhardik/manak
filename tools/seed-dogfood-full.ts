@@ -59,6 +59,108 @@ export function seedDogfoodFull(dbPath = "./data/demo.db"): void {
   }
 }
 
+export function seedSampleHackFull(dbPath = "./data/demo.db"): void {
+  const db = openDatabase(dbPath);
+  try {
+    const ctx = makeContext(db, { clock: systemClock });
+    const event = findEventBySlug(db, "sample-hack-2026");
+    if (!event) return;
+
+    // 1. Temporarily set results_public = 1 and voting_mode = 'off' to freeze and issue certificates
+    db.run("update event set results_public = 1, voting_mode = 'off' where id = :e", { e: event.id });
+
+    // 2. Seed quarantined duplicate project if not present
+    const existingDup = db.get("select 1 from project where id = 'prj_dup_01'");
+    if (!existingDup) {
+      const p1 = db.get<{ id: string; team_id: string }>(
+        "select id, team_id from project where event_id = :e order by id limit 1",
+        { e: event.id },
+      );
+      if (p1) {
+        db.run(
+          `insert into project (id, event_id, team_id, title, summary, tagline, description, tech_tags, status, submitted_at, created_at, duplicate_of, duplicate_reason, duplicate_decision)
+           values ('prj_dup_01', :e, :t, 'Voice Assistant Duplicate', 'Quarantined duplicate entry for triage', '', '', '', 'submitted', :at, :at, :prior, 'title', 'pending')`,
+          {
+            e: event.id,
+            t: p1.team_id,
+            at: systemClock.now() - 7200000,
+            prior: p1.id,
+          },
+        );
+        process.stdout.write("[sample-hack-2026] Seeded quarantined duplicate project prj_dup_01\n");
+      }
+    }
+
+    // 3. Seed team invite if not present
+    const teamRow = db.get<{ id: string }>("select id from team where event_id = :e limit 1", { e: event.id });
+    if (teamRow) {
+      db.run(
+        `insert into team_invite (event_id, team_id, code, generation, updated_at)
+         values (:e, :t, 'manak_demo_invite_token_sample_team_0001234', 1, :at)
+         on conflict (event_id, team_id) do nothing`,
+        { e: event.id, t: teamRow.id, at: systemClock.now() },
+      );
+    }
+
+    // 4. Clear and publish official revision 1
+    db.run("delete from certificate_batch where event_id = :e", { e: event.id });
+    db.run("delete from award_decision where event_id = :e", { e: event.id });
+    db.run("delete from result_publication where event_id = :e", { e: event.id });
+
+    const live = (liveShow.handler as (call: unknown) => unknown)({
+      ctx,
+      event,
+      input: { event: event.slug },
+      roles: ["organizer"],
+    }) as Record<string, unknown>;
+
+    const pub = storePublication(ctx, event.id, live, "Official Fixture Results", "Final Verified Standings");
+    process.stdout.write(`[sample-hack-2026] Stored publication revision ${pub.revision}\n`);
+
+    // 5. Seed Grand Prize award
+    const projects = live.projects as Array<{ project: string; title: string }>;
+    if (projects.length > 0) {
+      const p1 = projects[0]!;
+      const organizer = db.get<{ id: string }>("select id from account where email = 'organizer@example.org'");
+      if (organizer) {
+        const id = ctx.newId();
+        db.run(
+          `insert into award_decision (id, event_id, publication_revision, award_key,
+           project_id, decision_type, place, public_summary, internal_reason, actor_id, decided_at)
+           values (:id, :e, :r, :key, :p, 'placement', 1, 'Top scoring project with highest overall calibrated index.', 'Winner of Sample Hack 2026.', :actor, :at)`,
+          {
+            id,
+            e: event.id,
+            r: pub.revision,
+            key: "1st Place: Grand Prize",
+            p: p1.project,
+            actor: organizer.id,
+            at: Date.now(),
+          },
+        );
+        process.stdout.write("[sample-hack-2026] Recorded award: 1st Place: Grand Prize\n");
+      }
+    }
+
+    // 6. Issue certificates while voting is off and results are public
+    const certReport = persistEventCertificates(db, "sample-hack-2026", Date.now(), "./data", "http://localhost:8080");
+    process.stdout.write(`[sample-hack-2026] Issued certificates: ${certReport.totalIssued}\n`);
+
+    // 7. Enable active community voting window for T3 verification
+    db.run(
+      `update event set voting_mode = 'open', voting_open_at = :o, voting_close_at = :c, voting_credits = 100, submissions_close_at = :c where id = :e`,
+      {
+        e: event.id,
+        o: systemClock.now() - 3600000,
+        c: systemClock.now() + 3600000 * 48,
+      },
+    );
+  } finally {
+    db.close();
+  }
+}
+
 if (import.meta.main) {
   seedDogfoodFull();
+  seedSampleHackFull();
 }

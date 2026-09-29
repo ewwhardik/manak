@@ -47,13 +47,20 @@ if (process.env.MANAK_DEMO === "true") {
         process.stdout.write(`[demo] Seeded Certificate Studio demo template for /events/${targetEvent.slug}/certificates/studio\n`);
       }
     }
-    // Seed publication, awards, and certificates for dogfood if not present
+    // Seed publication, awards, and certificates for dogfood and sample-hack-2026 if not present
+    const { seedDogfoodFull, seedSampleHackFull } = await import("./seed-dogfood-full.ts");
     const dogfoodEvent = db.get<{ id: string }>("select id from event where slug = 'dogfood'");
     if (dogfoodEvent) {
       const existingPub = db.get("select 1 from result_publication where event_id = :event", { event: dogfoodEvent.id });
       if (!existingPub) {
-        const { seedDogfoodFull } = await import("./seed-dogfood-full.ts");
         seedDogfoodFull(path);
+      }
+    }
+    const sampleEvent = db.get<{ id: string }>("select id from event where slug = 'sample-hack-2026'");
+    if (sampleEvent) {
+      const existingPub = db.get("select 1 from result_publication where event_id = :event", { event: sampleEvent.id });
+      if (!existingPub) {
+        seedSampleHackFull(path);
       }
     }
   } finally { db.close(); }

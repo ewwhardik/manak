@@ -9,6 +9,7 @@ import {
   assertGate,
   castVote,
   fingerprint,
+  hashToken,
   startVoter,
   voteTotals,
   voterStatus,
@@ -405,6 +406,83 @@ export const discountCluster = defineCommand({
   },
 });
 
+export const voidVoter = defineCommand({
+  name: "votes.void_voter",
+  summary: "Void all votes cast by a suspicious voter identity.",
+  method: "POST",
+  path: "/api/events/:event/voting/void",
+  capability: { audience: "organizer", scope: "event" },
+  input: {
+    event: EVENT_REF,
+    voterToken: {
+      kind: "text",
+      min: 1,
+      max: 4096,
+      label: "Voter Token Hash",
+      help: "The token hash of the voter to void.",
+    },
+    reason: {
+      kind: "text",
+      min: 3,
+      max: 256,
+      label: "Audit Reason",
+      help: "Reason for voiding voter ballots.",
+    },
+  },
+  returns: {
+    kind: "json",
+    schema: {
+      type: "object",
+      properties: {
+        ok: { type: "boolean" },
+        voterToken: { type: "string" },
+        voided: { type: "boolean" },
+        reason: { type: "string" },
+      },
+      required: ["ok", "voterToken", "voided", "reason"],
+    },
+  },
+  limit: "organize",
+  limitKey: ({ input }) => String(input.event ?? ""),
+  records: ["vote.voter_voided"],
+  form: {
+    title: "Void voter ballots",
+    submit: "Void voter",
+    redirect: ({ input }) => `/events/${encodeURIComponent(String(input.event))}/results`,
+  },
+  notes: "Nullifies voter weight to zero and logs permanent audit record.",
+  handler: ({ ctx, event, input }) => {
+    const row = event as EventRow;
+    const token = String(input.voterToken).trim();
+    const reason = String(input.reason).trim();
+    const tokenHash = /^[0-9a-f]{64}$/.test(token) ? token : hashToken(token);
+    ctx.recorded(
+      {
+        action: "vote.voter_voided",
+        eventId: row.id,
+        subject: token.slice(0, 16),
+        payload: { voterToken: token, reason },
+      },
+      () => {
+        ctx.write(
+          `insert into voter (token_hash, event_id, account_id, fingerprint, credits, created_at, expires_at)
+           values (:token, :event, null, :fingerprint, 0, :at, :expires)
+           on conflict(token_hash) do nothing`,
+          { token: tokenHash, event: row.id, fingerprint: `probe-${tokenHash.slice(0, 16)}`, at: ctx.now(), expires: ctx.now() + 86400000 },
+        );
+        ctx.write(
+          `insert into vote_discount (event_id, voter_hash, discount_percent, reason, actor_id, updated_at)
+           values (:event, :token, 100, :reason, :actor, :at)
+           on conflict(event_id, voter_hash) do update set discount_percent = 100,
+           reason = excluded.reason, actor_id = excluded.actor_id, updated_at = excluded.updated_at`,
+          { event: row.id, token: tokenHash, reason, actor: ctx.actorId, at: ctx.now() },
+        );
+      },
+    );
+    return { ok: true, voterToken: token, voided: true, reason };
+  },
+});
+
 export const VOTING_COMMANDS: readonly Command[] = [
   start,
   cast,
@@ -414,4 +492,5 @@ export const VOTING_COMMANDS: readonly Command[] = [
   configureAbuse,
   reviewAbuse,
   discountCluster,
+  voidVoter,
 ];

@@ -28,6 +28,7 @@ import {
   gatesFor,
   headHash,
   ledgerLength,
+  LIMITS,
   listEvents,
   migrationStatus,
 } from "../../db/index.ts";
@@ -463,6 +464,62 @@ export const about = defineCommand({
   }),
 });
 
+export const limits = defineCommand({
+  name: "system.limits",
+  summary: "List fixed-window rate limiting policies and status 429 contract.",
+  method: "GET",
+  path: "/api/system/limits",
+  capability: { audience: "public" },
+  input: {},
+  returns: {
+    kind: "json",
+    schema: {
+      type: "object",
+      properties: {
+        limits: { type: "object" },
+        status429Contract: { type: "string" },
+      },
+      required: ["limits", "status429Contract"],
+    },
+  },
+  notes: "Public policy specification. Explains fixed-window rate meters and Retry-After header semantics.",
+  handler: () => ({
+    limits: LIMITS,
+    status429Contract: "RFC 6585 with Retry-After header",
+  }),
+});
+
+export const rateProbe = defineCommand({
+  name: "system.rate_probe",
+  summary: "Safe rate limit probe endpoint to exercise 429 flood refusal.",
+  method: "POST",
+  path: "/api/system/rate-probe",
+  capability: { audience: "public" },
+  input: {},
+  returns: {
+    kind: "json",
+    schema: {
+      type: "object",
+      properties: {
+        ok: { type: "boolean" },
+        status: { type: "string" },
+        window: { type: "string" },
+        max: { type: "integer" },
+      },
+      required: ["ok", "status", "window", "max"],
+    },
+  },
+  limit: "probe",
+  records: ["system.probed"],
+  notes: "Enforces 2 requests per minute. Exceeding triggers HTTP 429 Too Many Requests with Retry-After header.",
+  handler: () => ({
+    ok: true,
+    status: "allowed",
+    window: "1m",
+    max: 2,
+  }),
+});
+
 /** Every command in this file, in the order the reference page should introduce them. */
 export const SYSTEM_COMMANDS: readonly Command[] = [
   home,
@@ -471,4 +528,6 @@ export const SYSTEM_COMMANDS: readonly Command[] = [
   openapi,
   capabilities,
   health,
+  limits,
+  rateProbe,
 ];

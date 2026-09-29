@@ -54,6 +54,7 @@ export const LIMITS = {
   // event portal from a browser tab. Keyed on the event, because the cost is a property of
   // the field being resampled and not of who asked.
   analyse: { window: MS.minute, max: 20, label: "resampled analyses of one event" },
+  probe: { window: MS.minute, max: 2, label: "rate limit test probes" },
 } as const satisfies Record<string, Limit>;
 
 export type LimitName = keyof typeof LIMITS;

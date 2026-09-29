@@ -286,16 +286,15 @@ export function exportCsv(db: Db, eventId: string, stage: CsvStage): string {
         actorId: string | null;
         subject: string | null;
         payload: string;
+        prevHash: string;
         entryHash: string;
       }>(
         `select seq, at as timestamp, action, event_id as eventId, actor_id as actorId,
-                subject, payload, hash as entryHash
+                subject, payload, prev_hash as prevHash, hash as entryHash
            from ledger
-          where event_id = :event or event_id is null
           order by seq`,
-        { event: eventId },
       );
-      const lines = [formatCsvRow(["seq", "timestamp", "action", "event_id", "actor_id", "subject", "payload", "hash"])];
+      const lines = [formatCsvRow(["seq", "timestamp", "action", "event_id", "actor_id", "subject", "payload", "prev_hash", "hash"])];
       for (const l of ledger) {
         lines.push(formatCsvRow([
           l.seq,
@@ -305,6 +304,7 @@ export function exportCsv(db: Db, eventId: string, stage: CsvStage): string {
           l.actorId ?? "",
           l.subject ?? "",
           l.payload,
+          l.prevHash,
           l.entryHash,
         ]));
       }

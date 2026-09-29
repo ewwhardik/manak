@@ -1,5 +1,5 @@
 import { defineCommand } from "../registry.ts";
-import { CSV_STAGES, exportCsv } from "../../db/index.ts";
+import { ARCHIVE_FORMAT, ARCHIVE_TABLES, CSV_STAGES, exportCsv, headHash } from "../../db/index.ts";
 import type { CsvStage, EventRow } from "../../db/index.ts";
 import { EVENT_REF } from "./events.ts";
 
@@ -15,6 +15,43 @@ export const download = defineCommand({
   handler: ({ ctx, event, input }) => ({
     csv: exportCsv(ctx.db, (event as EventRow).id, input.stage as CsvStage),
     filename: `${(event as EventRow).slug}-${String(input.stage)}.csv`,
+  }),
+});
+
+export const archiveManifest = defineCommand({
+  name: "exports.archive_manifest",
+  summary: "Export the full lossless archive manifest and schema metadata.",
+  method: "GET",
+  path: "/api/events/:event/archive",
+  capability: { audience: "organizer", scope: "event" },
+  input: { event: EVENT_REF },
+  returns: {
+    kind: "json",
+    schema: {
+      type: "object",
+      properties: {
+        format: { type: "integer" },
+        head: { type: "string" },
+        tables: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { name: { type: "string" }, rows: { type: "integer" } },
+            required: ["name", "rows"],
+          },
+        },
+      },
+      required: ["format", "head", "tables"],
+    },
+  },
+  notes: "Organizer-only. Exposes archive structure and verified row counts across all strict tables.",
+  handler: ({ ctx }) => ({
+    format: ARCHIVE_FORMAT,
+    head: headHash(ctx.db),
+    tables: ARCHIVE_TABLES.map((name) => ({
+      name,
+      rows: ctx.db.get<{ count: number }>(`select count(*) as count from "${name}"`)?.count ?? 0,
+    })),
   }),
 });
 
@@ -43,4 +80,4 @@ export const dedicatedDownloads = DEDICATED_EXPORTS.map(([kind, stage]) => defin
   }),
 }));
 
-export const EXPORT_COMMANDS = [download, ...dedicatedDownloads];
+export const EXPORT_COMMANDS = [download, archiveManifest, ...dedicatedDownloads];

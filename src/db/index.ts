@@ -155,6 +155,8 @@ export {
   isQuarantined,
   listProjects,
   listTeams,
+  removeTeamMember,
+  rotateTeamInvite,
   submitProject,
   teamMembers,
   teamOf,

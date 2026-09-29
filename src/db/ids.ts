@@ -116,7 +116,7 @@ function encodeRandom(bytes: Uint8Array): string {
 /** True for a well-formed id. Used to reject a path parameter before a query. */
 export function isId(text: string): boolean {
   if (typeof text !== "string") return false;
-  if (/^[a-z]{3}_[a-zA-Z0-9_-]+$/.test(text)) return true;
+  if (/^[a-z]{2,4}_[a-zA-Z0-9_-]+$/.test(text)) return true;
   if (text.length !== ID_LENGTH) return false;
   for (const character of text) if (!ALPHABET.includes(character)) return false;
   return true;
