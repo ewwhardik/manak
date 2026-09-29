@@ -1,4 +1,5 @@
 # One command starts a seeded local demo or executes the full test suite.
+# "One container, one port, one volume" — completely self-contained with zero external dependencies.
 services:
   manak:
     build: .
@@ -10,12 +11,12 @@ services:
     environment:
       MANAK_DEMO: ${MANAK_DEMO:-true}
       MANAK_FOUNDERS: ${MANAK_FOUNDERS:-rosa@example.com}
-      MANAK_SMTP_HOST: mailpit
-      MANAK_SMTP_PORT: "1025"
-      MANAK_SMTP_FROM: Manak Demo <demo@manak.local>
-      MANAK_SMTP_ENCRYPTION: none
-    depends_on:
-      - mailpit
+      # Air-gap default: when MANAK_SMTP_HOST is empty, Manak uses its built-in offline maildrop,
+      # outputting sign-in links to stdout with zero network sockets or third-party dependencies.
+      MANAK_SMTP_HOST: ${MANAK_SMTP_HOST:-}
+      MANAK_SMTP_PORT: ${MANAK_SMTP_PORT:-1025}
+      MANAK_SMTP_FROM: ${MANAK_SMTP_FROM:-Manak Demo <demo@manak.local>}
+      MANAK_SMTP_ENCRYPTION: ${MANAK_SMTP_ENCRYPTION:-none}
     command: ["node", "--experimental-strip-types", "tools/start-demo.ts"]
     restart: unless-stopped
     stop_grace_period: 10s
@@ -23,6 +24,7 @@ services:
     security_opt: ["no-new-privileges:true"]
 
   mailpit:
+    profiles: ["mail"]
     image: axllent/mailpit:v1.21
     ports:
       - "127.0.0.1:8025:8025"

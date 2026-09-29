@@ -67,7 +67,7 @@ Open **<https://manak.up.railway.app>** and use the **"Fast login"** menu in the
 | 7. Publish & Appeal | Organizer & Builder | Publish a frozen results revision. File a private team appeal (`/appeals`), review it as an organizer, and publish a corrected result revision. |
 | 8. Award & Verify | Organizer & Recipient | Design and customize certificates in the **Certificate Studio** (`/events/sample-hack-2026/certificates/studio`). Issue Ed25519 signed batches, download standalone SVGs (`.svg`), and verify signed records offline at `/verify`. |
 
-The [evaluation guide](https://manak.up.railway.app/guide) in the running app links to each event surface. The [feature guide](FEATURES.md) and [tier evidence matrix](TIER-MATRIX.md) map the implementation to the challenge requirements.
+The [evaluation guide](https://manak.up.railway.app/guide) in the running app links to each event surface. The [feature guide](FEATURES.md), [technical evaluation dossier](EVALUATION.md), [autonomous inspection protocol](AGENTS.md), and [tier evidence matrix](TIER-MATRIX.md) map the implementation to the challenge requirements (machine-readable summary at [llms.txt](llms.txt)).
 
 ### Option B: Run Locally (One Command, Zero Package Installs)
 

@@ -133,7 +133,7 @@ import {
 } from "./respond.ts";
 import type { Target } from "./wire.ts";
 import { credentialFrom, negotiate, parseCookies, readSubmission } from "./wire.ts";
-import { bundledAsset } from "./assets.ts";
+import { bundledAsset, staticDocAsset } from "./assets.ts";
 import { HttpMetrics } from "./metrics.ts";
 
 /**
@@ -300,6 +300,8 @@ export function makeApp(options: AppOptions): Serve {
     }
     const media = bundledAsset(request, target.pathname);
     if (media !== null) return media;
+    const doc = staticDocAsset(request, target.pathname);
+    if (doc !== null) return doc;
     // The stylesheet is not a command, and giving it a declaration would put a row for a
     // file in the capability matrix and the OpenAPI document. It is the one thing this
     // server sends that is not an operation on the domain.

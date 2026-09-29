@@ -202,6 +202,7 @@ ${
   }<title>${esc(options.title)}</title>
 <meta name="description" content="Manak: a self-hosted workspace for hackathon submissions, fair judging and auditable results.">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="alternate" type="text/plain" href="/llms.txt" title="Technical Overview">
 <link rel="stylesheet" href="${esc(STYLESHEET_PATH)}?v=${STYLE_REVISION}">
 </head>
 <body class="${options.layout === "home" ? "home" : "workspace"}">

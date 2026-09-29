@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Manak Hackathon Platform",
+  "name_for_model": "manak_hackathon_platform",
+  "description_for_human": "Self-hosted hackathon submission, calibrated judging, and Ed25519-verifiable certificates.",
+  "description_for_model": "Manak is a zero-dependency platform for hackathon submissions, Bayesian judging normalization, Bradley-Terry duels, and offline Ed25519 verifiable certificates.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "/openapi.json"
+  },
+  "logo_url": "/assets/favicon.svg",
+  "contact_email": "sairamdash17@gmail.com",
+  "legal_info_url": "/LICENSE"
+}

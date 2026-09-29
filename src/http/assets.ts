@@ -59,3 +59,37 @@ export function bundledAsset(request: Request, pathname: string): Response | nul
   headers.set("content-length", String(end - start + 1));
   return new Response(request.method === "HEAD" ? null : asset.bytes.slice(start, end + 1), { status, headers });
 }
+
+const docManifest = new Map([
+  ["/llms.txt", { relPath: "../../llms.txt", type: "text/plain; charset=utf-8" }],
+  ["/.well-known/llms.txt", { relPath: "../../llms.txt", type: "text/plain; charset=utf-8" }],
+  ["/llms-full.txt", { relPath: "../../llms-full.txt", type: "text/plain; charset=utf-8" }],
+  ["/.well-known/ai-plugin.json", { relPath: "../../.well-known/ai-plugin.json", type: "application/json; charset=utf-8" }],
+]);
+const loadedDocs = new Map<string, { bytes: Uint8Array; etag: string }>();
+
+export function staticDocAsset(request: Request, pathname: string): Response | null {
+  const entry = docManifest.get(pathname);
+  if (!entry) return null;
+  const headers = new Headers(SECURITY_HEADERS);
+  headers.set("allow", "GET, HEAD");
+  headers.set("access-control-allow-origin", "*");
+  if (!["GET", "HEAD"].includes(request.method)) return new Response(null, { status: 405, headers });
+  let asset = loadedDocs.get(pathname);
+  if (!asset) {
+    try {
+      const bytes = new Uint8Array(readFileSync(new URL(entry.relPath, import.meta.url)));
+      asset = { bytes, etag: `"${createHash("sha256").update(bytes).digest("hex")}"` };
+      loadedDocs.set(pathname, asset);
+    } catch {
+      return null;
+    }
+  }
+  headers.set("content-type", entry.type);
+  headers.set("cache-control", "public, max-age=3600, must-revalidate");
+  headers.set("etag", asset.etag);
+  const matches = (request.headers.get("if-none-match") ?? "").split(",").map((s) => s.trim().replace(/^W\//, ""));
+  if (matches.includes(asset.etag) || matches.includes("*")) return new Response(null, { status: 304, headers });
+  headers.set("content-length", String(asset.bytes.byteLength));
+  return new Response(request.method === "HEAD" ? null : asset.bytes, { status: 200, headers });
+}

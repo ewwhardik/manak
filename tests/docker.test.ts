@@ -49,6 +49,9 @@ test("compose.yaml defines demo, one-command test runner, and security options",
   assert.match(text, /8080:8080/, "compose.yaml must map port 8080");
   assert.match(text, /manak-data:\/data/, "compose.yaml must mount persistent volume to /data");
 
+  // Air-gap standalone: manak must not hard-depend on external images so offline compose works
+  assert.ok(!/^\s*depends_on:\s*\n\s*-\s*mailpit/m.test(text), "manak must not require external images for offline compose boot");
+
   // One-command test services
   assert.match(text, /test:/, "compose.yaml must define 'test' service for one-command test runs");
   assert.match(text, /npm.*test/, "compose.yaml test service must execute npm test");

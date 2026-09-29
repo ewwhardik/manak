@@ -1,0 +1,24 @@
+# Cursor Rules for Manak
+
+You are working on Manak (मानक), a zero-dependency self-hosted hackathon submission, calibrated judging, and Ed25519-verifiable certificates platform built with Node.js and native SQLite.
+
+## Absolute Rules
+1. ZERO RUNTIME NPM DEPENDENCIES: Never introduce runtime packages. Only Node.js 22/24 built-ins (`node:sqlite`, `node:crypto`, `node:fs`, `node:test`, `node:http`) are permitted.
+2. ERASABLE TYPESCRIPT: Code is executed with `node --experimental-strip-types`. Never use TypeScript syntax that emits runtime code (no `enum`, no `namespace`, no parameter properties).
+3. EXPLICIT IMPORTS: Always use explicit `.ts` extensions for relative imports (e.g. `import { foo } from "./foo.ts"`).
+4. REPOSITORY HYGIENE:
+   - No trailing whitespace on any line.
+   - No tab characters (use 2 spaces).
+   - No carriage returns (\r) — use Unix LF (\n).
+   - Files must end with exactly one newline.
+5. DETERMINISM:
+   - Never call `Date.now()` or `new Date()` in domain logic (use `Clock`).
+   - Never call `Math.random()` in domain logic (use `makeRng`).
+6. STRICT DATABASE: All SQLite tables must specify the `STRICT` table option and reside in migrations (`src/db/migrations/`).
+7. COMMAND-DRIVEN API: All endpoints must be defined as commands via `defineCommand` in `src/api/commands/`.
+
+## Key Commands
+- Run tests: `npm test`
+- Typecheck: `npm run typecheck`
+- Proofs: `npm run prove:normalization -- --check`
+- Commit audit: `npm run audit:commits`

@@ -1,0 +1,239 @@
+# Manak (मानक) — System Architecture, Mathematical Foundations & Verification Reference
+
+> A zero-dependency, self-hosted hackathon submission, calibrated judging, and Ed25519-verifiable awards platform built with Node.js 22/24 and native SQLite.
+
+---
+
+## 1. Executive Summary & Engineering Highlights
+
+- **Platform Name**: Manak (Sanskrit मानक, "The Standard")
+- **Author**: Sai Ram Dash (Hardik)
+- **Live Deployment**: https://manak.up.railway.app
+- **Public Repository**: https://github.com/ewwhardik/manak
+- **Core Mission**: Eliminates evaluator bias, coverage gaps, score leaks, and unverified credentials using deterministic statistical models, append-only cryptographic audit chains, and pure native Node.js runtimes.
+- **Zero Production Dependencies**: Zero npm packages in production. Relies exclusively on Node.js 22/24 built-ins (`node:sqlite`, `node:crypto`, `node:test`, `node:child_process`) and modern web standards.
+- **Verification Suite**: 616 automated tests (615 passed, 1 skipped, 0 failed), 100% core pass rate.
+- **Official Acceptance**: Verified against official `fixtures.json` via `run.py .dogfood.toml`.
+- **Scope**: Full implementation and verification of T1, T2, T3, T4, and all 4 bonus challenges.
+
+---
+
+## 2. System Architecture & Zero-Dependency Invariants
+
+```text
+┌────────────────────────────────────────────────────────┐
+│                   HTTP / Transport Layer                │
+│             src/http (app.ts, wire.ts, respond.ts)     │
+└───────────────────────────┬────────────────────────────┘
+                            │
+┌───────────────────────────▼────────────────────────────┐
+│                    API Command Layer                   │
+│         src/api (102 Operations, Capability Matrix)    │
+└──────────────┬──────────────────────────┬──────────────┘
+               │                          │
+┌──────────────▼─────────────┐ ┌──────────▼──────────────┐
+│       Database Layer       │ │    Judging Math Core    │
+│  src/db (36 strict tables) │ │  src/judging (0 imports)│
+│  Native node:sqlite        │ │  Pure math algorithms   │
+└────────────────────────────┘ └─────────────────────────┘
+```
+
+1. **Strict Layer Decoupling**:
+   - `src/judging`: Pure mathematical calculation engine with zero external imports. Contains Bayesian backfitting, Bradley-Terry MLE, Hodge Laplacian curl, and bipartite matching.
+   - `src/db`: Storage layer depending exclusively on Node built-ins and `src/judging` types. 36 strict SQL tables, 20 atomic migrations.
+   - `src/api`: Central command registry declaring 102 operations with typed input validation, response schemas, and capability access rules.
+   - `src/view`: Semantic HTML templates rendered server-side with zero client-side JavaScript required.
+   - `src/http`: Ten-step wire request pipeline enforcing body caps, authentication, capability resolution, rate limiting, and HTTP security headers.
+2. **Erasable TypeScript Runtime**:
+   Executed directly via `node --experimental-strip-types`. No build step, no bundlers, no compilation artifacts.
+3. **Deterministic Clock & Randomness**:
+   Time enters the product exclusively through `src/db/clock.ts`. `Date.now()` is forbidden in domain logic. Randomness is seeded via `makeRng`.
+4. **Strict SQLite Schema**:
+   All 36 tables enforce `STRICT` table modes and foreign key referential integrity.
+
+---
+
+## 3. Tier Implementation & Verification Evidence
+
+### Tier 1: Submissions & Event Infrastructure
+- **Implementation**:
+  - `src/db/repo/events.ts`, `src/db/repo/projects.ts`, `src/db/repo/teams.ts`
+  - Magic-link and session authentication (`src/db/repo/accounts.ts`, `src/http/wire.ts`).
+  - Project submissions with required fields, track categorization, draft persistence, and deadline enforcement.
+  - Public gallery with real-time text search and track filtering (`src/view/gallery.ts`, `src/api/commands/projects.ts`).
+  - Native SQLite triggers preventing late submissions after `closes_at` timestamp.
+- **Verification Evidence**:
+  - `tests/http.test.ts`, `tests/db.test.ts`, `tests/content.test.ts`
+  - Acceptance probes: `T1 gallery is public [PASS]`, `T1 project from fixtures shown [PASS]`, `T1 closed event refuses submissions [PASS]`.
+
+### Tier 2: Blind Rubric Judging & Score Isolation
+- **Implementation**:
+  - `src/api/commands/ballots.ts`, `src/db/repo/ballots.ts`, `src/judging/rubric.ts`
+  - Versioned, weighted rubrics with normalized weights ($\sum w_k = 1.0$).
+  - Strict blind judging: Judges cannot view peer ballots or aggregate standings before publication.
+  - Recusal filtering: Organizers and judges with declared conflicts of interest are excluded from assignments and evaluation views.
+  - Role-gated CSV export neutralizing spreadsheet formula injection (`src/view/csv.ts`).
+- **Verification Evidence**:
+  - `tests/assign.test.ts`, `tests/assignment-completeness.test.ts`, `tests/roster.test.ts`, `tests/publish.test.ts`, `tests/normalize.test.ts`, `tests/csv.test.ts`
+  - Isolation proof: `npm run prove:isolation -- --check` executes 1,224 permission-boundary probes across 6 witness roles, confirming zero unauthorized state mutations.
+  - Acceptance probes: `T2 judge sees own scores [PASS]`, `T2 judge cannot see peer scores [PASS]`, `T2 participant blocked [PASS]`, `T2 csv export works [PASS]`.
+
+### Tier 3: Mathematical Normalization & Community Engagement
+- **Implementation**:
+  - `src/judging/normalize.ts`, `src/judging/convergence.ts`, `src/judging/variance.ts`
+  - Bayesian backfitting additive mixed-effects model correcting judge leniency and severity bias.
+  - Quadratic community voting with credit budgets and Sybil anomaly flags (`src/judging/abuse.ts`).
+  - Shuffled ballot presentation and rate-limited voting windows.
+  - Publication revisioning: Standing revisions are frozen into immutable snapshots (`src/db/repo/results.ts`).
+  - Stage ceremony live leaderboard with 5s auto-refresh (`src/view/stage.ts`).
+- **Verification Evidence**:
+  - `npm run prove:normalization -- --check`: 59 configurations, 1,180 simulated events reproduced.
+  - `npm run prove:convergence -- --check`: Held-out cross-validation across 4 regimes.
+  - `tests/abuse.test.ts`, `tests/abuse-review.test.ts`, `tests/publication.test.ts`.
+
+### Tier 4: Cryptographic Trust, Webhooks & Ecosystem API
+- **Implementation**:
+  - `src/judging/cert.ts`, `src/api/commands/certificates.ts`, `src/view/verify.ts`
+  - Ed25519 digital signatures (RFC 8032) signing canonicalized JSON award records.
+  - Certificate Studio: Interactive visual designer generating standalone SVG certificates with embedded signatures and logo digest bindings.
+  - Offline browser-native WebCrypto verification terminal (`/verify`): Works without server connectivity or client frameworks.
+  - Standalone pure-Python verifier (`tools/verify-certs.py`): Zero third-party Python libraries.
+  - Durable SQLite outbox webhook dispatcher with HMAC SHA-256 signatures and exponential backoff retry (`src/http/webhook.ts`).
+  - 102 REST operations fully described in OpenAPI 3.1 (`openapi.json`).
+  - Archive CLI: Bidirectional zero-loss database export, import, and inspection (`tools/archive.ts`).
+- **Verification Evidence**:
+  - `tests/cert.test.ts`, `tests/certificate-records.test.ts`, `tests/webhook.test.ts`, `tests/api.test.ts`, `tests/archive.test.ts`
+  - `npm run prove:roundtrip -- --check`: 162 rows across 33 tables exported and re-imported with zero bit drift; 11 damaged archives safely refused.
+
+### Bonus Challenges: Tie-Breakers Implemented
+1. **Bonus 1 — Pairwise Bradley-Terry Ranking**:
+   - `src/judging/pairing.ts`, `src/judging/bradleyterry.ts`
+   - Minorization-Maximization (MM) maximum likelihood estimation with paired duel queue (`/duel`).
+   - Hodge decomposition curl diagnostics to detect circular preferences (A > B > C > A).
+2. **Bonus 2 — Tamper-Evident SHA-256 Audit Ledger**:
+   - `src/db/repo/ledger.ts`, `src/db/repo/accounts.ts`
+   - Cryptographic hash-chain linking every mutation: $H_n = \text{SHA-256}(H_{n-1} \parallel \text{timestamp} \parallel \text{action} \parallel \text{payload})$.
+   - Verified by `tests/ledger.test.ts`.
+3. **Bonus 3 — Dynamic Vector Certificate Studio**:
+   - `src/view/certificates.ts`, `src/view/verify.ts`
+   - SVG generator with responsive typography, vector Guilloché borders, custom logo digests, and embedded signature blocks.
+4. **Bonus 4 — Air-Gapped Standalone Docker Container**:
+   - `Dockerfile`, `compose.yaml`, `compose.offline.yaml`
+   - Complete zero-dependency container bootable with networking disabled (`docker compose -f compose.yaml -f compose.offline.yaml up -d`).
+
+---
+
+## 4. Mathematical Foundations & Decision Algorithms
+
+### 4.1 Bayesian Backfitting Additive Mixed-Effects Normalization
+Judge marks exhibit systematic bias: harsh judges assign low scores while lenient judges inflate ratings. Manak models this using an additive formulation:
+
+$$y_{ij} = \mu + \alpha_i + \beta_j + \epsilon_{ij}$$
+
+Where:
+- $y_{ij} \in [0, 1]$: Normalized rubric score assigned to project $i$ by reviewer $j$.
+- $\mu$: Global grand mean across all evaluated ballots.
+- $\alpha_i$: True latent quality effect of project $i$ (constrained to $\sum \alpha_i = 0$).
+- $\beta_j$: Reviewer $j$'s leniency ($\beta_j > 0$) or severity ($\beta_j < 0$) offset.
+- $\epsilon_{ij} \sim \mathcal{N}(0, \sigma^2)$: Residual variance.
+
+#### Iterative Update Schedule:
+At each iteration $t$:
+1. Update project effects:
+   $$\alpha_i^{(t)} = \frac{1}{|J_i|} \sum_{j \in J_i} \left( y_{ij} - \mu - \beta_j^{(t-1)} \right)$$
+2. Update reviewer offsets with empirical shrinkage $\lambda$:
+   $$\beta_j^{(t)} = \frac{\sum_{i \in I_j} \left( y_{ij} - \mu - \alpha_i^{(t)} \right)}{|I_j| + \lambda}$$
+3. Center effects: subtract mean offset to enforce identifiability $\sum \beta_j = 0$.
+4. Check convergence: stop when $\max(|\alpha_i^{(t)} - \alpha_i^{(t-1)}|) < 10^{-6}$ or maximum iterations reached.
+
+### 4.2 Bradley-Terry Maximum Likelihood Estimation (Pairwise Duels)
+For direct head-to-head project comparisons, the probability that project $i$ beats project $j$ is parameterized by latent log-worth $\lambda_i$:
+
+$$P(i \succ j) = \frac{e^{\lambda_i}}{e^{\lambda_i} + e^{\lambda_j}} = \frac{\pi_i}{\pi_i + \pi_j}$$
+
+Where $\pi_i = e^{\lambda_i}$. The parameters are fitted using the Minorization-Maximization algorithm:
+
+$$\pi_i^{(t+1)} = \frac{W_i}{\sum_{j \neq i} \frac{n_{ij}}{\pi_i^{(t)} + \pi_j^{(t)}}}$$
+
+Where $W_i$ is the number of observed wins for project $i$, and $n_{ij}$ is the total comparisons between $i$ and $j$.
+
+### 4.3 Hodge Laplacian Curl for Inconsistency Diagnostics
+Direct comparisons on a directed graph may contain inconsistent cycles ($A \succ B \succ C \succ A$). Manak computes the graph curl using discrete Hodge theory on the edge flow $F$:
+
+$$\text{Curl}(F) = \delta_1 F$$
+
+Non-zero curl components identify specific triangular cyclic anomalies for organizer review.
+
+### 4.4 Bipartite Matching for Optimal Reviewer Assignment
+Judge assignment solves a constrained augmenting-path matching problem:
+- Maximizes total panel coverage.
+- Enforces judge capacity bounds ($C_j$).
+- Guarantees minimum reviewer overlap for connectivity.
+- Enforces hard constraints: zero recused projects, matching track qualifications.
+
+---
+
+## 5. Cryptographic Security & Offline Verification
+
+### 5.1 Ed25519 Award Records (RFC 8032)
+1. **Payload Canonicalization**:
+   The award record JSON keys are sorted lexicographically with UTF-8 byte serialization, guaranteeing identical byte streams across environments.
+2. **Keypair Management**:
+   The organizer keypair is stored with Ed25519 curves (`manak_ed25519.key` / `.pub`).
+3. **Standalone SVG Signature Block**:
+   Signatures are injected directly into SVG XML metadata comments and visible hash stamps, allowing visual print-out verification or direct file verification.
+
+### 5.2 Tamper-Evident SHA-256 Ledger
+Every mutating operation writes an atomic record to the `ledger` table:
+```sql
+CREATE TABLE ledger (
+  seq INTEGER PRIMARY KEY,
+  hash TEXT NOT NULL,
+  prev_hash TEXT NOT NULL,
+  timestamp INTEGER NOT NULL,
+  actor_id TEXT NOT NULL,
+  action TEXT NOT NULL,
+  event_id TEXT,
+  payload_json TEXT NOT NULL
+) STRICT;
+```
+If an adversary modifies any row, all subsequent sequence hashes fail cryptographic verification.
+
+### 5.3 Browser-Native Offline Verifier (`/verify`)
+The verifier page contains zero external scripts, zero external CDNs, and zero third-party libraries. It uses standard WebCrypto `crypto.subtle.verify("Ed25519", ...)` to verify public keys and signature bytes locally in memory.
+
+---
+
+## 6. Automated Reproduction & Verification Playbook
+
+Run these commands in the repository root (requires Node.js 22.18+):
+
+```sh
+# 1. Execute full unit and integration test suite
+npm test
+# Expected: 616 tests (615 passed, 1 skipped, 0 failed)
+
+# 2. Verify Bayesian normalization proof
+npm run prove:normalization -- --check
+# Expected: 59 configurations, 1180 simulated events, reproduced within 0.02
+
+# 3. Verify numerical convergence proof
+npm run prove:convergence -- --check
+# Expected: Schedules tested across fixture and synthetic regimes
+
+# 4. Verify official fixture proof
+npm run prove:fixtures -- --check
+# Expected: 41 projects and 126 ballots verified
+
+# 5. Verify security isolation grid
+npm run prove:isolation -- --check
+# Expected: 1224 requests, 6 witnesses, 674 refusals, 0 unauthorized mutations
+
+# 6. Verify zero-loss database roundtrip
+npm run prove:roundtrip -- --check
+# Expected: 162 rows across 33 tables exported and re-imported with zero bit drift
+
+# 7. Audit git commit submission window
+npm run audit:commits
+# Expected: [VERIFIED] All 117 commits authored within event window
+```
