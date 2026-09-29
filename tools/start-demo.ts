@@ -1,7 +1,7 @@
 /** Demo-only composition root. Seed once, never reconcile an existing deployment. */
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { openDatabase, migrate, makeContext, systemClock, findEvent, saveCertificateTemplate } from "../src/db/index.ts";
+import { openDatabase, migrate, makeContext, systemClock, findEvent, saveCertificateTemplate, hashToken, findAccountByEmail, MS } from "../src/db/index.ts";
 import { seed } from "./seed-demo.ts";
 import { seedFixtures, FIXTURE_AUTH } from "./seed-fixtures.ts";
 
@@ -26,6 +26,44 @@ if (process.env.MANAK_DEMO === "true") {
       process.stdout.write(`       judge_a     = "Cookie: manak_session=${FIXTURE_AUTH.judge_a}"\n`);
       process.stdout.write(`       judge_b     = "Cookie: manak_session=${FIXTURE_AUTH.judge_b}"\n`);
       process.stdout.write(`       participant = "Cookie: manak_session=${FIXTURE_AUTH.participant}"\n`);
+    } else {
+      // Reconcile acceptance sessions on existing demo deployments
+      const organizer = findAccountByEmail(db, "organizer@example.org");
+      if (organizer) {
+        db.run(
+          `insert into session (token_hash, account_id, created_at, expires_at, last_seen_at, user_agent)
+           values (:hash, :account, :at, :expires, :at, 'DogFood Acceptance')
+           on conflict (token_hash) do update set expires_at = :expires, revoked_at = null`,
+          { hash: hashToken(FIXTURE_AUTH.organizer), account: organizer.id, at: systemClock.now(), expires: systemClock.now() + 30 * MS.day },
+        );
+      }
+      const judgeA = findAccountByEmail(db, "tomas.varga@example.org");
+      if (judgeA) {
+        db.run(
+          `insert into session (token_hash, account_id, created_at, expires_at, last_seen_at, user_agent)
+           values (:hash, :account, :at, :expires, :at, 'DogFood Acceptance')
+           on conflict (token_hash) do update set expires_at = :expires, revoked_at = null`,
+          { hash: hashToken(FIXTURE_AUTH.judge_a), account: judgeA.id, at: systemClock.now(), expires: systemClock.now() + 30 * MS.day },
+        );
+      }
+      const judgeB = findAccountByEmail(db, "wei.lindqvist@example.org");
+      if (judgeB) {
+        db.run(
+          `insert into session (token_hash, account_id, created_at, expires_at, last_seen_at, user_agent)
+           values (:hash, :account, :at, :expires, :at, 'DogFood Acceptance')
+           on conflict (token_hash) do update set expires_at = :expires, revoked_at = null`,
+          { hash: hashToken(FIXTURE_AUTH.judge_b), account: judgeB.id, at: systemClock.now(), expires: systemClock.now() + 30 * MS.day },
+        );
+      }
+      const participant = findAccountByEmail(db, "priya1@example.org");
+      if (participant) {
+        db.run(
+          `insert into session (token_hash, account_id, created_at, expires_at, last_seen_at, user_agent)
+           values (:hash, :account, :at, :expires, :at, 'DogFood Acceptance')
+           on conflict (token_hash) do update set expires_at = :expires, revoked_at = null`,
+          { hash: hashToken(FIXTURE_AUTH.participant), account: participant.id, at: systemClock.now(), expires: systemClock.now() + 30 * MS.day },
+        );
+      }
     }
     // Seed original demo if not present
     const existing = db.get<{ total: number }>("select count(*) as total from event where slug = 'dogfood'");

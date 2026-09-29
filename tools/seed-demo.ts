@@ -37,6 +37,8 @@ import process from "node:process";
 import {
   addTeamMember,
   assignProject,
+  certificateKeyDirectory,
+  createAnnouncement,
   createEvent,
   createProject,
   createRubricVersion,
@@ -45,21 +47,26 @@ import {
   findEventBySlug,
   grantRole,
   headHash,
+  latestPublication,
   ledgerLength,
   makeContext,
   migrate,
   MS,
   openDatabase,
+  persistEventCertificates,
   publishRubric,
   recordComparison,
   saveBallot,
   setResultsPublic,
   submitProject,
   systemClock,
+  updateEvent,
+  updateTeamRecruitment,
   upsertAccount,
   verifyLedger,
 } from "../src/db/index.ts";
 import type { Ctx, EventRow, ProjectRow } from "../src/db/index.ts";
+import { publish } from "../src/api/commands/results.ts";
 
 /** The slug the demo takes, and the one this refuses to overwrite. */
 const SLUG = "dogfood";
@@ -385,13 +392,417 @@ export function seed(ctx: Ctx, now: number): { event: EventRow; links: readonly 
   };
 }
 
+export const STAGE_SLUGS = [
+  "stage-setup",
+  "stage-submissions",
+  "stage-judging",
+  "stage-results",
+  "stage-certificates",
+] as const;
+
+function recordAward(
+  ctx: Ctx,
+  eventId: string,
+  revision: number,
+  projectId: string,
+  awardKey: string,
+  type: "placement" | "special",
+  place: number | null,
+  publicSummary: string,
+  internalReason: string,
+  actorId: string,
+): void {
+  const id = ctx.newId();
+  ctx.recorded(
+    {
+      action: "award.decided",
+      eventId,
+      subject: projectId,
+      payload: {
+        id,
+        revision,
+        awardKey,
+        type,
+        place,
+        publicSummary,
+        internalReason,
+      },
+    },
+    () => {
+      ctx.write(
+        `insert into award_decision (id, event_id, publication_revision, award_key,
+          project_id, decision_type, place, public_summary, internal_reason, actor_id, decided_at)
+          values (:id, :e, :r, :key, :p, :type, :place, :summary, :reason, :actor, :at)`,
+        {
+          id,
+          e: eventId,
+          r: revision,
+          key: awardKey,
+          p: projectId,
+          type,
+          place,
+          summary: publicSummary,
+          reason: internalReason,
+          actor: actorId,
+          at: ctx.now(),
+        },
+      );
+    },
+  );
+}
+
+export function seedStages(ctx: Ctx, now: number): {
+  events: readonly EventRow[];
+  links: readonly string[];
+} {
+  const organizer = upsertAccount(ctx, ORGANIZER.email, ORGANIZER.name);
+  const as = ctx.as(organizer.id);
+
+  const judges = new Map<JudgeKey, string>();
+  for (const [key, person] of Object.entries(JUDGES) as [JudgeKey, Person][]) {
+    const account = upsertAccount(as, person.email, person.name);
+    judges.set(key, account.id);
+  }
+
+  const stageEvents: EventRow[] = [];
+
+  const setupBase = (event: EventRow) => {
+    grantRole(as, event.id, organizer.id, "organizer");
+    for (const [_, judgeId] of judges) {
+      grantRole(as, event.id, judgeId, "judge");
+    }
+    for (const track of TRACKS) createTrack(as, event.id, track);
+    const rubric = createRubricVersion(as, event.id, CRITERIA);
+    publishRubric(as, event.id, rubric.version);
+    return rubric;
+  };
+
+  const plantEntries = (event: EventRow, submittedOnly = false, withRecruitment = false) => {
+    const projects = new Map<string, ProjectRow>();
+    for (const entry of ENTRIES) {
+      if (submittedOnly && !entry.submitted) continue;
+      const member = upsertAccount(as, entry.member.email, entry.member.name);
+      grantRole(as, event.id, member.id, "participant");
+      const team = createTeam(as, event.id, entry.team);
+      addTeamMember(as, team, member.id);
+      if (withRecruitment) {
+        const isRecruiting =
+          entry.team === "Saffron" ||
+          entry.team === "Paprika" ||
+          entry.team === "Turmeric" ||
+          entry.team === "Nigella";
+        const skills =
+          entry.team === "Saffron"
+            ? "TypeScript, UI/UX"
+            : entry.team === "Paprika"
+              ? "Rust, Systems"
+              : entry.team === "Turmeric"
+                ? "Accessibility, WCAG"
+                : entry.team === "Nigella"
+                  ? "Design, Frontend"
+                  : "";
+        updateTeamRecruitment(as, event.id, team.id, isRecruiting, skills);
+      }
+      const mine = as.as(member.id);
+      let project = createProject(mine, event, team, {
+        title: entry.title,
+        summary: entry.summary,
+        tagline: entry.summary,
+        description: `${entry.summary}\n\nThis seeded project demonstrates the submission, independent review, and results workflow. Explore its rubric scores and comparison history in the organizer workspace.`,
+        techTags: entry.track === "tooling" ? "TypeScript, CLI, Developer tools" : "Accessibility, Web, Design",
+        trackKey: entry.track,
+      });
+      if (entry.submitted) project = submitProject(mine, event, project);
+      projects.set(entry.title, project);
+    }
+    return projects;
+  };
+
+  const plantJudging = (event: EventRow, projects: Map<string, ProjectRow>) => {
+    const projectId = (title: string): string => {
+      const project = projects.get(title);
+      if (!project) throw new Error(`Unknown project ${title}`);
+      return project.id;
+    };
+    for (const [key, title] of OUTSTANDING) {
+      assignProject(as, event.id, judges.get(key) ?? "", projectId(title));
+    }
+    for (const [key, title, scores, comment] of BALLOTS) {
+      const judgeId = judges.get(key) ?? "";
+      assignProject(as, event.id, judgeId, projectId(title));
+      saveBallot(as.as(judgeId), event, {
+        judgeId,
+        projectId: projectId(title),
+        scores: Object.fromEntries(CRITERIA.map((c, index) => [c.key, scores[index] ?? c.min])),
+        comment,
+        submit: true,
+      });
+    }
+    for (const [key, left, right, winner] of DUELS) {
+      const judgeId = judges.get(key) ?? "";
+      recordComparison(as.as(judgeId), event, {
+        judgeId,
+        a: projectId(left),
+        b: projectId(right),
+        winner: winner === null ? null : projectId(winner),
+        reason: "manual",
+      });
+    }
+  };
+
+  // Stage 1: Setup & Upcoming
+  const event1 = createEvent(as, {
+    slug: "stage-setup",
+    name: "Stage 1: Setup & Upcoming",
+    timezone: zone(),
+    submissionsOpenAt: now + 2 * MS.day,
+    submissionsCloseAt: now + 5 * MS.day,
+    judgingOpenAt: now + 5 * MS.day,
+    judgingCloseAt: now + 8 * MS.day,
+    reviewsPerProject: 3,
+    pairwiseEnabled: true,
+  });
+  setupBase(event1);
+  createAnnouncement(as, {
+    eventId: event1.id,
+    authorId: organizer.id,
+    title: "Welcome to Setup Phase",
+    content: "Submissions will open in 2 days. Review the rubric criteria and configure your team profile in advance.",
+    pinned: true,
+  });
+  stageEvents.push(event1);
+
+  // Stage 2: Active Submissions
+  const event2 = createEvent(as, {
+    slug: "stage-submissions",
+    name: "Stage 2: Active Submissions",
+    timezone: zone(),
+    submissionsOpenAt: now - 2 * MS.day,
+    submissionsCloseAt: now + 2 * MS.day,
+    judgingOpenAt: now + 2 * MS.day,
+    judgingCloseAt: now + 5 * MS.day,
+    reviewsPerProject: 3,
+    pairwiseEnabled: true,
+  });
+  setupBase(event2);
+  plantEntries(event2, false, true);
+  createAnnouncement(as, {
+    eventId: event2.id,
+    authorId: organizer.id,
+    title: "Submissions are Open!",
+    content: "Submissions are currently live and will close in 48 hours. Ensure your demo video and repo links are set.",
+    pinned: true,
+  });
+  stageEvents.push(event2);
+
+  // Stage 3: Active Judging
+  let event3 = createEvent(as, {
+    slug: "stage-judging",
+    name: "Stage 3: Active Judging",
+    timezone: zone(),
+    submissionsOpenAt: now - 2 * MS.day,
+    submissionsCloseAt: now + 1 * MS.day,
+    judgingOpenAt: now - 1 * MS.hour,
+    judgingCloseAt: now + 2 * MS.day,
+    reviewsPerProject: 3,
+    pairwiseEnabled: true,
+  });
+  setupBase(event3);
+  const projects3 = plantEntries(event3, true, false);
+  event3 = updateEvent(as, event3, {
+    name: event3.name,
+    timezone: event3.timezone,
+    submissionsOpenAt: now - 4 * MS.day,
+    submissionsCloseAt: now - 1 * MS.hour,
+    judgingOpenAt: now - 1 * MS.hour,
+    judgingCloseAt: now + 2 * MS.day,
+    reviewsPerProject: event3.reviews_per_project,
+    pairwiseEnabled: event3.pairwise_enabled === 1,
+  });
+  plantJudging(event3, projects3);
+  createAnnouncement(as, {
+    eventId: event3.id,
+    authorId: organizer.id,
+    title: "Judging in Progress",
+    content: "Submissions have closed. Judges are now evaluating entries and scoring pairwise duels.",
+    pinned: true,
+  });
+  stageEvents.push(event3);
+
+  // Stage 4: Published Results
+  let event4 = createEvent(as, {
+    slug: "stage-results",
+    name: "Stage 4: Published Results",
+    timezone: zone(),
+    submissionsOpenAt: now - 2 * MS.day,
+    submissionsCloseAt: now + 1 * MS.day,
+    judgingOpenAt: now - 1 * MS.hour,
+    judgingCloseAt: now + 2 * MS.day,
+    reviewsPerProject: 3,
+    pairwiseEnabled: true,
+  });
+  setupBase(event4);
+  const projects4 = plantEntries(event4, true, false);
+  event4 = updateEvent(as, event4, {
+    name: event4.name,
+    timezone: event4.timezone,
+    submissionsOpenAt: now - 4 * MS.day,
+    submissionsCloseAt: now - 1 * MS.hour,
+    judgingOpenAt: now - 1 * MS.hour,
+    judgingCloseAt: now + 2 * MS.day,
+    reviewsPerProject: event4.reviews_per_project,
+    pairwiseEnabled: event4.pairwise_enabled === 1,
+  });
+  plantJudging(event4, projects4);
+  (publish.handler as (call: unknown) => unknown)({
+    ctx: as,
+    event: event4,
+    input: {
+      event: event4.slug,
+      reason: "Initial official publication",
+      publicSummary: "Official Standings & Ceremony Results",
+    },
+    roles: ["organizer"],
+  });
+  const pub4 = latestPublication(ctx.db, event4.id)!;
+  const awards = [
+    { p: projects4.get("Readback")!.id, key: "1st Place: Grand Prize", type: "placement" as const, place: 1, summary: "Top scoring project with highest overall calibrated index.", reason: "Unanimous top ranking across all evaluation criteria." },
+    { p: projects4.get("Lintwright")!.id, key: "2nd Place: Runner Up", type: "placement" as const, place: 2, summary: "Exceptional developer tooling and static analysis implementation.", reason: "Runner up with strong technical marks." },
+    { p: projects4.get("Highcontrast")!.id, key: "3rd Place: Bronze Award", type: "placement" as const, place: 3, summary: "Outstanding accessibility adherence and high-contrast styling.", reason: "Top rated in accessibility dimension." },
+    { p: projects4.get("Portmatic")!.id, key: "Best Developer Tool", type: "special" as const, place: null, summary: "Innovative multi-platform porting and developer experience.", reason: "Special jury commendation." },
+  ];
+  for (const a of awards) {
+    recordAward(as, event4.id, pub4.revision, a.p, a.key, a.type, a.place, a.summary, a.reason, organizer.id);
+  }
+  event4 = updateEvent(as, event4, {
+    name: event4.name,
+    timezone: event4.timezone,
+    submissionsOpenAt: now - 6 * MS.day,
+    submissionsCloseAt: now - 3 * MS.day,
+    judgingOpenAt: now - 3 * MS.day,
+    judgingCloseAt: now - 1 * MS.day,
+    reviewsPerProject: event4.reviews_per_project,
+    pairwiseEnabled: event4.pairwise_enabled === 1,
+  });
+  createAnnouncement(as, {
+    eventId: event4.id,
+    authorId: organizer.id,
+    title: "Results Published!",
+    content: "The final calibrated standings and rival comparisons are now officially published. Congratulations to all winners!",
+    pinned: true,
+  });
+  stageEvents.push(event4);
+
+  // Stage 5: Credentials & Podium
+  let event5 = createEvent(as, {
+    slug: "stage-certificates",
+    name: "Stage 5: Credentials & Podium",
+    timezone: zone(),
+    submissionsOpenAt: now - 2 * MS.day,
+    submissionsCloseAt: now + 1 * MS.day,
+    judgingOpenAt: now - 1 * MS.hour,
+    judgingCloseAt: now + 2 * MS.day,
+    reviewsPerProject: 3,
+    pairwiseEnabled: true,
+  });
+  setupBase(event5);
+  const projects5 = plantEntries(event5, true, false);
+  event5 = updateEvent(as, event5, {
+    name: event5.name,
+    timezone: event5.timezone,
+    submissionsOpenAt: now - 4 * MS.day,
+    submissionsCloseAt: now - 1 * MS.hour,
+    judgingOpenAt: now - 1 * MS.hour,
+    judgingCloseAt: now + 2 * MS.day,
+    reviewsPerProject: event5.reviews_per_project,
+    pairwiseEnabled: event5.pairwise_enabled === 1,
+  });
+  plantJudging(event5, projects5);
+  (publish.handler as (call: unknown) => unknown)({
+    ctx: as,
+    event: event5,
+    input: {
+      event: event5.slug,
+      reason: "Initial official publication",
+      publicSummary: "Official Standings & Ceremony Results",
+    },
+    roles: ["organizer"],
+  });
+  const pub5 = latestPublication(ctx.db, event5.id)!;
+  for (const a of awards) {
+    const targetProject = a.place === 1 ? "Readback" : a.place === 2 ? "Lintwright" : a.place === 3 ? "Highcontrast" : "Portmatic";
+    recordAward(as, event5.id, pub5.revision, projects5.get(targetProject)!.id, a.key, a.type, a.place, a.summary, a.reason, organizer.id);
+  }
+  persistEventCertificates(ctx.db, event5.slug, now, certificateKeyDirectory(), "http://localhost:8080");
+  event5 = updateEvent(as, event5, {
+    name: event5.name,
+    timezone: event5.timezone,
+    submissionsOpenAt: now - 7 * MS.day,
+    submissionsCloseAt: now - 4 * MS.day,
+    judgingOpenAt: now - 4 * MS.day,
+    judgingCloseAt: now - 2 * MS.day,
+    reviewsPerProject: event5.reviews_per_project,
+    pairwiseEnabled: event5.pairwise_enabled === 1,
+  });
+  createAnnouncement(as, {
+    eventId: event5.id,
+    authorId: organizer.id,
+    title: "Certificates Minted",
+    content: "Ed25519 digital credentials have been generated and signed with RFC 8032. View the stage podium at /events/stage-certificates/live.",
+    pinned: true,
+  });
+  stageEvents.push(event5);
+
+  return {
+    events: stageEvents,
+    links: [ORGANIZER, ...Object.values(JUDGES), ...ENTRIES.map((entry) => entry.member)].map(
+      (person) => person.email,
+    ),
+  };
+}
+
 function main(): number {
+  const isStages = process.argv.slice(2).includes("--stages");
   const path = databasePath();
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   process.stdout.write(`[seed] database ${path}\n`);
   const db = openDatabase(path);
   try {
     migrate(db);
+    if (isStages) {
+      const existing = STAGE_SLUGS.filter((s) => findEventBySlug(db, s) !== undefined);
+      if (existing.length > 0) {
+        process.stderr.write(
+          `[seed] events (${existing.join(", ")}) already exist in this database, and this command will not ` +
+            `reconcile or replace them.\n` +
+            `       Delete ${path} to start over, or point MANAK_DATABASE somewhere else.\n`,
+        );
+        return 1;
+      }
+
+      const clock = systemClock;
+      const ctx = makeContext(db, { clock });
+      const { events, links } = seedStages(ctx, clock.now());
+
+      const breaks = verifyLedger(db);
+      if (breaks.length > 0) {
+        process.stderr.write(`[seed] the ledger this seed wrote does not verify:\n`);
+        for (const b of breaks) process.stderr.write(`       ${JSON.stringify(b)}\n`);
+        return 1;
+      }
+
+      process.stdout.write(
+        `[seed] 5 multi-stage demo events created:\n` +
+          events.map((e) => `       - /events/${e.slug} (${e.name})\n`).join("") +
+          `[seed] ledger ${ledgerLength(db)} entries, head ${headHash(db)}\n` +
+          `[seed] sign in as any of these; the link is printed to this server's stdout:\n` +
+          links.map((email) => `       ${email}\n`).join("") +
+          `[seed] ${ORGANIZER.email} organizes it. To let that address create further events,\n` +
+          `       start the server with MANAK_FOUNDERS=${ORGANIZER.email}\n`,
+      );
+      return 0;
+    }
+
     if (findEventBySlug(db, SLUG) !== undefined) {
       process.stderr.write(
         `[seed] ${SLUG} already exists in this database, and this command will not ` +

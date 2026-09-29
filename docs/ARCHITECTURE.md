@@ -137,7 +137,7 @@ before the socket opens.
 | `src/http` | 2,352 | everything below | the dispatcher, the responses, the socket |
 | `src/mail` | 1,179 | `node:*`, one erased type | RFC 5322 composition, an SMTP client, the outbox |
 | `bin/manak.ts` | 555 | everything | the environment, migration, signals, the process |
-| `tools` | 6,628 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
+| `tools` | 6,682 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
 
 `src/mail` is the one entry that is not part of the stack, and the shape of its row is the
 reason. It sits beside the layers rather than on top of them: it imports `node:*` and one

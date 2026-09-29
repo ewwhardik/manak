@@ -29,8 +29,8 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const seeder = fileURLToPath(new URL("../tools/seed-demo.ts", import.meta.url));
 
 /** The seed, pointed at a database of our own. */
-function run(database: string): { status: number | null; out: string; err: string } {
-  const result = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", seeder], {
+function run(database: string, extraArgs: string[] = []): { status: number | null; out: string; err: string } {
+  const result = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", seeder, ...extraArgs], {
     cwd: root,
     encoding: "utf8",
     env: { ...process.env, MANAK_DATABASE: database },
@@ -137,6 +137,53 @@ test("a second run refuses without touching the database", () => {
     // deployment holding two half-demos, so the refusal has to happen before the first
     // insert, and an unmoved head is how that becomes visible rather than assumed.
     assert.deepEqual(chain(database), before, "the refused run wrote to the ledger");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("multi-stage seeding (--stages) builds 5 distinct lifecycle events that verify in the ledger", () => {
+  const dir = mkdtempSync(join(tmpdir(), "manak-stages-"));
+  const database = join(dir, "stages.db");
+  try {
+    const res = run(database, ["--stages"]);
+    assert.equal(res.status, 0, `seed --stages failed\n${res.out}${res.err}`);
+    assert.match(res.out, /5 multi-stage demo events created/);
+
+    const db = openReadOnly(database);
+    try {
+      assert.deepEqual(verifyLedger(db), [], "the multi-stage seed wrote a chain that does not verify");
+      for (const slug of ["stage-setup", "stage-submissions", "stage-judging", "stage-results", "stage-certificates"]) {
+        const event = findEventBySlug(db, slug);
+        assert.ok(event, `missing stage event ${slug}`);
+      }
+    } finally {
+      db.close();
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("bin/manak.ts seed --stages CLI command creates the 5 multi-stage demo events", () => {
+  const dir = mkdtempSync(join(tmpdir(), "manak-cli-"));
+  const database = join(dir, "cli.db");
+  try {
+    const cliPath = join(root, "bin", "manak.ts");
+    const result = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", cliPath, "seed", "--stages"], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, MANAK_DATABASE: database },
+    });
+    assert.equal(result.status, 0, `bin/manak.ts seed --stages failed\n${result.stdout}${result.stderr}`);
+    assert.match(result.stdout, /5 multi-stage demo events created/);
+
+    const db = openReadOnly(database);
+    try {
+      assert.deepEqual(verifyLedger(db), []);
+    } finally {
+      db.close();
+    }
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
