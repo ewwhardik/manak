@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { openDatabase, makeContext, systemClock, findEventBySlug, persistEventCertificates, certificateKeyDirectory, latestPublication } from "../src/db/index.ts";
 import { publish } from "../src/api/commands/results.ts";
 
@@ -73,10 +75,16 @@ export function seedSampleHackFull(dbPath = "./data/demo.db"): void {
     // deadline and close voting before publishing; never reopen a published
     // event just to demonstrate an active voting window.
     const now = systemClock.now();
+    const fixturePath = fileURLToPath(new URL("../fixtures.json", import.meta.url));
+    let deadline = event.submissions_close_at;
+    if (existsSync(fixturePath)) {
+      const fixture = JSON.parse(readFileSync(fixturePath, "utf8")) as { event: { submissions_close: string } };
+      deadline = Date.parse(fixture.event.submissions_close);
+    }
     db.run(
       `update event set results_public = 1, voting_mode = 'open',
-       voting_open_at = :o, voting_close_at = :c, voting_credits = 100 where id = :e`,
-      { e: event.id, o: now - 48 * 3600000, c: now - 3600000 },
+       voting_open_at = :o, voting_close_at = :c, voting_credits = 100, submissions_close_at = :dl where id = :e`,
+      { e: event.id, o: now - 48 * 3600000, c: now - 3600000, dl: deadline },
     );
 
     // 2. Seed quarantined duplicate project if not present

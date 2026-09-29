@@ -56,10 +56,18 @@ if (process.env.MANAK_DEMO === "true") {
         seedDogfoodFull(path);
       }
     }
-    const sampleEvent = db.get<{ id: string }>("select id from event where slug = 'sample-hack-2026'");
+    const sampleEvent = db.get<{ id: string; voting_close_at: number | null }>(
+      "select id, voting_close_at from event where slug = 'sample-hack-2026'",
+    );
     if (sampleEvent) {
       const existingCert = db.get("select 1 from certificate_batch where event_id = :event", { event: sampleEvent.id });
-      if (!existingCert) {
+      const pub = db.get<{ report: string }>(
+        "select report from result_publication where event_id = :e order by revision desc limit 1",
+        { e: sampleEvent.id },
+      );
+      const hasExplanation = pub && pub.report.includes("reviews");
+      const votingClosed = sampleEvent.voting_close_at != null && sampleEvent.voting_close_at < systemClock.now();
+      if (!existingCert || !hasExplanation || !votingClosed) {
         seedSampleHackFull(path);
       }
     }
