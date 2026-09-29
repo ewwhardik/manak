@@ -5,6 +5,7 @@ import type { Db } from "./open.ts";
 import type { LedgerEntry } from "./ledger.ts";
 import type { Clock } from "./clock.ts";
 import { systemClock } from "./clock.ts";
+import { sendPinnedWebhook } from "./webhook-transport.ts";
 
 export type WebhookConfig = {
   id: string;
@@ -174,6 +175,16 @@ export function ledgerWebhook(options: {
     }
     cursor = saved;
   }
+  // Import the legacy checkpoint once; SQLite is authoritative thereafter.
+  db.tx(() => {
+    db.run("insert or ignore into webhook_subscription(destination, event_id, cursor, cursor_hash) values (:destination, :event, :seq, :hash)",
+      { destination, event: eventId, seq: cursor.seq, hash: cursor.hash });
+    const stored = db.one<{ cursor: number; cursor_hash: string }>("select cursor, cursor_hash from webhook_subscription where destination = :destination", { destination });
+    cursor = { seq: stored.cursor, hash: stored.cursor_hash, destination };
+    db.run(`insert or ignore into webhook_delivery(destination, sequence)
+      select :destination, seq from ledger where event_id = :event and seq > :seq`,
+      { destination, event: eventId, seq: cursor.seq });
+  });
   let busy = false;
   const statusPath = `${checkpoint}.status.json`;
   type Status = { cursor: number; lastAttemptAt: number | null; lastSuccessAt: number | null;
@@ -195,29 +206,46 @@ export function ledgerWebhook(options: {
     position: () => cursor.seq,
     status: () => ({ ...status }),
     async flush(): Promise<number> {
+      if (db.inTransaction()) throw new Error("Webhook delivery must run after the database transaction commits.");
       if (busy) return 0;
       busy = true;
       let delivered = 0;
       status.lastAttemptAt = clock.now();
       try {
-        const rows = db.all<LedgerEntry>("select * from ledger where event_id = :event and seq > :seq order by seq limit 25", { event: eventId, seq: cursor.seq });
+        const rows = db.all<LedgerEntry>(`select l.* from ledger l join webhook_delivery d on d.sequence = l.seq
+          where d.destination = :destination and d.status = 'queued' order by l.seq limit 25`, { destination });
         for (const row of rows) {
           const id = `${row.seq}-${row.hash}`;
           // Omit private payloads, actors and subject identifiers (which may contain an email).
           const body = JSON.stringify({ id, sequence: row.seq, event: eventId, action: row.action, timestamp: row.at, hash: row.hash });
-          const response = await (options.send ?? fetch)(url.href, {
-            method: "POST", redirect: "error", signal: AbortSignal.timeout(5000),
-            headers: { "Content-Type": "application/json", "X-Manak-Delivery": id,
-              "X-Manak-Event": row.action, "X-Manak-Signature": `sha256=${signWebhookPayload(body, secret)}` },
-            body,
-          });
-          await response.body?.cancel();
-          if (!response.ok) throw new Error(`Webhook receiver returned HTTP ${response.status}; delivery retained for retry.`);
+          const headers = { "Content-Type": "application/json", "X-Manak-Delivery": id,
+            "X-Manak-Event": row.action, "X-Manak-Signature": `sha256=${signWebhookPayload(body, secret)}` };
+          db.run(`update webhook_delivery set attempts = attempts + 1, last_attempt_at = :at
+            where destination = :destination and sequence = :seq`, { at: clock.now(), destination, seq: row.seq });
+          try {
+            const response = options.send
+              ? await options.send(url.href, { method: "POST", redirect: "error", signal: AbortSignal.timeout(5000), headers, body })
+              : await sendPinnedWebhook(url, headers, body);
+            if ("body" in response) await response.body?.cancel();
+            db.run("update webhook_delivery set status_code = :code where destination = :destination and sequence = :seq",
+              { code: response.status, destination, seq: row.seq });
+            if (!response.ok) throw new Error(`Webhook receiver returned HTTP ${response.status}; delivery retained for retry.`);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "Webhook delivery failed.";
+            db.run("update webhook_delivery set last_error = :message where destination = :destination and sequence = :seq",
+              { message, destination, seq: row.seq });
+            throw error;
+          }
           const next = { seq: row.seq, hash: row.hash, destination };
+          db.tx(() => {
+            db.run("update webhook_delivery set status = 'delivered', delivered_at = :at, last_error = null where destination = :destination and sequence = :seq",
+              { at: clock.now(), destination, seq: row.seq });
+            db.run("update webhook_subscription set cursor = :seq, cursor_hash = :hash where destination = :destination", next);
+          });
+          cursor = next;
           mkdirSync(dirname(checkpoint), { recursive: true });
           writeFileSync(`${checkpoint}.tmp`, JSON.stringify(next) + "\n", { encoding: "utf8", mode: 0o600 });
           renameSync(`${checkpoint}.tmp`, checkpoint);
-          cursor = next;
           delivered++;
         }
         status = { ...status, cursor: cursor.seq, lastSuccessAt: clock.now(),
