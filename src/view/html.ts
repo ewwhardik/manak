@@ -71,10 +71,10 @@ export function demoNoticeModal(openByDefault = false): string {
 <div class="demo-modal-body">
 <h2 id="demo-disclaimer-title" class="demo-modal-heading">Demo &amp; Testing Features Notice</h2>
 <p class="demo-modal-intro">Explore seeded example events and switch between organizer, judge, and participant roles with Fast login. Use disposable data for testing; production deployments use email sign-in.</p>
-<details><summary>Demo setup and production settings</summary>
+<details open><summary>Demo setup and production settings</summary>
 <div class="demo-feature-grid">
 <div class="demo-feature-card">
-<div class="demo-feature-icon" aria-hidden="true">⚡</div>
+<div class="demo-feature-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
 <div class="demo-feature-content">
 <h3>Fast Login &amp; Role Switcher</h3>
 <p>1-click instant persona switching (Organizer, Judges, Builders) in the header without email OTP challenges.</p>
@@ -82,7 +82,7 @@ export function demoNoticeModal(openByDefault = false): string {
 </div>
 </div>
 <div class="demo-feature-card">
-<div class="demo-feature-icon" aria-hidden="true">🧭</div>
+<div class="demo-feature-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></div>
 <div class="demo-feature-content">
 <h3>Evaluator Golden Path</h3>
 <p>Guided walkthrough (<code>/guide#golden-path</code>) of the main role workflows. See the acceptance report and proof reports for verification scope.</p>
@@ -90,7 +90,7 @@ export function demoNoticeModal(openByDefault = false): string {
 </div>
 </div>
 <div class="demo-feature-card">
-<div class="demo-feature-icon" aria-hidden="true">📊</div>
+<div class="demo-feature-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div>
 <div class="demo-feature-content">
 <h3>Pre-Seeded Hackathon Data</h3>
 <p>Sample events (Sample Hack 2026, Dogfood), pre-loaded rubric reviews, duplicate detection edge-cases, and Hodge duel matrices.</p>
@@ -98,7 +98,7 @@ export function demoNoticeModal(openByDefault = false): string {
 </div>
 </div>
 <div class="demo-feature-card">
-<div class="demo-feature-icon" aria-hidden="true">🔏</div>
+<div class="demo-feature-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
 <div class="demo-feature-content">
 <h3>Verifiable Certificate Studio</h3>
 <p>Pre-minted Ed25519 cryptographic certificates with public keys for testing offline WebCrypto verification at <code>/verify</code>.</p>
@@ -112,7 +112,7 @@ export function demoNoticeModal(openByDefault = false): string {
 <form method="post" action="/demo/dismiss" class="demo-modal-dismiss-form">
 <label for="demo-disclaimer-modal" class="demo-modal-dismiss-btn">Dismiss</label>
 <button type="submit" class="demo-modal-submit-btn">Got it, explore demo &rarr;</button>
-<a href="/guide#golden-path" class="demo-modal-guide-btn">⚡ 3-Min Golden Path speed-run &rarr;</a>
+<a href="/guide#golden-path" class="demo-modal-guide-btn">3-Min Golden Path speed-run &rarr;</a>
 </form>
 </div>
 </div>
@@ -209,19 +209,19 @@ ${
 ${options.demoMode === true ? `${demoNoticeModal(options.showDemoDisclaimer === true)}\n` : ""}<a class="skip" href="#main">Skip to content</a>
 <header class="bar">
 <a class="mark" href="/" aria-label="Manak home"><span class="brand-symbol" aria-hidden="true">m</span>manak<span class="brand-period">.</span></a>
-<nav class="primary-nav" aria-label="Main navigation"><a href="/events"${activeNav === "events" ? ' aria-current="page"' : activeNav === "event" ? ' aria-current="location"' : ""}>Explore events</a>${options.whoami == null ? "" : `<a href="/mine"${activeNav === "mine" ? ' aria-current="page"' : ""}>My workspace</a>`}<a href="/guide"${activeNav === "guide" ? ' aria-current="page"' : ""}>Evaluation guide</a><a href="/guide#golden-path">⚡ Golden Path</a><a href="/about"${activeNav === "about" ? ' aria-current="page"' : ""}>The method</a></nav>
+<nav class="primary-nav" aria-label="Main navigation"><a href="/events"${activeNav === "events" ? ' aria-current="page"' : activeNav === "event" ? ' aria-current="location"' : ""}>Explore events</a>${options.whoami == null ? "" : `<a href="/mine"${activeNav === "mine" ? ' aria-current="page"' : ""}>My workspace</a>`}<a href="/guide"${activeNav === "guide" ? ' aria-current="page"' : ""}>Evaluation guide</a><a href="/guide#golden-path">Golden Path</a><a href="/about"${activeNav === "about" ? ' aria-current="page"' : ""}>The method</a></nav>
 <nav class="who" aria-label="Account">${
     options.whoami == null
       ? '<a href="/signin">Sign in</a>'
       : `<span>${esc(options.whoami)}</span> <form method="post" action="/signout" class="inline">` +
         '<button class="quiet" type="submit">Sign out</button></form>'
-  }${options.demoMode === true ? `<label for="demo-disclaimer-modal" class="demo-info-trigger" title="Open demo and evaluation notice">⚡ Demo Notice</label><details class="fast-login">
+  }${options.demoMode === true ? `<label for="demo-disclaimer-modal" class="demo-info-trigger" title="Open demo and evaluation notice">Demo Notice</label><details class="fast-login">
 <summary class="fast-login-btn">Fast login</summary>
 <div class="fast-login-menu">
 <div class="fast-login-header">
 <span class="role-badge">Demo accounts</span>
 <p>Quick sign-in for testing Sample Hack 2026 &amp; Dogfood.</p>
-<a href="/guide#golden-path" class="fast-login-guide-link">⚡ 3-Min Golden Path speed-run &rarr;</a>
+<a href="/guide#golden-path" class="fast-login-guide-link">3-Min Golden Path speed-run &rarr;</a>
 <a href="/guide" class="fast-login-guide-link">Platform guide &amp; sitemap &rarr;</a>
 </div>
 <div class="fast-login-list">

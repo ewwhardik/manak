@@ -95,9 +95,9 @@ export function guidePage(props: GuideProps): string {
     showDemoDisclaimer: props.showDemoDisclaimer,
     eyebrow: "Operational Guide & Platform Sitemap",
     lead: "A comprehensive reference and direct-jump directory for hackathon judges, organizers, and builders. Understand Manak's evaluation model, access every feature with one click, and explore the complete platform architecture.",
-    headingActions: `<div class="hero-actions"><a class="button" href="#golden-path">⚡ 3-Min Golden Path <span aria-hidden="true">&darr;</span></a><a class="button" href="#sitemap">Explore platform sitemap <span aria-hidden="true">&darr;</span></a><a class="text-link" href="#judges">Judge evaluation hub <span aria-hidden="true">&rarr;</span></a></div>`,
+    headingActions: `<div class="hero-actions"><a class="button" href="#golden-path">3-Min Golden Path <span aria-hidden="true">&darr;</span></a><a class="button" href="#sitemap">Explore platform sitemap <span aria-hidden="true">&darr;</span></a><a class="text-link" href="#judges">Judge evaluation hub <span aria-hidden="true">&rarr;</span></a></div>`,
     body: `${goldenPathBanner(props.demoMode)}
-<nav class="workspace-nav" aria-label="Guide sections"><a href="#golden-path">⚡ 3-Min Golden Path</a><a href="#judges">Judges' Hub</a><a href="#organizers">Organizers' Control Room</a><a href="#builders">Builders' Workspace</a><a href="#verification">Cryptographic Trust &amp; Certificates</a><a href="#sitemap">Complete Platform Sitemap</a></nav>
+<nav class="workspace-nav" aria-label="Guide sections"><a href="#golden-path">Golden Path</a><a href="#judges">Judges' Hub</a><a href="#organizers">Organizers' Control Room</a><a href="#builders">Builders' Workspace</a><a href="#verification">Cryptographic Trust &amp; Certificates</a><a href="#sitemap">Complete Platform Sitemap</a></nav>
 
 <section class="guide-hub" id="judges">
 <div class="section-heading">

@@ -120,7 +120,7 @@ function eventsPage(context: ViewContext, title: string): string {
     lead: "Run your hackathon from first submission to final results. Bring teams, independent judges, and every decision into one shared workspace.",
     whoami: context.whoami, demoMode: context.demoMode,
     showDemoDisclaimer: context.showDemoDisclaimer,
-    headingActions: `<div class="hero-actions"><a class="button" href="#golden-path">⚡ 3-Min Golden Path <span aria-hidden="true">&darr;</span></a><a class="button" href="#events">Explore the events <span aria-hidden="true">↗</span></a><a class="text-link" href="${context.whoami ? "/mine" : "/signin"}">${context.whoami ? "Open my workspace" : "Enter your workspace"} <span aria-hidden="true">→</span></a></div>`,
+    headingActions: `<div class="hero-actions"><a class="button" href="#golden-path">3-Min Golden Path <span aria-hidden="true">&darr;</span></a><a class="button" href="#events">Explore the events <span aria-hidden="true">↗</span></a><a class="text-link" href="${context.whoami ? "/mine" : "/signin"}">${context.whoami ? "Open my workspace" : "Enter your workspace"} <span aria-hidden="true">→</span></a></div>`,
     body: `<div class="principles"><span><b>01</b> Built in the open</span><span><b>02</b> Judged with context</span><span><b>03</b> Every decision, traceable</span></div>
 ${goldenPathBanner(context.demoMode)}
 <section id="events"><div class="section-heading"><div><p class="eyebrow">Discover what’s happening</p><h2>The event collection<span class="count-label">${rows(context.result, "events").length}</span></h2></div><a href="/events">All events <span aria-hidden="true">↗</span></a></div>${eventList(rows(context.result, "events"))}</section>
