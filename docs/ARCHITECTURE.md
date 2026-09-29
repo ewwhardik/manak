@@ -26,12 +26,12 @@ flowchart TD
   end
 
   subgraph APILayer ["API Contract & Commands"]
-    API["src/api (82 Operation Declarations, OpenAPI, Access Matrix)"]
+    API["src/api (96 Operation Declarations, OpenAPI, Access Matrix)"]
     CAP["Capability & Rate Limiting (Role Audience, Windows, Buckets)"]
   end
 
   subgraph StorageLayer ["Persistence & Ledger"]
-    DB["src/db (Native SQLite, 32 Tables, 14 Migrations)"]
+    DB["src/db (Native SQLite, 36 Tables, 19 Migrations)"]
     LEDGER["Append-Only SHA-256 Hash Chain (Audited Mutations)"]
   end
 
@@ -52,7 +52,7 @@ flowchart TD
 
 ---
 
-Manak is 96 operations with 30 archived tables, no production npm
+Manak is 96 operations with 33 archived tables, no production npm
 dependencies, no build step and one process. That combination is not a boast; it is the
 constraint that decided nearly every other question in this repository, and this file is
 where those decisions are written down with their costs attached rather than left for a
