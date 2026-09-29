@@ -178,3 +178,40 @@ Assignment fills constrained projects first, then uses residual augmenting paths
 Readiness now removes each reviewer in turn from the project-overlap graph. If removal splits the graph, the dashboard asks for independent overlap. This check diagnoses dependence on one reviewer, never misconduct. It does not change scores or establish calibrated confidence intervals.
 
 The exact bundled fixture proof is in [docs/proof/fixtures.md](docs/proof/fixtures.md). It accounts for 41 projects and 126 scores, preserves submission timestamps, and reports raw and adjusted ranks. The fixture has no known true ranking: the synthetic recovery proof and the fixture transformation are distinct claims. Nonconverged fits and unresolved scale estimates remain visible and require review in events where they occur.
+
+## "Explain My Rank" Participant Transparency Portal
+
+While organizers inspect mathematical diagnostics in the Evidence Lab (`?lab=true`), participants whose projects placed in competitive brackets deserve transparent, accountable insight into their final standing.
+
+Manak provides the **"Explain My Rank"** portal (`/events/:slug/projects/:id/explain` and `/api/events/:slug/projects/:id/explain`):
+
+1. **Additive Breakdown**:
+   Decomposes the project's adjusted score into clear, explainable constituent terms:
+   $$\hat{s}_i = \mu + \alpha_i + \bar{\beta}_{\text{assigned}}$$
+   - **Grand Baseline ($\mu$)**: The mean score across all peer projects under the published rubric.
+   - **Net Project Effect ($\alpha_i$)**: The latent project merit estimated after removing reviewer severity offsets.
+   - **Panel Severity Adjustment**: Quantifies whether assigned reviewers were systematically tougher or more lenient than the event-wide average, showing exactly how many points were added or deducted to achieve cross-panel parity.
+2. **Reviewer Privacy via HMAC Tokens**:
+   Judges are rendered with salted HMAC-SHA256 identifiers (e.g., `Reviewer #8A3F`). Reviewer anonymity is preserved against participant pressure while maintaining verifiable per-reviewer marks and criterion breakdowns.
+3. **Statistical Uncertainty & Confidence Interval**:
+   Displays the project's 95% bootstrap confidence band $[\text{rank}_{\min}, \text{rank}_{\max}]$ and standard error, explaining why adjacent ranks within uncertainty bands are treated as statistical peers.
+4. **Criterion Profile**:
+   Renders relative percentile performance per rubric criterion (Technical Complexity, Polish, Impact), showing teams where their project excelled and where points diverged.
+
+## Multi-Method Normalization Sandbox
+
+Before freezing and publishing a results revision, hackathon organizers must understand ranking stability across different aggregation philosophies. The **Multi-Method Normalization Sandbox** (`/events/:slug/dashboard/sandbox` and `/api/events/:slug/dashboard/sandbox`) computes four ranking models concurrently over the live ballot matrix:
+
+| Normalization Method | Algorithmic Formulation | Primary Characteristic |
+| :--- | :--- | :--- |
+| **1. Raw Trimmed Mean** | Top/bottom trimmed arithmetic average per project | Intuitive, simple; vulnerable to unshared reviewer severity bias. |
+| **2. Standardized Z-Score** | $z_{ij} = (y_{ij} - \bar{y}_j) / s_j$, averaged per project | Equalizes judge mean and variance; sensitive to low-variance judges. |
+| **3. Additive Bayesian (Core)** | Backfitting alternating updates with empirical prior shrinkage | Robust, unbiases sparse panels; shrinks low-information reviewers. |
+| **4. Implied Pairwise (Bradley-Terry)** | Implied paired comparisons fitted via Minorization-Maximization | Scale-free logit win probabilities; invariant to linear scale warping. |
+
+### Sensitivity Metrics & Agreement Diagnostics:
+- **Spearman Rank Correlation ($\rho$)**: Measures monotonic rank agreement between all pairs of normalization models.
+- **Kendall's Tau ($\tau$)**: Quantifies pairwise concordant vs discordant project orderings across methods.
+- **Displacement Matrix**: Flags any project whose rank shifts by more than 3 positions between Raw and Bayesian models, pinpointing teams that benefit most from bias correction.
+- **Organizer Confidence Index**: High correlation ($\rho > 0.95$) confirms ranking robustness; lower values suggest sparse overlap requiring additional review assignments before publication.
+

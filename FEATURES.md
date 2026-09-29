@@ -169,22 +169,141 @@ Roles are scoped to one event. A judge invited to one event does not gain access
 
 **Current behavior:** Built entirely with pure CSS 3D transforms and SVG vector geometry (no Three.js, WebGL, or runtime dependencies). Features a rotating globe, longitude/latitude rings, and orbiting markers. Includes a pause toggle (`#pause-orbit`) and automatically respects OS accessibility settings via `@media (prefers-reduced-motion: reduce)`.
 
+## 16. Participant "Explain My Rank" Diagnostic Breakdown
+
+**Target:** Eliminate participant disillusionment and opaque judging disputes by explaining exactly how a team's final rank was calculated.
+
+**Current behavior:** Participants can visit `/events/:slug/results/explain` or call `GET /api/events/:event/results/explain` to inspect an individualized, transparent breakdown of their team's project placement:
+- Displays raw arithmetic criterion mean alongside the fitted adjusted score ($y_{ij} = \mu + b_j + q_i$).
+- Compares project score to the event grand mean ($\mu$).
+- Shows anonymized, relative reviewer contributions with non-identifying labels (e.g., "Reviewer A", "Reviewer B").
+- Reports individual criterion scores (Functionality, Quality, Innovation) and constructive written comments while strictly preserving judge identity confidentiality.
+
+**Boundary:** Accessible only to verified team members for their own team's submissions, and only after the frozen results revision has been officially published by organizers.
+
+## 17. Multi-Method Normalization Sandbox
+
+**Target:** Allow organizers to safely compare alternative mathematical scoring models before finalizing podium announcements.
+
+**Current behavior:** Available to organizers at `/events/:slug/manage/results/sandbox` or `GET /api/events/:event/results/sandbox`:
+- Computes standings simultaneously across 4 independent normalization regimes:
+  1. **Raw Arithmetic Mean**: Weighted raw rubric scores without judge adjustment.
+  2. **Shrunk Z-Score Standardization**: Per-judge variance equalization with Bayesian shrinkage for low-volume reviewers.
+  3. **Two-Way Additive Effects**: Full Bayesian joint estimation of project quality ($q_i$) and judge offset ($b_j$).
+  4. **Implied Pairwise Bradley-Terry**: Converts rubric ballots into virtual head-to-head comparisons to resolve circular preference loops.
+- Highlights rank swings ($\Delta_{rank}$) between methods, flagging contested projects where normalization decisions alter medal cutoff positions.
+- Runs entirely in-memory with zero side-effects on frozen publications or ledger records.
+
+## 18. Duplicate Submission Quarantine & Organizer Triage
+
+**Target:** Automatically quarantine repeat submissions and provide a dedicated organizer console to resolve title and repository collisions.
+
+**Current behavior:**
+- Submissions sharing normalized repository URLs or titles (NFKC Unicode case-folding with whitespace compression) with earlier submissions are automatically flagged with `duplicate_of` and held in `pending` triage.
+- Quarantined projects are immediately excluded from public standings and automated judging queues.
+- Organizers inspect flagged duplicates at `/events/:slug/manage/duplicates` and make recorded decisions (`confirmed` duplicate or `cleared` distinct entry) at `POST /api/events/:event/manage/duplicates/triage`.
+- Every triage decision is recorded immutably in the SHA-256 audit ledger with an organizer-supplied justification.
+
+## 19. User-Managed Scoped API Tokens Console
+
+**Target:** Enable automated scripting and developer integrations without exposing full account sessions or credentials.
+
+**Current behavior:**
+- Users manage personal bearer tokens at `/me/tokens` or via `GET/POST /api/me/tokens`.
+- Tokens are cryptographically random strings (`manak_<43-char-urlsafe>`) hashed with SHA-256 before database insertion (`api_token` table). The raw token is displayed exactly once upon creation.
+- Scoped to specific permissions: `read:projects`, `read:results`, `write:projects`, or `write:judging`.
+- Enforces strict lifetime expiration (1 to 90 days) and per-account active caps (max 20 tokens).
+- Immediate instant revocation via `POST /api/me/tokens/:tokenId/revoke`.
+
+## 20. Dedicated 6-Endpoint CSV Export Suite
+
+**Target:** Provide organizers and downstream analysts with clean, automated tabular data exports matching standard spreadsheet tooling.
+
+**Current behavior:** In addition to the consolidated stage download (`/csv/:stage`), Manak exposes 6 dedicated direct CSV export endpoints:
+- `GET /api/events/:event/export/registrations.csv`: Participant accounts, emails, display names, roles, and registration timestamps.
+- `GET /api/events/:event/export/teams.csv`: Teams, member counts, and creation timestamps.
+- `GET /api/events/:event/export/projects.csv`: Project titles, tracks, status, repository URLs, and duplicate triage states.
+- `GET /api/events/:event/export/scores.csv`: Anonymized judge rubric ballots, criterion scores, and written comments.
+- `GET /api/events/:event/export/results.csv`: Final rankings, raw means, adjusted scores, error margins, and tier assignments.
+- `GET /api/events/:event/export/audit.csv`: Complete, tamper-evident chronological ledger event stream with parent hashes.
+- All CSVs enforce formula-injection protection (neutralizing leading `=`, `+`, `-`, `@`, `\t` characters) while preserving legitimate negative numbers.
+
+## 21. Prometheus `/metrics` Real-Time Monitoring
+
+**Target:** Expose standard observability metrics for Prometheus, Grafana, and cloud monitoring without third-party agent dependencies.
+
+**Current behavior:** `GET /metrics` serves standard Prometheus text exposition format (version 0.0.4):
+- `http_requests_total`: Counter partitioned by HTTP method and status code.
+- `http_request_duration_ms`: Summary/quantiles of response latency.
+- Accessible directly over the root HTTP listener; fully unauthenticated for scraper compatibility.
+
+## 22. Database-Level Invariant Enforcement via SQLite Triggers
+
+**Target:** Guarantee critical business invariants at the database engine level, preventing corrupt writes even from outside the application code.
+
+**Current behavior:** Migration `016_invariant_triggers.sql` installs 8 active database triggers:
+- `project_submission_window`: Rejects setting status to `submitted` outside the event submission window.
+- `ballot_submission_window_insert` / `_update`: Rejects submitting ballots outside the event judging window.
+- `comparison_window`: Rejects pairwise duels decided outside the judging window.
+- `criterion_scored_insert` / `_update` / `_delete`: Immutably freezes rubric criteria, weights, and ranges once scores exist.
+- `score_range_insert` / `_update`: Enforces that numeric scores fall strictly between `min_score` and `max_score`.
+- `assignment_team_conflict`, `ballot_team_conflict`, `comparison_team_conflict`: Forbids assigning, scoring, or comparing projects created by a judge's own team.
+
+## 23. Transactional SQLite Webhook Outbox & SSRF Protection
+
+**Target:** Guarantee reliable webhook delivery on system failure while preventing Server-Side Request Forgery (SSRF) and DNS rebinding.
+
+**Current behavior:**
+- Deliveries are inserted into the `webhook_delivery` table within the *exact same SQLite transaction* that mutates the audited entity.
+- The `WebhookDispatcher` leases pending deliveries, signs payloads with HMAC-SHA256 (`X-Manak-Signature: t=<timestamp>,v1=<hex>`), and supports exponential backoff retries.
+- Socket-level SSRF protection: resolves hostnames via DNS, strictly blocks private/loopback/cloud-metadata IP ranges (RFC 1918, RFC 3927, carrier NAT), and pins the outbound TCP socket directly to the validated IP to prevent TOCTOU DNS rebinding.
+
+## 24. Standalone RFC 8032 Python Ed25519 Offline Verifier CLI
+
+**Target:** Provide external auditors, sponsors, and participants with an independent, zero-dependency verification tool.
+
+**Current behavior:** `tools/verify_record.py` implements pure RFC 8032 Ed25519 elliptic curve arithmetic using only the Python 3 standard library (no `pip install`, no PyNaCl, no cryptography):
+- Decodes and verifies digital signatures on issued certificates and correction records.
+- Detects scalar malleability, low-order group points, and payload tampering.
+- Tested against official RFC 8032 test vectors.
+
+## 25. Dynamic Self-Resizing Embed Widget
+
+**Target:** Allow external hackathon portals, university portals, and sponsor sites to embed live project galleries seamlessly.
+
+**Current behavior:**
+- External sites embed `<script src="/embed.js" data-event="slug"></script>`.
+- Dynamically creates an iframe pointed to `/embed/:slug` with proper Content-Security-Policy (`frame-ancestors *`).
+- Communicates via HTML5 `postMessage` (`manak:height`) to continuously adjust iframe height, eliminating unsightly double scrollbars.
+
+## 26. Extended Acceptance Test Suite
+
+**Target:** Provide automated, reproducible verification of all T3 & T4 hackathon criteria against live running deployments.
+
+**Current behavior:**
+- `tools/check_extended.py` executes against `.dogfood.toml`.
+- Probes all 12 extended criteria: ballot shuffle stability, active voting privacy gates, authenticated comment gating, duplicate project quarantine, hash chain continuity, CSV export validity, webhook contracts, Ed25519 certificates, and Prometheus `/metrics`.
+- Generates `acceptance-report-extended.txt` with zero failures (13 verified, 0 failed).
+
 ---
 
 ## Command inventory
 
-The **82 registered operations** are grouped below. `/docs` supplies the current method, path, fields, and role rule for each one. Generated [OpenAPI](openapi.json) documents the full machine-checked specification.
+The **96 registered operations** are grouped below. `/docs` supplies the current method, path, fields, and role rule for each one. Generated [OpenAPI](openapi.json) documents the full machine-checked specification.
 
 | Area | Operations |
 | --- | --- |
 | Sign-in | `auth.signin`, `auth.request`, `auth.link`, `auth.session`, `auth.whoami`, `auth.signout` |
-| Events | `events.list`, `events.show`, `events.create`, `events.update`, `events.mine`, `events.invite`, `events.judges` |
+| Personal tokens | `tokens.list`, `tokens.create`, `tokens.revoke` |
+| Events | `events.list`, `events.show`, `events.create`, `events.update`, `events.mine`, `events.invite`, `events.judges`, `events.clock`, `events.warp_clock`, `events.webhooks`, `events.ping_webhook`, `events.revoke_role` |
 | Teams and tracks | `tracks.create`, `teams.list`, `teams.join` |
-| Projects | `projects.list`, `projects.show`, `projects.create`, `projects.update`, `projects.submit`, `projects.withdraw`, `projects.pull`, `projects.disqualify` |
+| Projects & duplicates | `projects.list`, `projects.show`, `projects.create`, `projects.update`, `projects.submit`, `projects.withdraw`, `projects.pull`, `projects.disqualify`, `duplicates.list`, `duplicates.triage` |
 | Comments | `comments.add`, `comments.hide` |
 | Rubrics | `rubrics.show`, `rubrics.create`, `rubrics.publish` |
-| Judge work | `judging.queue`, `ballots.save`, `duels.next`, `duels.decide`, `assignments.preview`, `assignments.draw`, `judges.roster`, `judges.configure`, `judges.recusal`, `reviews.requests`, `reviews.request`, `reviews.cancel` |
-| Results, evidence and awards | `results.show`, `results.confidence`, `events.dashboard`, `results.preflight`, `results.evidence_packet`, `results.history`, `results.publish`, `results.unpublish`, `awards.list`, `awards.decide`, `results.certificates`, `results.certificate_studio`, `results.certificate_template`, `results.public_certificate` |
-| Community voting | `votes.start`, `votes.cast`, `votes.results`, `votes.ballot` |
-| Export | `exports.download` |
-| System | `system.home`, `system.healthz`, `system.docs`, `system.openapi`, `system.capabilities`, `system.about`, `system.guide` |
+| Judge work | `judging.queue`, `ballots.save`, `duels.next`, `duels.decide`, `assignments.draw`, `assignments.preview`, `judges.roster`, `judges.configure`, `judges.recusal`, `judges.self_recusal`, `reviews.requests`, `reviews.request`, `reviews.cancel` |
+| Results & sandbox | `results.show`, `results.confidence`, `events.dashboard`, `results.preflight`, `results.evidence_packet`, `results.history`, `results.publish`, `results.unpublish`, `results.certificates`, `results.certificate_studio`, `results.configure_certificate_template`, `results.public_certificate`, `results.issue_certs`, `results.certificate_status`, `results.correct_cert`, `results.judge_evidence`, `results.explain`, `results.sandbox` |
+| Awards & appeals | `awards.list`, `awards.decide`, `appeals.list`, `appeals.open`, `appeals.resolve` |
+| Community voting | `votes.start`, `votes.cast`, `votes.results`, `votes.ballot`, `votes.abuse`, `votes.configure_abuse`, `votes.review_abuse`, `votes.discount_cluster` |
+| Dedicated exports | `exports.download`, `exports.registrations_csv`, `exports.teams_csv`, `exports.projects_csv`, `exports.scores_csv`, `exports.results_csv`, `exports.audit_csv` |
+| System | `system.home`, `system.about`, `system.docs`, `system.openapi`, `system.capabilities`, `system.healthz` |
+

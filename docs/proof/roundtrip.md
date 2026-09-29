@@ -14,11 +14,11 @@ produces.
 
 | Measured                                                | Count |
 | ------------------------------------------------------- | ----- |
-| Tables exported                                         | 32    |
-| Rows exported                                           | 161   |
-| Bytes of JSONL written                                  | 47689 |
-| Tables the export leaves behind                         | 2     |
-| Rows after the import                                   | 161   |
+| Tables exported                                         | 33    |
+| Rows exported                                           | 162   |
+| Bytes of JSONL written                                  | 48395 |
+| Tables the export leaves behind                         | 5     |
+| Rows after the import                                   | 162   |
 | Files differing between the first export and the second | 0     |
 | Claims asserted in this run                             | 24    |
 | Damaged archives offered to the import                  | 11    |
@@ -39,7 +39,8 @@ produces.
 | `track`                  | 3       | 255       |
 | `team`                   | 4       | 489       |
 | `team_member`            | 4       | 600       |
-| `project`                | 6       | 3605      |
+| `team_invite`            | 1       | 176       |
+| `project`                | 6       | 4025      |
 | `judge_track`            | 1       | 127       |
 | `judge_capacity`         | 1       | 125       |
 | `judge_recusal`          | 1       | 199       |
@@ -60,16 +61,19 @@ produces.
 | `certificate_batch`      | 0       | 0         |
 | `certificate_template`   | 1       | 304       |
 | `certificate_correction` | 1       | 526       |
-| `ledger`                 | 72      | 27497     |
-| **total**                | **161** | **47689** |
+| `ledger`                 | 72      | 27607     |
+| **total**                | **162** | **48395** |
 
 Two tables are not rows in an archive, and the manifest says which and why rather than leaving
 a restorer to notice:
 
-| Left behind       | Why                                                                                                                                               |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `migration`       | rebuilt by the migrator on import; the applied ids and their hashes are in `schema`, where they are checked rather than restored                  |
-| `sqlite_sequence` | SQLite's own autoincrement bookkeeping; restored implicitly, because ledger sequence numbers are written explicitly and SQLite tracks the highest |
+| Left behind            | Why                                                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api_token`            | scoped bearer tokens belong to account sessions and are not exported across deployment instances                                                  |
+| `webhook_subscription` | deployment-owned receiver credentials and delivery cursor are reconfigured on restore                                                             |
+| `webhook_delivery`     | pending delivery attempts belong to the original deployment and must not replay from an archive                                                   |
+| `migration`            | rebuilt by the migrator on import; the applied ids and their hashes are in `schema`, where they are checked rather than restored                  |
+| `sqlite_sequence`      | SQLite's own autoincrement bookkeeping; restored implicitly, because ledger sequence numbers are written explicitly and SQLite tracks the highest |
 
 Byte counts are in the report and digests are not. Sessions and magic links mint their tokens
 from `randomBytes`, so every token hash in the fixture differs between runs, and so does every
@@ -81,10 +85,10 @@ two runs are not the same file.
 
 Every line below ran in this session. A single failure and no report is written.
 
-- all 31 core tables hold rows; signed certificate snapshots have a separate cryptographic roundtrip test.
+- all 32 core tables hold rows; signed certificate snapshots have a separate cryptographic roundtrip test.
 - the handle the export reads through refuses writes.
-- the export wrote 32 files and a manifest, 161 rows in all.
-- the import reported 161 rows in 32 tables, which are the manifest's own totals.
+- the export wrote 33 files and a manifest, 162 rows in all.
+- the import reported 162 rows in 33 tables, which are the manifest's own totals.
 - the ledger head after the import is the one the manifest recorded.
 - the hash chain verifies against the imported rows, which is nine columns of `ledger` checking themselves.
 - `integrity_check` and `foreign_key_check` are clean on the target.
@@ -98,7 +102,7 @@ Every line below ran in this session. A single failure and no report is written.
 - a session minted before the export still authenticates after the import, so a restore does not sign every judge out mid-event.
 - and a session revoked before the export is still refused, which is `revoked_at` proving itself.
 - a criterion weighted 1/3 came back as exactly 1/3, printed as 0.3333333333333333.
-- the archive exported from the imported database is byte for byte the archive that went into it: 32 files and a manifest, compared as text.
+- the archive exported from the imported database is byte for byte the archive that went into it: 33 files and a manifest, compared as text.
 - an entry appended after the import lands at seq 73, one past the archive's last, so autoincrement resumed from the rows and not from a counter table.
 - and the chain still verifies with that entry on the end.
 - 11 damaged archives were each refused, and with the error the reason names.

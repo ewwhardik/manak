@@ -14,9 +14,9 @@ the reason".
 
 Every claim below is one of three kinds, and the kind is stated.
 
-A claim that names a test is re-checked by `npm test`, all 594 of them, on every run. A claim that
+A claim that names a test is re-checked by `npm test`, all 606 of them, on every run. A claim that
 names a proof was executed against a server on a real socket and its output is committed:
-`npm run prove:isolation -- --check` re-sends all 984 requests and fails if a single byte of
+`npm run prove:isolation -- --check` re-sends all 1152 requests and fails if a single byte of
 `docs/proof/isolation.md` no longer matches. A claim with neither is an argument, and it is marked
 *(argued)* so nobody mistakes reasoning for evidence. A threat model whose every line reads as
 reassurance is a marketing document; the ranked list of weaknesses at the end is the part worth
@@ -84,7 +84,7 @@ attached to a role in an event, never to having registered.
 
 ## What each audience reaches
 
-Access control is declared, not implemented. Every one of the 82 operations carries a `capability`
+Access control is declared, not implemented. Every one of the 96 operations carries a `capability`
 in its declaration, and `decide()` in `src/api/capability.ts` is a pure function of that declaration
 and the caller, no database, no request, no clock. That is what makes the whole policy printable:
 the same function generates the matrix in `docs/proof/isolation.md`, the capability page at
@@ -129,7 +129,7 @@ whose address is missing from the list needs to be told that rather than sent hu
 A unit test of `decide()` establishes that the function is right. It says nothing about a dispatcher
 that forgets to call it, calls it with the wrong principal, or answers 403 where the rule says 404 -
 and those are the interesting failures. So `npm run prove:isolation` starts a server on an ephemeral
-port and sends every operation as every witness in both renderings: 82 × 6 × 2 = 984 requests over a
+port and sends every operation as every witness in both renderings: 96 × 6 × 2 = 1152 requests over a
 socket. 226 of the answers were refusals, 172 of those refusing an operation that writes, and the
 number of ledger entries appended by a refused request was zero, snapshotted around every single
 one, which is the observable form of "the check runs before the handler".
@@ -283,7 +283,7 @@ let a passer-by create one.
 
 There is no CSRF token, and that is a decision rather than an omission.
 
-Every write in this product is a `POST`. Of the 82 operations, 40 are `GET` and 42 are `POST`, there
+Every write in this product is a `POST`. Of the 96 operations, 50 are `GET` and 46 are `POST`, there
 is no third method, and a request with any other verb is a 405 carrying the methods that path does
 accept (`tests/http.test.ts`). That "no `GET` writes" is a fact rather than a convention rests on a
 chain worth spelling out: `ctx.write` refuses to run outside a `ctx.recorded()` scope, and
@@ -421,7 +421,7 @@ arbitrary text and any separator could appear inside them, which is how a chain 
 different entry sets that hash identically. Payloads are canonicalized with sorted keys so that
 re-serializing an entry during an export reproduces the bytes it was hashed as.
 
-**What it proves.** That nothing was appended by a refused request, measured at zero across all 984
+**What it proves.** That nothing was appended by a refused request, measured at zero across all 1152
 requests of the isolation proof. That every write is attributed: `ctx.write` refuses to run outside a
 `ctx.recorded()` scope, so a repository function that forgot to record would fail its own tests
 rather than write silently, and `ctx.as(id)` is how an actor is rebound (which is why the demo seed's
