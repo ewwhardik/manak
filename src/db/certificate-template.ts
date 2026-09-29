@@ -15,8 +15,8 @@ export type CertificateTemplate = { presentation: CertificatePresentation; logoD
 export const DEFAULT_CERTIFICATE_PRESENTATION: CertificatePresentation = {
   heading: "Certificate of Achievement",
   body: "In recognition of dedication, creativity, and contribution to this event.",
-  footer: "Issued by the event organizers",
-  signatory: "Organizing Committee",
+  footer: "Hackathon Raptors Organizing Committee",
+  signatory: "Hackathon Raptors Jury",
   logoSha256: null,
 };
 

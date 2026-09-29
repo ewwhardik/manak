@@ -152,7 +152,7 @@ export function world(options: WorldOptions = {}): World {
     const draft = createProject(system.as(member.id), event, team, {
       title: `Project ${i}`,
       summary: `What project ${i} does, in one sentence.`,
-      repoUrl: "https://example.test/repo",
+      repoUrl: `https://example.test/repo/${i}`,
       ...((options.tracks?.length ?? 0) > 0
         ? { trackKey: options.tracks?.[i % (options.tracks.length || 1)] ?? null }
         : {}),

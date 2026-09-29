@@ -34,7 +34,7 @@
  */
 
 import { defineCommand } from "../registry.ts";
-import type { Command } from "../registry.ts";
+import type { Command, Invocation } from "../registry.ts";
 import { RuleError } from "../../db/index.ts";
 import type { Field } from "../schema.ts";
 import { EVENT_REF } from "./events.ts";
@@ -215,6 +215,7 @@ function queueRow(ctx: Ctx, event: EventRow, judgeId: string, project: ProjectRo
   const ballot = findBallot(ctx.db, event.id, judgeId, project.id);
   return {
     ...projectJson(project),
+    recused: judgeRestrictions(ctx.db, event.id, judgeId).recusals.includes(project.id),
     ballot:
       ballot === undefined
         ? null
@@ -324,9 +325,11 @@ export const queue = defineCommand({
     for (const b of ballotRows) {
       projectIds.add(b.project_id);
     }
-    const projects = Array.from(projectIds)
+  const projects = Array.from(projectIds)
       .map((pid) => findProjectIn(ctx.db, row.id, pid))
       .filter((project): project is ProjectRow => project !== undefined)
+      .filter((project) => !judgeRestrictions(ctx.db, row.id, judge).recusals.includes(project.id) ||
+        findBallot(ctx.db, row.id, judge, project.id)?.submitted_at != null)
       .map((project) => queueRow(ctx, row, judge, project));
     const filed = projects.filter((p) => {
       const ballot = p.ballot as { submitted: boolean } | null;
@@ -885,6 +888,22 @@ export const configureRoster = defineCommand({
     typeof input.capacity === "number" ? input.capacity : null),
 });
 
+function recuseWithTopUp(call: Invocation, judge: string, project: string,
+  reason: string, recused: boolean) {
+  const row = call.event as EventRow;
+  const restrictions = setJudgeRecusal(call.ctx, row.id, judge, project, reason, recused);
+  if (!recused || !gatesFor(row, call.ctx.now()).judgingOpen) return { ...restrictions, topUp: null };
+  const assigned = assignmentsOf(call.ctx.db, row.id, judge).some((item) => item.project_id === project);
+  const filed = findBallot(call.ctx.db, row.id, judge, project)?.submitted_at != null;
+  if (assigned && !filed) unassignProject(call.ctx, row.id, judge, project);
+  // Reuse the capacity-aware residual-path planner, including its locked filed
+  // reviews. A shortfall stays visible if every eligible judge is exhausted.
+  const plan = draw.handler({ ...call, input: { event: row.slug, dryRun: false } }) as {
+    added: number; removed: number; complete: boolean; shortfalls: unknown[] };
+  return { ...restrictions, topUp: { added: plan.added, removed: plan.removed,
+    complete: plan.complete, shortfalls: plan.shortfalls } };
+}
+
 export const recusal = defineCommand({
   name: "judges.recusal",
   summary: "Record or clear a project recusal for one judge.",
@@ -900,11 +919,38 @@ export const recusal = defineCommand({
   returns: configureRoster.returns,
   limit: "organize",
   limitKey: ({ input }) => String(input.event ?? ""),
-  records: ["judge.recused", "judge.recusal_cleared"],
+  records: ["judge.recused", "judge.recusal_cleared", "assignment.removed",
+    "assignment.run", "assignment.created"],
   form: { title: "Judge project recusal", submit: "Record recusal",
     redirect: ({ input }) => `/events/${encodeURIComponent(String(input.event))}/dashboard#operations` },
-  handler: ({ ctx, event, input }) => setJudgeRecusal(ctx, (event as EventRow).id,
-    String(input.judge), String(input.project), String(input.reason), input.decision === "recuse"),
+  handler: (call) => recuseWithTopUp(call, String(call.input.judge),
+    String(call.input.project), String(call.input.reason), call.input.decision === "recuse"),
+});
+
+export const selfRecusal = defineCommand({
+  name: "judges.self_recusal",
+  summary: "Leave an assigned project review and request an eligible replacement.",
+  method: "POST", path: "/api/events/:event/judging/:project/recuse",
+  capability: { audience: "judge", scope: "event", gate: "judging" },
+  input: { event: EVENT_REF, project: PROJECT_REF,
+    reason: { kind: "text", min: 3, max: 500, label: "Reason for recusal" } },
+  returns: { kind: "json", schema: { type: "object", properties: {
+    recusals: { type: "array", items: { type: "string" } },
+    topUp: { type: ["object", "null"] },
+  }, required: ["recusals", "topUp"] } },
+  limit: "ballot", records: ["judge.recused", "assignment.removed",
+    "assignment.run", "assignment.created"],
+  form: { title: "Recuse from this review", submit: "Recuse and find replacement",
+    redirect: ({ input }) => `/events/${encodeURIComponent(String(input.event))}/judging` },
+  handler: (call) => {
+    const row = call.event as EventRow;
+    const judge = call.accountId ?? "";
+    const project = String(call.input.project);
+    if (!assignmentsOf(call.ctx.db, row.id, judge).some((assignment) => assignment.project_id === project)) {
+      throw new RuleError("review.unavailable", "This project is not assigned to you.");
+    }
+    return recuseWithTopUp(call, judge, project, String(call.input.reason), true);
+  },
 });
 
 type ReviewRequestRow = { id: string; project_id: string; judge_id: string;
@@ -1047,6 +1093,7 @@ export const JUDGING_COMMANDS: readonly Command[] = [
   roster,
   configureRoster,
   recusal,
+  selfRecusal,
   reviewRequests,
   requestReview,
   cancelReview,

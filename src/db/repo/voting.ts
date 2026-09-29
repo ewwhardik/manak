@@ -6,7 +6,7 @@ import type { Db } from "../open.ts";
 import { makeRng } from "../../judging/index.ts";
 import { hashToken } from "./accounts.ts";
 import type { EventRow } from "./events.ts";
-import { findProjectIn } from "./projects.ts";
+import { findProjectIn, isQuarantined } from "./projects.ts";
 
 export type VoterRow = {
   token_hash: string;
@@ -113,7 +113,7 @@ export function castVote(
     throw new RuleError("voting.influence", "Influence must be a whole number from 1 to 10.");
   }
   const project = findProjectIn(ctx.db, event.id, projectId);
-  if (project === undefined || project.status !== "submitted") {
+  if (project === undefined || project.status !== "submitted" || isQuarantined(project)) {
     throw new RuleError("project.missing", "No submitted project exists in this event.");
   }
   const voterHash = hashToken(token);
@@ -162,7 +162,10 @@ export function voteTotals(db: Db, eventId: string): { projectId: string; votes:
          sum(v.weight * (100 - coalesce(d.discount_percent, 0)) / 100.0) as votes,
          sum(v.credits_spent) as credits
          from vote v left join vote_discount d on d.event_id = v.event_id and d.voter_hash = v.voter_hash
-         where v.event_id = :event group by v.project_id order by votes desc, v.project_id`,
+         join project p on p.event_id = v.event_id and p.id = v.project_id
+         where v.event_id = :event and p.status = 'submitted'
+           and (p.duplicate_of is null or p.duplicate_decision = 'cleared')
+         group by v.project_id order by votes desc, v.project_id`,
       { event: eventId },
     )
     .map((r) => ({ projectId: r.projectId, votes: r.votes, credits: r.credits }));

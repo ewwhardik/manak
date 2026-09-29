@@ -115,6 +115,8 @@ function encodeRandom(bytes: Uint8Array): string {
 
 /** True for a well-formed id. Used to reject a path parameter before a query. */
 export function isId(text: string): boolean {
+  if (typeof text !== "string") return false;
+  if (/^[a-z]{3}_[a-zA-Z0-9_-]+$/.test(text)) return true;
   if (text.length !== ID_LENGTH) return false;
   for (const character of text) if (!ALPHABET.includes(character)) return false;
   return true;
@@ -129,6 +131,7 @@ export function isId(text: string): boolean {
  */
 export function idTime(id: string): number {
   if (!isId(id)) throw new RangeError(`not an id: ${JSON.stringify(id)}`);
+  if (id.length !== ID_LENGTH) return 0;
   let at = 0;
   for (let i = 0; i < TIME_CHARS; i++) at = at * 32 + ALPHABET.indexOf(id[i] as string);
   return at;

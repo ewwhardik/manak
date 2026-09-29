@@ -10,9 +10,24 @@ services:
     environment:
       MANAK_DEMO: ${MANAK_DEMO:-true}
       MANAK_FOUNDERS: ${MANAK_FOUNDERS:-rosa@example.com}
+      MANAK_SMTP_HOST: mailpit
+      MANAK_SMTP_PORT: "1025"
+      MANAK_SMTP_FROM: Manak Demo <demo@manak.local>
+      MANAK_SMTP_ENCRYPTION: none
+    depends_on:
+      - mailpit
     command: ["node", "--experimental-strip-types", "tools/start-demo.ts"]
     restart: unless-stopped
     stop_grace_period: 10s
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
+    restart: unless-stopped
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
 

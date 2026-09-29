@@ -409,6 +409,11 @@ function plant(path: string): Planted {
     // A participant here, a judge next door: one row that a per-event export would have to
     // either duplicate or cut in half.
     addTeamMember(system, nextDoor, across.id);
+    db.run(
+      `insert into team_invite (event_id, team_id, code, generation, updated_at)
+       values (:event, :team, :code, 1, :at)`,
+      { event: main.id, team: makers.id, code: "a".repeat(43), at: clock.now() },
+    );
 
     const hostile = submitProject(
       system,
@@ -1245,7 +1250,11 @@ function runOnce(): Run {
   try {
     return proveRoundTrip(work);
   } finally {
-    rmSync(work, { recursive: true, force: true });
+    try {
+      rmSync(work, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    } catch {
+      // Windows file locks from SQLite may take extra time to release; ignore cleanup errors.
+    }
   }
 }
 

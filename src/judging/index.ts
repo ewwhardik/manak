@@ -168,3 +168,4 @@ export type { InformationPair } from "./information.ts";
 
 export { assessFinalists } from "./close-call.ts";
 export type { CloseCall, FinalistEvidence, PairwiseEvidence } from "./close-call.ts";
+export { normalizationSandbox, reviewExplanations } from "./sandbox.ts";

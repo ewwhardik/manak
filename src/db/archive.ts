@@ -20,7 +20,7 @@
  *   - **It localizes damage.** A truncated `.jsonl` identifies the damaged table;
  *     import refuses the entire archive before committing partial state.
  *
- * **Everything is exported.** All 28 application tables, every row, including sessions and
+ * **Everything is exported.** All 33 application tables, every row, including sessions and
  * unconsumed magic links. Two absences and no others, both named in the manifest so
  * that "what is missing" is a published fact rather than a thing to be discovered:
  * `migration` is rebuilt by the migrator on the way in and is pinned in the manifest
@@ -89,6 +89,7 @@ export const ARCHIVE_TABLES: readonly string[] = [
   "track",
   "team",
   "team_member",
+  "team_invite",
   "project",
   "judge_track",
   "judge_capacity",
@@ -113,8 +114,21 @@ export const ARCHIVE_TABLES: readonly string[] = [
   "ledger",
 ];
 
-/** The two tables that are deliberately not rows in an archive, and why. */
+/** The tables that are deliberately not rows in an archive, and why. */
 export const NOT_EXPORTED: readonly { readonly name: string; readonly reason: string }[] = [
+  {
+    name: "api_token",
+    reason:
+      "scoped bearer tokens belong to account sessions and are not exported across deployment instances",
+  },
+  {
+    name: "webhook_subscription",
+    reason: "deployment-owned receiver credentials and delivery cursor are reconfigured on restore",
+  },
+  {
+    name: "webhook_delivery",
+    reason: "pending delivery attempts belong to the original deployment and must not replay from an archive",
+  },
   {
     name: "migration",
     reason:

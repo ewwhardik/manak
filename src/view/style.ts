@@ -1261,9 +1261,31 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--accent); }
 .certificate-studio { display: grid; grid-template-columns: minmax(16rem, .82fr) minmax(0, 1.18fr); gap: clamp(1rem, 3vw, 2.5rem); align-items: start; margin: 2rem 0; }
 .certificate-studio > * { min-width: 0; }
 .certificate-studio .certificate-sheet { position: sticky; top: 7rem; }
-.certificate-sheet { position: relative; isolation: isolate; display: grid; align-content: center; gap: .9rem; width: 100%; min-height: 23rem; padding: clamp(1.5rem, 5vw, 3.5rem); overflow: hidden; border: .55rem solid #ebe3ce; outline: 1px solid #b18348; outline-offset: -.95rem; background: radial-gradient(circle at 80% 10%, #e4d8b883, transparent 48%), #faf7ec; color: #273328; box-shadow: 0 1.5rem 3rem #18271b30; }
+.certificate-sheet { position: relative; isolation: isolate; display: block; width: 100%; min-height: 24rem; padding: clamp(1.75rem, 5vw, 3.5rem); overflow: hidden; border: .55rem solid #ebe3ce; outline: 1px solid #b18348; outline-offset: -.95rem; background: radial-gradient(circle at 80% 10%, #e4d8b883, transparent 48%), #faf7ec; color: #273328; box-shadow: 0 1.5rem 3rem #18271b30; }
 .certificate-sheet::before { content: ""; position: absolute; inset: 1.25rem; border: 1px solid #b1834880; pointer-events: none; }
+.certificate-watermark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 0; opacity: .075; overflow: hidden; }
+.certificate-watermark img { width: 70%; max-width: 36rem; height: auto; object-fit: contain; filter: grayscale(100%) contrast(125%); }
+.certificate-sheet-inner { position: relative; z-index: 1; display: grid; gap: .85rem; width: 100%; }
+.certificate-sheet-top { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .55rem; text-align: center; margin-bottom: .25rem; }
+.certificate-logo { max-height: 4.8rem; max-width: 14rem; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.06)); }
+.certificate-monogram { font-size: 1.8rem; color: #a78040; }
+.certificate-overline { font-size: .82rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #876d43; }
+.certificate-kicker { font-size: .75rem; letter-spacing: .15em; text-transform: uppercase; color: #876d43; margin: 0; }
 .certificate-sheet h1, .certificate-sheet h2 { color: #273328; margin: .25rem 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.8rem, 3vw, 3.2rem); line-height: 1.15; letter-spacing: -.03em; text-wrap: balance; }
+.certificate-presented { font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; color: #746e63; margin: .2rem 0; }
+.certificate-recipient { font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.6rem, 2.8vw, 2.6rem); font-weight: 700; color: #192a2c; margin: .2rem 0; line-height: 1.2; }
+.certificate-detail { font-size: 1.05rem; font-weight: 600; color: #314347; }
+.certificate-body { font-family: Georgia, "Times New Roman", serif; font-size: .98rem; line-height: 1.6; color: #596163; max-width: 60ch; }
+.certificate-signature { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-top: 1rem; padding-top: .75rem; }
+.certificate-signature-name { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 1.15rem; font-weight: 700; color: #192a2c; }
+.certificate-signature-label { display: block; font-size: .82rem; color: #746e63; }
+.certificate-seal { font-size: 1.8rem; color: #a78040; }
+.certificate-proof { display: flex; flex-direction: column; gap: .4rem; margin-top: .6rem; padding-top: .8rem; border-top: 1px dashed rgba(177,131,72,.4); font-size: .8rem; }
+.cert-proof-item { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; }
+.cert-proof-label { font-weight: 700; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: #876d43; min-width: 3.8rem; flex-shrink: 0; }
+.cert-proof-value { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: .76rem; color: #273328; word-break: break-all; }
+.cert-proof-link { color: #2d637a; text-decoration: underline; text-underline-offset: 2px; }
+.cert-proof-link:hover { color: #b18348; }
 .certificate-sheet p { max-width: 60ch; line-height: 1.55; margin: .4rem 0; }
 .certificate-sheet .eyebrow, .certificate-sheet .detail { color: #725b3e; }
 .certificate-sheet code { overflow-wrap: anywhere; }

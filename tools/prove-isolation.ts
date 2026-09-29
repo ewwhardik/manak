@@ -437,6 +437,37 @@ function valuesFor(
   switch (name) {
     case "exports.download":
       return { event: SCOPED, stage: "audit" };
+    case "exports.registrations_csv":
+    case "exports.teams_csv":
+    case "exports.projects_csv":
+    case "exports.scores_csv":
+    case "exports.results_csv":
+    case "exports.audit_csv":
+    case "duplicates.list":
+    case "results.explain":
+    case "results.sandbox":
+      return { event: SCOPED };
+    case "duplicates.triage":
+      return { event: SCOPED, project: planted.left, decision: "cleared", reason: "Isolation probe duplicate resolution" };
+    case "judges.self_recusal":
+      return { event: SCOPED, project: planted.left, reason: "Isolation probe self recusal" };
+    case "tokens.list":
+      return {};
+    case "tokens.create":
+      return { event: SCOPED, label: "Proof token", scope: "read:projects", days: 30 };
+    case "tokens.revoke": {
+      const accId = fixture.accountOf[witness];
+      if (accId) {
+        const tokenId = `tok_${witness}`;
+        fixture.db.run(
+          `insert or replace into api_token (id, account_id, event_id, label, scope, token_hash, created_at, expires_at, revoked_at)
+           values (:id, :account, (select id from event where slug = :event), :label, 'read:projects', :hash, :at, :expires, null)`,
+          { id: tokenId, account: accId, event: SCOPED, label: "Isolation token", hash: "0".repeat(64), at: AT, expires: AT + 86400000 },
+        );
+        return { tokenId };
+      }
+      return { tokenId: "tok_dummy" };
+    }
     case "comments.add":
       return { event: SCOPED, project: planted.left, body: `Thoughtful feedback from ${tag}` };
     case "comments.hide":

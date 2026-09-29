@@ -78,3 +78,6 @@ export { arenaArt, eventJourney, phaseLabel } from "./arena.ts";
 export { mediaImage, textLines } from "./media.ts";
 export { informationPanel, evidenceGlossary } from "./information.ts";
 export { actionPlan } from "./action-plan.ts";
+export { explainPage, sandboxPage } from "./explain.ts";
+export { duplicatesPage } from "./duplicates.ts";
+export { embedPage } from "./embed.ts";

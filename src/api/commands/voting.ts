@@ -14,6 +14,7 @@ import {
   voterStatus,
   shuffleProjectsForVoter,
   listProjects,
+  isQuarantined,
   abusePolicy,
   setAbusePolicy,
   abuseSignalKey,
@@ -145,7 +146,7 @@ export const ballot = defineCommand({
     const row = event as EventRow;
     const now = ctx.now();
     const voter = voterStatus(ctx.db, row.id, voterToken ?? null, now);
-    const projects = voter === null ? [] : shuffleProjectsForVoter(listProjects(ctx.db, row.id).filter((p) => p.status === "submitted"), voterToken!, row.id);
+    const projects = voter === null ? [] : shuffleProjectsForVoter(listProjects(ctx.db, row.id).filter((p) => p.status === "submitted" && !isQuarantined(p)), voterToken!, row.id);
     return {
       mode: row.voting_mode,
       open: row.voting_mode !== "off" && row.voting_open_at !== null && row.voting_close_at !== null && now >= row.voting_open_at && now < row.voting_close_at,

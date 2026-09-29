@@ -1,3 +1,5 @@
+import { duplicatesPage } from "./duplicates.ts";
+import { explainPage, sandboxPage } from "./explain.ts";
 import { textLines } from "./media.ts";
 /**
  * The pages that are worth writing by hand.
@@ -451,6 +453,9 @@ export const VIEWS: Views = {
   "events.dashboard": dashboardPage,
   "rubrics.show": rubricPage,
   "results.show": resultsPage,
+  "results.explain": explainPage,
+  "duplicates.list": duplicatesPage,
+  "results.sandbox": sandboxPage,
   "results.certificate_studio": certificateStudioPage,
   "results.public_certificate": publicCertificatePage,
   "results.confidence": confidencePage,

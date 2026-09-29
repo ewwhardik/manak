@@ -63,3 +63,4 @@ export {
 } from "./wire.ts";
 export type { CookieOptions, Submission, Target, Wants } from "./wire.ts";
 export { bundledAsset } from "./assets.ts";
+export { HttpMetrics } from "./metrics.ts";

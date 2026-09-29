@@ -5,6 +5,7 @@
  * judge ballots, and deterministic test sessions for acceptance checking.
  */
 
+import { createHmac } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -32,11 +33,22 @@ import {
 } from "../src/db/index.ts";
 import type { Ctx, EventRow, ProjectRow } from "../src/db/index.ts";
 
+// This public key is deliberately scoped to disposable fixture sessions. These
+// credentials are only seeded by the demo tooling; never use this key for sessions
+// in a non-demo deployment.
+const DEMO_FIXTURE_SESSION_KEY = "manak-dogfood-demo-only-session-key-v1";
+
+function demoFixtureSession(role: string, email: string): string {
+  return createHmac("sha256", DEMO_FIXTURE_SESSION_KEY)
+    .update(`demo-session:${role}:${email.toLowerCase()}`, "utf8")
+    .digest("hex");
+}
+
 export const FIXTURE_AUTH = {
-  organizer: "session_org_sample_hack",
-  judge_a: "session_judge_a_sample_hack",
-  judge_b: "session_judge_b_sample_hack",
-  participant: "session_prt_sample_hack",
+  organizer: demoFixtureSession("organizer", "organizer@example.org"),
+  judge_a: demoFixtureSession("judge", "tomas.varga@example.org"),
+  judge_b: demoFixtureSession("judge", "wei.lindqvist@example.org"),
+  participant: demoFixtureSession("participant", "priya1@example.org"),
 } as const;
 
 type FixtureData = {

@@ -75,6 +75,7 @@
  * a page can do exactly that.
  */
 
+import { reviewExplanations } from "../../judging/index.ts";
 import { defineCommand } from "../registry.ts";
 import type { Command } from "../registry.ts";
 import { EVENT_REF } from "./events.ts";
@@ -811,6 +812,12 @@ export const liveShow = defineCommand({
   },
 });
 
+/** Private frozen review details are served only through the participant's team scope. */
+function publicReport(serialized: string): Record<string, unknown> {
+  const { _explanations, ...report } = JSON.parse(serialized) as Record<string, unknown>;
+  return report;
+}
+
 /** Public reads use the persisted revision; the organizer dashboard remains live. */
 export const show: Command = {
   ...liveShow,
@@ -824,11 +831,11 @@ export const show: Command = {
         "select report from result_publication where event_id = :e and revision = :r",
         { e: row.id, r: selected });
       if (!historical) throw new RuleError("publication.missing", "That publication revision does not exist.");
-      return { ...JSON.parse(historical.report) as Record<string, unknown>, mayPublish: organizer };
+      return { ...publicReport(historical.report), mayPublish: organizer };
     }
     if (row.results_public !== 0) {
       const publication = latestPublication(call.ctx.db, row.id);
-      if (publication) return { ...JSON.parse(publication.report) as Record<string, unknown>,
+      if (publication) return { ...publicReport(publication.report),
         mayPublish: organizer };
       if (!organizer) throw new RuleError("results.noSnapshot",
         "This upgraded event needs an organizer to publish a frozen result revision.");
@@ -1687,6 +1694,9 @@ export const publish = defineCommand({
       const changed = row.results_public === 0 || reason.length > 0 || !previous;
       if (!previous || reason.length > 0) {
         const live = liveShow.handler(call) as Record<string, unknown>;
+        const fit = ranked(ctx, row);
+        live._explanations = fit.input && fit.rubric
+          ? reviewExplanations(fit.input.rubric, fit.input.ballots, fit.rubric) : [];
         storePublication(ctx, row.id, live, reason || "Initial publication",
           typeof input.publicSummary === "string" ? input.publicSummary : undefined);
       }
@@ -2040,6 +2050,9 @@ export const judgeEvidence = defineCommand({
       });
       if (row.results_public !== 0) {
         const live = liveShow.handler(call) as Record<string, unknown>;
+        const fit = ranked(ctx, row);
+        live._explanations = fit.input && fit.rubric
+          ? reviewExplanations(fit.input.rubric, fit.input.ballots, fit.rubric) : [];
         storePublication(ctx, row.id, live, `${excluded ? "Excluded" : "Restored"} judge evidence: ${String(input.reason)}`);
       }
       return { judge, excluded, revision: latestPublication(ctx.db, row.id)?.revision ?? null };

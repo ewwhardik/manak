@@ -15,6 +15,7 @@ const manifest = new Map([
   ["/assets/mascot-5.png", "image/png"],
   ["/assets/mascot-6.png", "image/png"],
   ["/assets/mascot-7.png", "image/png"],
+  ["/assets/hackathon-raptors-logo.png", "image/png"],
 ]);
 const loaded = new Map<string, { bytes: Uint8Array; etag: string }>();
 

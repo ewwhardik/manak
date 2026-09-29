@@ -22,7 +22,7 @@ import type { Db } from "../open.ts";
 import type { EventRow } from "./events.ts";
 import { assertGate } from "./events.ts";
 import { assertScoreInRange, criteriaOf, loadRubric, publishedVersion } from "./rubrics.ts";
-import { findProjectIn, teamOf } from "./projects.ts";
+import { findProjectIn, judgeablePool, teamOf } from "./projects.ts";
 import { assertJudgeCapacity, assertJudgeEligible } from "./judge-roster.ts";
 
 export type AssignmentRow = {
@@ -79,6 +79,10 @@ export function assignProject(
     { e: eventId, j: judgeId, p: projectId },
   );
   if (existing) return;
+  const project = findProjectIn(ctx.db, eventId, projectId);
+  if (!project || project.status !== "submitted") {
+    throw new RuleError("project.notJudgeable", "This project is not in the active judging pool.");
+  }
   assertJudgeEligible(ctx.db, eventId, judgeId, projectId);
   assertJudgeCapacity(ctx.db, eventId, judgeId);
   ctx.recorded(
@@ -635,6 +639,7 @@ export function projectCoverage(db: Db, event: EventRow, trackKey?: string): Pro
            and (c.left_id = p.id or c.right_id = p.id)) as comparisons
      from project p
      where p.event_id = :e and p.status = 'submitted'
+       and (p.duplicate_of is null or p.duplicate_decision = 'cleared')
        and (:track is null or p.track_key = :track)
      order by p.title, p.id`,
     { e: event.id, track: trackKey ?? null },

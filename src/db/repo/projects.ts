@@ -32,7 +32,7 @@ export function projectComments(db: Db, eventId: string, projectId: string) {
 
 export function addProjectComment(ctx: Ctx, event: EventRow, projectId: string, body: string): void {
   const project = findProjectIn(ctx.db, event.id, projectId);
-  if (!project || project.status !== "submitted") throw new RuleError("comment.unavailable", "Comments require a submitted project.");
+  if (!project || project.status !== "submitted" || isQuarantined(project)) throw new RuleError("comment.unavailable", "Comments require an active submitted project.");
   if (event.archived_at !== null) throw new RuleError("event.archived", "This event is archived.");
   if (!ctx.actorId || !body.trim() || body.length > 2000) throw new RuleError("comment.invalid", "Sign in and write a comment of 1–2000 characters.");
   ctx.recorded({ action: "comment.created", eventId: event.id, subject: projectId,
@@ -74,10 +74,45 @@ export type ProjectRow = {
   saved_at: number | null;
   submitted_at: number | null;
   withdrawn_at: number | null;
+  duplicate_of: string | null;
+  duplicate_reason: string | null;
+  duplicate_decision: "pending" | "confirmed" | "cleared" | null;
 };
 
 const PROJECT_COLUMNS = `id, event_id, team_id, title, summary, repo_url, demo_url,
-  track_key, status, created_at, saved_at, submitted_at, withdrawn_at, tagline, description, thumbnail_url, video_url, image_urls, tech_tags, answers`;
+  track_key, status, created_at, saved_at, submitted_at, withdrawn_at, tagline, description, thumbnail_url, video_url, image_urls, tech_tags, answers,
+  duplicate_of, duplicate_reason, duplicate_decision`;
+
+export function isQuarantined(project: ProjectRow): boolean {
+  return project.duplicate_of !== null && project.duplicate_decision !== "cleared";
+}
+
+function duplicateKey(project: Pick<ProjectRow, "title" | "repo_url">): { title: string; repo: string | null } {
+  const title = project.title.normalize("NFKC").toLocaleLowerCase("en-US")
+    .replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
+  let repo: string | null = null;
+  if (project.repo_url) {
+    try {
+      const url = new URL(project.repo_url);
+      repo = `${url.hostname.toLowerCase().replace(/^www\./, "")}${url.pathname
+        .replace(/\.git\/?$/i, "").replace(/\/+$/, "").toLowerCase()}`;
+    } catch { /* URL validity is enforced separately; keep title matching. */ }
+  }
+  return { title, repo };
+}
+
+export function duplicateMatch(db: Db, project: ProjectRow): { prior: ProjectRow; reason: "title" | "repository" } | null {
+  const key = duplicateKey(project);
+  const earlier = listProjects(db, project.event_id, { status: "submitted" })
+    .filter((other) => other.id !== project.id && !isQuarantined(other) &&
+      (other.submitted_at ?? other.created_at) <= (project.submitted_at ?? Number.MAX_SAFE_INTEGER));
+  for (const other of earlier) {
+    const otherKey = duplicateKey(other);
+    if (key.repo && key.repo === otherKey.repo) return { prior: other, reason: "repository" };
+    if (key.title && key.title === otherKey.title) return { prior: other, reason: "title" };
+  }
+  return null;
+}
 
 export function createTeam(ctx: Ctx, eventId: string, name: string, id?: string): TeamRow {
   const teamId = id ?? ctx.newId();
@@ -357,6 +392,17 @@ export function updateProject(
         `update project set ${sets.join(", ")}, saved_at = :saved_at where id = :id and event_id = :e`,
         { ...params, saved_at: ctx.now() },
       );
+      const revised = ctx.db.one<ProjectRow>(`select ${PROJECT_COLUMNS} from project where id = :id`, {
+        id: project.id,
+      });
+      if (revised.status === "submitted" && revised.duplicate_decision !== "cleared") {
+        const duplicate = duplicateMatch(ctx.db, revised);
+        if (duplicate) ctx.write(`update project set duplicate_of = :prior,
+          duplicate_reason = :reason, duplicate_decision = 'pending'
+          where event_id = :e and id = :id`, {
+          prior: duplicate.prior.id, reason: duplicate.reason, e: event.id, id: project.id,
+        });
+      }
       return ctx.db.one<ProjectRow>(`select ${PROJECT_COLUMNS} from project where id = :id`, {
         id: project.id,
       });
@@ -381,6 +427,7 @@ export function submitProject(ctx: Ctx, event: EventRow, project: ProjectRow): P
     );
   }
   const at = ctx.now();
+  const duplicate = project.duplicate_decision === "cleared" ? null : duplicateMatch(ctx.db, project);
   return ctx.recorded(
     {
       action: "project.submitted",
@@ -392,13 +439,18 @@ export function submitProject(ctx: Ctx, event: EventRow, project: ProjectRow): P
         // the number, and reconstructing it later needs the deadline as it was.
         with_ms_to_spare: event.submissions_close_at - at,
         resubmitted: project.status === "withdrawn",
+        duplicate_of: duplicate?.prior.id ?? project.duplicate_of,
       },
     },
     () => {
       ctx.write(
-        `update project set status = 'submitted', submitted_at = :at, withdrawn_at = null
+        `update project set status = 'submitted', submitted_at = :at, withdrawn_at = null,
+          duplicate_of = :duplicate, duplicate_reason = :reason, duplicate_decision = :decision
           where id = :id and event_id = :e`,
-        { at, id: project.id, e: event.id },
+        { at, id: project.id, e: event.id,
+          duplicate: duplicate?.prior.id ?? project.duplicate_of,
+          reason: duplicate?.reason ?? project.duplicate_reason,
+          decision: duplicate ? "pending" : project.duplicate_decision },
       );
       return ctx.db.one<ProjectRow>(`select ${PROJECT_COLUMNS} from project where id = :id`, {
         id: project.id,
@@ -518,4 +570,29 @@ export function duplicateTitles(db: Db, eventId: string): DuplicateTitleGroup[] 
     groups.set(key, group);
   }
   return [...groups.values()].filter((group) => group.ids.length > 1);
+}
+
+export function duplicateCases(db: Db, eventId: string): { project: ProjectRow; prior: ProjectRow }[] {
+  const projects = listProjects(db, eventId);
+  const byId = new Map(projects.map((project) => [project.id, project]));
+  return projects.flatMap((project) => {
+    if (!project.duplicate_of) return [];
+    const prior = byId.get(project.duplicate_of);
+    return prior ? [{ project, prior }] : [];
+  });
+}
+
+export function triageDuplicate(ctx: Ctx, eventId: string, projectId: string,
+  decision: "confirmed" | "cleared", reason: string): ProjectRow {
+  const project = findProjectIn(ctx.db, eventId, projectId);
+  if (!project?.duplicate_of) throw new RuleError("project.duplicateMissing", "That project has no duplicate flag to review.");
+  if (reason.trim().length < 3) throw new RuleError("project.reasonRequired", "Explain this duplicate decision.");
+  if (project.duplicate_decision === decision) return project;
+  return ctx.recorded({ action: decision === "cleared" ? "project.duplicate_cleared" : "project.duplicate_confirmed",
+    eventId, subject: project.id,
+    payload: { duplicate_of: project.duplicate_of, reason: reason.trim() } }, () => {
+    ctx.write(`update project set duplicate_decision = :decision where id = :id and event_id = :event`,
+      { decision, id: project.id, event: eventId });
+    return findProjectIn(ctx.db, eventId, project.id)!;
+  });
 }

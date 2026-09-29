@@ -46,6 +46,7 @@ import {
   createTeam,
   createTrack,
   disqualifyProject,
+  duplicateCases,
   findAccount,
   findProjectIn,
   findTeamIn,
@@ -53,8 +54,10 @@ import {
   listTeams,
   listTracks,
   submitProject,
+  isQuarantined,
   teamMembers,
   teamOf,
+  triageDuplicate,
   updateProject,
   withdrawProject,
 } from "../../db/index.ts";
@@ -186,6 +189,7 @@ export const PROJECT_SUMMARY: Record<string, unknown> = {
     savedAt: { type: ["integer", "null"] },
     submittedAt: { type: ["integer", "null"] },
     withdrawnAt: { type: ["integer", "null"] },
+    quarantined: { type: "boolean" },
   },
   required: ["id", "teamId", "title", "summary", "status", "createdAt"],
 };
@@ -216,6 +220,7 @@ export function projectJson(
     savedAt: project.saved_at,
     submittedAt: project.submitted_at,
     withdrawnAt: project.withdrawn_at,
+    quarantined: isQuarantined(project),
   };
 }
 
@@ -517,7 +522,8 @@ export const list = defineCommand({
     const query = String(input.q ?? "").toLocaleLowerCase().trim();
     const visible = organizer
       ? all
-      : all.filter((p) => p.status === "submitted" || (own !== undefined && p.team_id === own.id));
+      : all.filter((p) => (p.status === "submitted" && !isQuarantined(p)) ||
+        (own !== undefined && p.team_id === own.id));
     return {
       projects: visible.filter((p) => {
         return !query || [p.title, p.tagline, p.description, p.tech_tags, p.summary, p.track_key ?? "", names.get(p.team_id) ?? ""]
@@ -573,7 +579,7 @@ export const show = defineCommand({
     const organizer = roles.includes("organizer");
     const own = accountId === null ? undefined : teamOf(ctx.db, row.id, accountId);
     const yours = own !== undefined && own.id === project.team_id;
-    if (project.status !== "submitted" && !organizer && !yours) {
+    if ((project.status !== "submitted" || isQuarantined(project)) && !organizer && !yours) {
       throw notFound("project", project.id);
     }
     const team = findTeamIn(ctx.db, row.id, project.team_id);
@@ -982,6 +988,41 @@ export const commentHide = defineCommand({
   handler: ({ ctx, input, event }) => { hideProjectComment(ctx, event as EventRow, String(input.project), String(input.comment), String(input.reason)); return { hidden: true }; },
 });
 
+export const duplicateList = defineCommand({
+  name: "duplicates.list", summary: "Review quarantined project collisions.", method: "GET",
+  path: "/api/events/:event/manage/duplicates",
+  capability: { audience: "organizer", scope: "event" },
+  input: { event: EVENT_REF },
+  returns: { kind: "json", schema: { type: "object", properties: {
+    cases: { type: "array", items: { type: "object" } },
+  }, required: ["cases"] } },
+  handler: ({ ctx, event }) => ({ cases: duplicateCases(ctx.db, (event as EventRow).id).map(({ project, prior }) => ({
+    project: { id: project.id, title: project.title, repoUrl: project.repo_url,
+      submittedAt: project.submitted_at, status: project.status },
+    prior: { id: prior.id, title: prior.title, repoUrl: prior.repo_url,
+      submittedAt: prior.submitted_at, status: prior.status },
+    reason: project.duplicate_reason, decision: project.duplicate_decision,
+  })) }),
+});
+
+export const duplicateTriage = defineCommand({
+  name: "duplicates.triage", summary: "Confirm or clear a quarantined project.", method: "POST",
+  path: "/api/events/:event/manage/duplicates/triage",
+  capability: { audience: "organizer", scope: "event" },
+  input: { event: EVENT_REF, project: PROJECT_REF,
+    decision: { kind: "enum", values: ["confirmed", "cleared"], label: "Decision" },
+    reason: REASON },
+  returns: { kind: "json", schema: { type: "object", properties: {
+    project: PROJECT_SUMMARY }, required: ["project"] } },
+  limit: "organize", records: ["project.duplicate_confirmed", "project.duplicate_cleared"],
+  form: { title: "Resolve duplicate flag", submit: "Save decision",
+    redirect: ({ input }) => `/events/${encodeURIComponent(String(input.event))}/manage/duplicates` },
+  handler: ({ ctx, event, input }) => ({
+    project: projectJson(triageDuplicate(ctx, (event as EventRow).id, String(input.project),
+      input.decision as "confirmed" | "cleared", String(input.reason))),
+  }),
+});
+
 export const PROJECT_COMMANDS: readonly Command[] = [
   commentAdd, commentHide,
   trackCreate,
@@ -995,4 +1036,5 @@ export const PROJECT_COMMANDS: readonly Command[] = [
   withdraw,
   pull,
   disqualify,
+  duplicateList, duplicateTriage,
 ];

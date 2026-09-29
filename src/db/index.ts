@@ -145,16 +145,20 @@ export {
   createProject,
   createTeam,
   disqualifyProject,
+  duplicateCases,
+  duplicateMatch,
   duplicateTitles,
   findProject,
   findProjectIn,
   findTeamIn,
   judgeablePool,
+  isQuarantined,
   listProjects,
   listTeams,
   submitProject,
   teamMembers,
   teamOf,
+  triageDuplicate,
   updateProject,
   withdrawProject,
 } from "./repo/projects.ts";
@@ -256,3 +260,18 @@ export { projectComments, addProjectComment, hideProjectComment } from "./repo/p
 export { assertVotingClosed } from "./repo/events.ts";
 export { evidenceDigest, latestPublication, publicationHistory, storePublication } from "./publication.ts";
 export type { ResultPublication } from "./publication.ts";
+
+export {
+  API_TOKEN_SCOPES,
+  apiTokenAllows,
+  apiTokensOf,
+  createApiToken,
+  revokeApiToken,
+} from "./repo/api-tokens.ts";
+export type { ApiTokenRow, ApiTokenScope } from "./repo/api-tokens.ts";
+
+export {
+  publicWebhookAddress,
+  resolveWebhookAddress,
+  sendPinnedWebhook,
+} from "./webhook-transport.ts";

@@ -4,6 +4,8 @@ dist/
 *.key
 *.pub
 .DS_Store
+__pycache__/
+*.pyc
 
 # The SQLite database and its write-ahead log are per-deployment state, not
 # source. `npm run seed:demo` rebuilds a browsable event from a seed, so nothing

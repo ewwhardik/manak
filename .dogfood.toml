@@ -15,10 +15,10 @@ pitch = "A zero-dependency, self-hostable hackathon submission and judging porta
 # Whatever header proves you are this role. A cookie, a bearer token,
 # a basic auth string. Your seed script prints these when the portal
 # boots. The checker never logs in, it just attaches these.
-organizer   = "Cookie: manak_session=session_org_sample_hack"
-judge_a     = "Cookie: manak_session=session_judge_a_sample_hack"
-judge_b     = "Cookie: manak_session=session_judge_b_sample_hack"
-participant = "Cookie: manak_session=session_prt_sample_hack"
+organizer   = "Cookie: manak_session=1a6b7ef6d183f4c7aeaefcdc391e219fc29d571dd572427b73095b6094a112a9"
+judge_a     = "Cookie: manak_session=79365a85211c0c8afbdd5ddaba0ca1981ac7af4e92dc6cdd14a2dc4a30f833fe"
+judge_b     = "Cookie: manak_session=6a06a0d88f3e317329282df102c25e821126efbe16bd9734339e42dec452b53c"
+participant = "Cookie: manak_session=bb98d8e53e43ba8eb1c13d71dd56ee67b50d611d4115a7c0a61a3db4a4c800c7"
 
 [routes]
 # Your routes, whatever you called them.

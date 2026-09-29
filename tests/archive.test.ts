@@ -37,6 +37,7 @@ import {
   manualClock,
   migrate,
   MS,
+  NOT_EXPORTED,
   openDatabase,
   openReadOnly,
   readManifest,
@@ -316,7 +317,7 @@ test("every table in the schema is named in the archive's table list", () => {
     );
     assert.deepEqual(
       manifest.notExported.map((table) => table.name),
-      ["migration", "sqlite_sequence"],
+      NOT_EXPORTED.map((table) => table.name),
     );
   });
 });

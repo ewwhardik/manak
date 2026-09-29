@@ -668,7 +668,7 @@ does not look like a discovery.</p>
     ...(gatesNotice(context.gates) === undefined
       ? {}
       : { notice: gatesNotice(context.gates) as string }),
-    body: `${urgencyAlert}${briefing}${actionPlan(rows(readiness, "checks").map((c) => ({ code: String(c.code), status: String(c.status), title: String(c.title), detail: String(c.detail) })), slug)}${stats([
+    body: `<p><a href="/events/${encodeURIComponent(slug)}/results/sandbox">Normalization sandbox</a></p>${urgencyAlert}${briefing}${actionPlan(rows(readiness, "checks").map((c) => ({ code: String(c.code), status: String(c.status), title: String(c.title), detail: String(c.detail) })), slug)}${stats([
       ["projects", count(at(counts, "projects"))],
       ["judges", count(at(counts, "judges"))],
       ["ballots filed", count(at(counts, "ballots"))],
@@ -1022,7 +1022,7 @@ ${actionForm(context, "appeals.open", { event: slug })}
     ...(gatesNotice(context.gates) === undefined
       ? {}
       : { notice: gatesNotice(context.gates) as string }),
-    body: `${decisionLinks}<p>${
+    body: `${published ? `<p><a href="/events/${encodeURIComponent(slug)}/results/explain">Explain my rank</a></p>` : ""}${decisionLinks}<p>${
       published
         ? tag("published", "open")
         : `${tag("not published", "shut")} You are reading a preview. Nobody else can see this

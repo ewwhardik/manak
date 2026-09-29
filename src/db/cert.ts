@@ -389,7 +389,8 @@ export function mintEventCertificates(
       where m.event_id = :event and m.role = 'participant'
         and exists (select 1 from team_member tm join project p
           on p.event_id = tm.event_id and p.team_id = tm.team_id
-          where tm.event_id = :event and tm.account_id = a.id and p.status = 'submitted')
+          where tm.event_id = :event and tm.account_id = a.id and p.status = 'submitted'
+            and (p.duplicate_of is null or p.duplicate_decision = 'cleared'))
       order by a.email`,
     { event: event.id },
   );

@@ -132,7 +132,9 @@ const WORLD_FIXABLE: readonly string[] = [
   "voting.disabled",
   "pairwise.disabled",
   "project.disqualified",
+  "project.duplicateMissing",
   "project.notJudgeable",
+  "project.notMember",
   "project.notSubmitted",
   // The third gate, listed before anything throws it, and deliberately not spelled
   // `results.notOpen`. The other two gates are time windows that open and close, so

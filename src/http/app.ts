@@ -113,6 +113,7 @@ import {
   verifyPage,
 } from "../view/index.ts";
 import { certificateSvg } from "../view/certificates.ts";
+import { EMBED_JS, embedPage } from "../view/embed.ts";
 import type { Extra, StreamEvent } from "./respond.ts";
 import {
   clearedCookie,
@@ -132,6 +133,7 @@ import {
 import type { Target } from "./wire.ts";
 import { credentialFrom, negotiate, parseCookies, readSubmission } from "./wire.ts";
 import { bundledAsset } from "./assets.ts";
+import { HttpMetrics } from "./metrics.ts";
 
 /**
  * One line per request, for whoever is watching the container.
@@ -240,6 +242,7 @@ const WIDGET_JS = `(function(){function e(v){return String(v==null?'':v).replace
 
 export function makeApp(options: AppOptions): Serve {
   const { db, registry } = options;
+  const metrics = new HttpMetrics();
   const publicOrigin = new URL(options.publicOrigin);
   if (
     (publicOrigin.protocol !== "http:" && publicOrigin.protocol !== "https:") ||
@@ -281,6 +284,17 @@ export function makeApp(options: AppOptions): Serve {
     address: string,
     now: number,
   ): Promise<Response> => {
+    if (target.pathname === "/metrics") {
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        throw methodNotAllowed(request.method, ["GET"]);
+      }
+      trace.command = "system.metrics";
+      return new Response(metrics.render(db, now), { status: 200, headers: {
+        ...SECURITY_HEADERS,
+        "content-type": "text/plain; version=0.0.4; charset=utf-8",
+        "cache-control": "no-store",
+      } });
+    }
     const media = bundledAsset(request, target.pathname);
     if (media !== null) return media;
     // The stylesheet is not a command, and giving it a declaration would put a row for a
@@ -298,6 +312,61 @@ export function makeApp(options: AppOptions): Serve {
         throw methodNotAllowed(request.method, ["GET"]);
       }
       return jsResponse(WIDGET_JS);
+    }
+
+    if (target.pathname === "/embed.js") {
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        throw methodNotAllowed(request.method, ["GET"]);
+      }
+      return jsResponse(EMBED_JS);
+    }
+
+    const embedMatch = /^\/embed\/([^/]+)\/?$/.exec(target.pathname);
+    if (embedMatch) {
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        throw methodNotAllowed(request.method, ["GET"]);
+      }
+      let reference: string;
+      try {
+        reference = decodeURIComponent(embedMatch[1] as string);
+      } catch {
+        throw notFound("event");
+      }
+      const event = resolveEvent(db, reference);
+      if (!event) throw notFound("event");
+      // parentOrigin is only a message destination hint. Refuse opaque, non-web, and
+      // path-bearing values; the embed itself remains public and frameable from any site.
+      let parentOrigin = "";
+      const suppliedOrigin = url.searchParams.get("parentOrigin");
+      if (suppliedOrigin !== null) {
+        try {
+          const parsed = new URL(suppliedOrigin);
+          if ((parsed.protocol === "http:" || parsed.protocol === "https:") &&
+              parsed.origin === suppliedOrigin && parsed.username === "" && parsed.password === "") {
+            parentOrigin = parsed.origin;
+          }
+        } catch {
+          // Invalid origins disable resize messaging; they never widen the message target.
+        }
+      }
+      const headers = new Headers(SECURITY_HEADERS);
+      headers.delete("x-frame-options");
+      headers.set("content-type", "text/html; charset=utf-8");
+      headers.set("cache-control", "no-store");
+      const body = embedPage(event.slug, parentOrigin);
+      // embedPage generates the per-response nonce. Read the nonce from its script tag
+      // only after controlled generation, then bind CSP to that exact inline script.
+      const nonce = /<script nonce="([a-f0-9]+)">/.exec(body)?.[1];
+      if (nonce === undefined) throw new Error("Embed page did not include its script nonce.");
+      headers.set("content-security-policy", [
+        "default-src 'none'",
+        "connect-src 'self'",
+        "style-src 'unsafe-inline'",
+        `script-src 'nonce-${nonce}'`,
+        "frame-ancestors *",
+        "base-uri 'none'",
+      ].join("; "));
+      return new Response(body, { status: 200, headers });
     }
 
     if (target.pathname === "/.well-known/manak-key.pub" || target.pathname === "/manak-key.pub") {
@@ -950,6 +1019,7 @@ export function makeApp(options: AppOptions): Serve {
    */
   const serve: Serve = async (request, address = "") => {
     const started = clock.now();
+    const startedMonotonic = performance.now();
     const url = new URL(request.url);
     const target = negotiate(url.pathname);
     const trace: Trace = {
@@ -991,6 +1061,8 @@ export function makeApp(options: AppOptions): Serve {
             headers: response.headers,
           }))
         : response;
+
+    metrics.observe(request.method, answer.status, performance.now() - startedMonotonic);
 
     options.log?.({
       at: started,

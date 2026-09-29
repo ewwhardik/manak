@@ -22,6 +22,7 @@
  */
 
 import type { Command } from "../registry.ts";
+import { EXPLANATION_COMMANDS } from "./explain.ts";
 import { AUTH_COMMANDS } from "./auth.ts";
 import { EVENT_COMMANDS } from "./events.ts";
 import { JUDGING_COMMANDS } from "./judging.ts";
@@ -52,14 +53,19 @@ export { VOTING_COMMANDS } from "./voting.ts";
 export { AWARD_COMMANDS } from "./awards.ts";
 export { APPEAL_COMMANDS } from "./appeals.ts";
 
+import { TOKEN_COMMANDS } from "./tokens.ts";
+export { TOKEN_COMMANDS } from "./tokens.ts";
+
 export const ALL_COMMANDS: readonly Command[] = [
   ...SYSTEM_COMMANDS,
   ...AUTH_COMMANDS,
+  ...TOKEN_COMMANDS,
   ...EVENT_COMMANDS,
   ...PROJECT_COMMANDS,
   ...RUBRIC_COMMANDS,
   ...JUDGING_COMMANDS,
   ...RESULTS_COMMANDS,
+  ...EXPLANATION_COMMANDS,
   ...AWARD_COMMANDS,
   ...APPEAL_COMMANDS,
   ...VOTING_COMMANDS,
