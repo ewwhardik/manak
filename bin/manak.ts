@@ -531,10 +531,11 @@ async function main(): Promise<void> {
         // its own and stdout is flushed on the way out.
         db.close();
         process.stdout.write("[stop] closed\n");
+        process.exit(0);
       })
       .catch((error: unknown) => {
         reportBug(error);
-        process.exitCode = 1;
+        process.exit(1);
       });
   };
   for (const signal of ["SIGINT", "SIGTERM"]) {

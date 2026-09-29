@@ -136,7 +136,7 @@ before the socket opens.
 | `src/view` | 6,833 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
 | `src/http` | 2,323 | everything below | the dispatcher, the responses, the socket |
 | `src/mail` | 1,179 | `node:*`, one erased type | RFC 5322 composition, an SMTP client, the outbox |
-| `bin/manak.ts` | 554 | everything | the environment, migration, signals, the process |
+| `bin/manak.ts` | 555 | everything | the environment, migration, signals, the process |
 | `tools` | 6,618 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
 
 `src/mail` is the one entry that is not part of the stack, and the shape of its row is the
