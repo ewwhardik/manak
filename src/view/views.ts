@@ -54,6 +54,7 @@ import type { ViewContext, Views } from "./pages.ts";
 import { confidencePage, dashboardPage, resultsPage, rubricPage } from "./results.ts";
 import { projectPage, projectsPage, teamsPage } from "./submit.ts";
 import { certificateStudioPage, publicCertificatePage } from "./certificates.ts";
+import { goldenPathBanner } from "./guide.ts";
 
 /**
  * One event, as a row in a list of them.
@@ -118,8 +119,9 @@ function eventsPage(context: ViewContext, title: string): string {
     eyebrow: "The open hackathon workspace",
     lead: "Run your hackathon from first submission to final results. Bring teams, independent judges, and every decision into one shared workspace.",
     whoami: context.whoami, demoMode: context.demoMode,
-    headingActions: `<div class="hero-actions"><a class="button" href="#events">Explore the events <span aria-hidden="true">↗</span></a><a class="text-link" href="${context.whoami ? "/mine" : "/signin"}">${context.whoami ? "Open my workspace" : "Enter your workspace"} <span aria-hidden="true">→</span></a></div>`,
+    headingActions: `<div class="hero-actions"><a class="button" href="#golden-path">⚡ 3-Min Golden Path <span aria-hidden="true">&darr;</span></a><a class="button" href="#events">Explore the events <span aria-hidden="true">↗</span></a><a class="text-link" href="${context.whoami ? "/mine" : "/signin"}">${context.whoami ? "Open my workspace" : "Enter your workspace"} <span aria-hidden="true">→</span></a></div>`,
     body: `<div class="principles"><span><b>01</b> Built in the open</span><span><b>02</b> Judged with context</span><span><b>03</b> Every decision, traceable</span></div>
+${goldenPathBanner(context.demoMode)}
 <section id="events"><div class="section-heading"><div><p class="eyebrow">Discover what’s happening</p><h2>The event collection<span class="count-label">${rows(context.result, "events").length}</span></h2></div><a href="/events">All events <span aria-hidden="true">↗</span></a></div>${eventList(rows(context.result, "events"))}</section>
 <section class="start-here" id="start-here"><div><p class="eyebrow">Find your starting point</p><h2>Different roles.<br>A clear next step.</h2><p>Choose an event first. Your workspace shows the tools available to you.</p></div><div class="role-routes"><a href="/signin"><span class="route-number">01 / BUILDERS</span><h3>Bring your idea to the arena <span aria-hidden="true">↗</span></h3><p>Sign in as builder. Form your team, and submit your project before the deadline.</p></a><a href="/signin"><span class="route-number">02 / JUDGES</span><h3>Give great work a fair review <span aria-hidden="true">↗</span></h3><p>Sign in as judge. Open your scoring queue, save drafts, or compare duels.</p></a><a href="/signin"><span class="route-number">03 / ORGANIZERS</span><h3>See what needs your attention <span aria-hidden="true">↗</span></h3><p>Sign in as organizer. Track live review coverage, and publish signed Ed25519 certificates.</p></a><a href="/guide"><span class="route-number">04 / SITEMAP</span><h3>Evaluation Guide &amp; Full Sitemap <span aria-hidden="true">↗</span></h3><p>Explore the complete platform guide, access controls, and direct-jump sitemap directory.</p></a></div></section>
 ${createForm(context)}

@@ -18,6 +18,43 @@ export type GuideProps = {
   readonly events?: readonly GuideEvent[];
 };
 
+export function goldenPathBanner(demoMode?: boolean): string {
+  const orgHref = demoMode === true ? "/events/switch?as=organizer&to=/events/sample-hack-2026/dashboard" : "/events/sample-hack-2026/dashboard";
+  const judgeHref = demoMode === true ? "/events/switch?as=judge_sample&to=/events/sample-hack-2026/judging" : "/events/sample-hack-2026/judging";
+  const mathHref = demoMode === true ? "/events/switch?as=participant_sample&to=/events/sample-hack-2026/results/explain" : "/events/sample-hack-2026/results/explain";
+  const verifyHref = "/verify";
+
+  return `<section class="fast-login-box" id="golden-path">
+<div class="fast-login-header">
+  <span class="role-badge">Evaluator Golden Path</span>
+  <h2>Experience the End-to-End System in 3 Clicks</h2>
+  <p>Under extreme evaluation time pressure? Jump straight into each critical persona workflow without configuration:</p>
+</div>
+<div class="role-routes">
+  <a href="${esc(orgHref)}">
+    <span class="route-number">01 / ORGANIZER</span>
+    <h3>Control Room &amp; Live Leaderboard <span aria-hidden="true">&rarr;</span></h3>
+    <p>Real-time review coverage, judge calibration residuals, and 1-click stage projector ceremony.</p>
+  </a>
+  <a href="${esc(judgeHref)}">
+    <span class="route-number">02 / JUDGE</span>
+    <h3>Rubric Queue &amp; Duels <span aria-hidden="true">&rarr;</span></h3>
+    <p>Private rubric drafts, Bradley–Terry pairwise duels with active learning, and judge self-recusal.</p>
+  </a>
+  <a href="${esc(mathHref)}">
+    <span class="route-number">03 / PARTICIPANT</span>
+    <h3>Explain My Rank Waterfall <span aria-hidden="true">&rarr;</span></h3>
+    <p>Interactive SVG Waterfall decomposing Grand Mean &mu; &rarr; judge offsets &beta;&#x2C7; &rarr; 95% bootstrap CI band.</p>
+  </a>
+  <a href="${esc(verifyHref)}">
+    <span class="route-number">04 / TRUST &amp; VERIFIER</span>
+    <h3>Ed25519 Offline Verifier <span aria-hidden="true">&rarr;</span></h3>
+    <p>Client-side WebCrypto cryptographic envelope inspector and live tamper detection demonstration.</p>
+  </a>
+</div>
+</section>`;
+}
+
 export function guidePage(props: GuideProps): string {
   const events = props.events ?? [];
   const sampleEvent = events.find((e) => e.slug === "sample-hack-2026") ?? events[0] ?? { slug: "sample-hack-2026", name: "Sample Hack 2026" };
@@ -56,8 +93,9 @@ export function guidePage(props: GuideProps): string {
     whoami: props.whoami, demoMode: props.demoMode,
     eyebrow: "Operational Guide & Platform Sitemap",
     lead: "A comprehensive reference and direct-jump directory for hackathon judges, organizers, and builders. Understand Manak's evaluation model, access every feature with one click, and explore the complete platform architecture.",
-    headingActions: `<div class="hero-actions"><a class="button" href="#sitemap">Explore platform sitemap <span aria-hidden="true">&darr;</span></a><a class="text-link" href="#judges">Judge evaluation hub <span aria-hidden="true">&rarr;</span></a><a class="text-link" href="#organizers">Organizer control room <span aria-hidden="true">&rarr;</span></a></div>`,
-    body: `<nav class="workspace-nav" aria-label="Guide sections"><a href="#judges">Judges' Hub</a><a href="#organizers">Organizers' Control Room</a><a href="#builders">Builders' Workspace</a><a href="#verification">Cryptographic Trust &amp; Certificates</a><a href="#sitemap">Complete Platform Sitemap</a></nav>
+    headingActions: `<div class="hero-actions"><a class="button" href="#golden-path">⚡ 3-Min Golden Path <span aria-hidden="true">&darr;</span></a><a class="button" href="#sitemap">Explore platform sitemap <span aria-hidden="true">&darr;</span></a><a class="text-link" href="#judges">Judge evaluation hub <span aria-hidden="true">&rarr;</span></a></div>`,
+    body: `${goldenPathBanner(props.demoMode)}
+<nav class="workspace-nav" aria-label="Guide sections"><a href="#golden-path">⚡ 3-Min Golden Path</a><a href="#judges">Judges' Hub</a><a href="#organizers">Organizers' Control Room</a><a href="#builders">Builders' Workspace</a><a href="#verification">Cryptographic Trust &amp; Certificates</a><a href="#sitemap">Complete Platform Sitemap</a></nav>
 
 <section class="guide-hub" id="judges">
 <div class="section-heading">

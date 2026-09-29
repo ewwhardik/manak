@@ -145,7 +145,7 @@ ${
 <a class="skip" href="#main">Skip to content</a>
 <header class="bar">
 <a class="mark" href="/" aria-label="Manak home"><span class="brand-symbol" aria-hidden="true">m</span>manak<span class="brand-period">.</span></a>
-<nav class="primary-nav" aria-label="Main navigation"><a href="/events"${activeNav === "events" ? ' aria-current="page"' : activeNav === "event" ? ' aria-current="location"' : ""}>Explore events</a>${options.whoami == null ? "" : `<a href="/mine"${activeNav === "mine" ? ' aria-current="page"' : ""}>My workspace</a>`}<a href="/guide"${activeNav === "guide" ? ' aria-current="page"' : ""}>Evaluation guide</a><a href="/about"${activeNav === "about" ? ' aria-current="page"' : ""}>The method</a></nav>
+<nav class="primary-nav" aria-label="Main navigation"><a href="/events"${activeNav === "events" ? ' aria-current="page"' : activeNav === "event" ? ' aria-current="location"' : ""}>Explore events</a>${options.whoami == null ? "" : `<a href="/mine"${activeNav === "mine" ? ' aria-current="page"' : ""}>My workspace</a>`}<a href="/guide"${activeNav === "guide" ? ' aria-current="page"' : ""}>Evaluation guide</a><a href="/guide#golden-path">⚡ Golden Path</a><a href="/about"${activeNav === "about" ? ' aria-current="page"' : ""}>The method</a></nav>
 <nav class="who" aria-label="Account">${
     options.whoami == null
       ? '<a href="/signin">Sign in</a>'
@@ -157,6 +157,7 @@ ${
 <div class="fast-login-header">
 <span class="role-badge">Demo accounts</span>
 <p>Quick sign-in for testing Sample Hack 2026 &amp; Dogfood.</p>
+<a href="/guide#golden-path" class="fast-login-guide-link">⚡ 3-Min Golden Path speed-run &rarr;</a>
 <a href="/guide" class="fast-login-guide-link">Platform guide &amp; sitemap &rarr;</a>
 </div>
 <div class="fast-login-list">

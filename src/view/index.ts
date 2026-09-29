@@ -64,7 +64,7 @@ export { dashboardPage, resultsPage, rubricPage } from "./results.ts";
 export { aboutPage } from "./about.ts";
 export { verifyPage } from "./verify.ts";
 export { certificateStudioPage, publicCertificatePage, certificateSvg } from "./certificates.ts";
-export { guidePage } from "./guide.ts";
+export { guidePage, goldenPathBanner } from "./guide.ts";
 export { liveLeaderboardPage } from "./live.ts";
 export type { LiveLeaderboardProps, LiveProject } from "./live.ts";
 export { tieBreakerPage } from "./tie-breaker.ts";

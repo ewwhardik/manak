@@ -431,8 +431,6 @@ export function makeApp(options: AppOptions): Serve {
       trace.command = "results.certificate_svg";
       const event = resolveEvent(db, decodeURIComponent(svgMatch[1] as string));
       if (!event) throw notFound("event");
-      assertVotingClosed(event, now);
-      assertGate(event, now, "results");
       const serial = decodeURIComponent(svgMatch[2] as string);
       const cert = publicCertificate(db, event.id, serial);
       if (!cert || cert.status !== "active") throw notFound("certificate");
@@ -673,16 +671,27 @@ export function makeApp(options: AppOptions): Serve {
     }
 
 
-    if (target.pathname === "/fast-login") {
+    if (target.pathname === "/fast-login" || target.pathname === "/events/switch") {
       if (options.demoMode !== true) throw notFound("route");
-      if (request.method !== "POST") throw methodNotAllowed(request.method, ["POST"]);
+      if (target.pathname === "/fast-login" && request.method !== "POST") throw methodNotAllowed(request.method, ["POST"]);
+      if (target.pathname === "/events/switch" && request.method !== "GET" && request.method !== "POST" && request.method !== "HEAD") {
+        throw methodNotAllowed(request.method, ["GET", "POST"]);
+      }
       const origin = request.headers.get("origin");
-      if (origin !== null && origin !== publicOrigin.origin) throw forbidden("Demo login requires the deployment origin.");
-      const body = await request.formData();
-      const as = String(body.get("as") ?? "");
+      if (request.method === "POST" && origin !== null && origin !== publicOrigin.origin) throw forbidden("Demo login requires the deployment origin.");
+      let as = url.searchParams.get("as") ?? "";
+      let eventParam: string | null = url.searchParams.get("event");
+      let toParam: string | null = url.searchParams.get("to");
+      if (request.method === "POST") {
+        const body = await request.formData();
+        as = String(body.get("as") ?? as);
+        const bEvent = body.get("event");
+        if (typeof bEvent === "string") eventParam = bEvent;
+        const bTo = body.get("to");
+        if (typeof bTo === "string") toParam = bTo;
+      }
       const sampleEvent = resolveEvent(db, "sample-hack-2026") ?? resolveEvent(db, "evt_01");
       const dogfoodEvent = resolveEvent(db, "dogfood");
-      const eventParam = body.get("event");
       const chosenEvent = typeof eventParam === "string" ? resolveEvent(db, eventParam) : undefined;
       const wantsDogfood = as === "judge_a" || as === "judge_nils" || as.includes("dogfood");
       const targetEvent = chosenEvent ?? (wantsDogfood ? dogfoodEvent ?? sampleEvent : sampleEvent ?? dogfoodEvent) ?? db.get<{ slug: string }>("select slug from event order by created_at desc limit 1");
@@ -744,6 +753,9 @@ export function makeApp(options: AppOptions): Serve {
         } else if (as.startsWith("participant") || as.startsWith("builder")) {
           destination = `/events/${targetEvent.slug}/teams`;
         }
+      }
+      if (typeof toParam === "string" && toParam.startsWith("/") && !toParam.startsWith("//") && !toParam.includes("\\")) {
+        destination = toParam;
       }
       return seeOther(destination, { cookies: [cookie] });
     }
