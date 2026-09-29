@@ -15,6 +15,7 @@ export type GuideEvent = {
 export type GuideProps = {
   readonly whoami?: string | null;
   readonly demoMode?: boolean;
+  readonly showDemoDisclaimer?: boolean;
   readonly events?: readonly GuideEvent[];
 };
 
@@ -91,6 +92,7 @@ export function guidePage(props: GuideProps): string {
     title: "Platform Guide & Evaluation Sitemap",
     trail: [{ label: "Events", href: "/" }, { label: "Evaluation Guide & Sitemap" }],
     whoami: props.whoami, demoMode: props.demoMode,
+    showDemoDisclaimer: props.showDemoDisclaimer,
     eyebrow: "Operational Guide & Platform Sitemap",
     lead: "A comprehensive reference and direct-jump directory for hackathon judges, organizers, and builders. Understand Manak's evaluation model, access every feature with one click, and explore the complete platform architecture.",
     headingActions: `<div class="hero-actions"><a class="button" href="#golden-path">⚡ 3-Min Golden Path <span aria-hidden="true">&darr;</span></a><a class="button" href="#sitemap">Explore platform sitemap <span aria-hidden="true">&darr;</span></a><a class="text-link" href="#judges">Judge evaluation hub <span aria-hidden="true">&rarr;</span></a></div>`,

@@ -58,6 +58,65 @@ export function demoLoginForm(as: string, label: string, detail: string, classNa
   return `<form method="post" action="/fast-login">${event === undefined ? "" : `<input type="hidden" name="event" value="${esc(event)}">`}<button type="submit" name="as" value="${esc(as)}" class="${esc(className)}"><strong>${esc(label)}</strong><span>${esc(detail)}</span></button></form>`;
 }
 
+/** Pure CSS modal explaining features added specifically for the evaluation preview. */
+export function demoNoticeModal(openByDefault = false): string {
+  return `<input type="checkbox" id="demo-disclaimer-modal" class="demo-disclaimer-state"${openByDefault ? " checked" : ""}>
+<div class="demo-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="demo-disclaimer-title">
+<label for="demo-disclaimer-modal" class="demo-modal-backdrop-close" aria-label="Close dialog"></label>
+<div class="demo-modal-dialog">
+<div class="demo-modal-header">
+<div class="demo-modal-badge"><span class="badge-dot" aria-hidden="true"></span> Evaluation &amp; Prototype Preview</div>
+<label for="demo-disclaimer-modal" class="demo-modal-close" aria-label="Close dialog">&times;</label>
+</div>
+<div class="demo-modal-body">
+<h2 id="demo-disclaimer-title" class="demo-modal-heading">Demo &amp; Testing Features Notice</h2>
+<p class="demo-modal-intro">This deployment includes specialized utilities built specifically for rapid judging and prototype evaluation. In a production deployment, these features are cleanly removed, disabled, or configured via simple environment flags:</p>
+<div class="demo-feature-grid">
+<div class="demo-feature-card">
+<div class="demo-feature-icon" aria-hidden="true">⚡</div>
+<div class="demo-feature-content">
+<h3>Fast Login &amp; Role Switcher</h3>
+<p>1-click instant persona switching (Organizer, Judges, Builders) in the header without email OTP challenges.</p>
+<span class="demo-feature-note">Production: Disabled via <code>MANAK_DEMO=false</code>; authenticates via cryptographically signed email magic links.</span>
+</div>
+</div>
+<div class="demo-feature-card">
+<div class="demo-feature-icon" aria-hidden="true">🧭</div>
+<div class="demo-feature-content">
+<h3>Evaluator Golden Path</h3>
+<p>Guided 3-minute speed-run (<code>/guide#golden-path</code>) allowing evaluators to verify all T1–T4 claims with zero friction.</p>
+<span class="demo-feature-note">Production: Fully configurable or replaced with your organization&#39;s custom instructions.</span>
+</div>
+</div>
+<div class="demo-feature-card">
+<div class="demo-feature-icon" aria-hidden="true">📊</div>
+<div class="demo-feature-content">
+<h3>Pre-Seeded Hackathon Data</h3>
+<p>Sample events (Sample Hack 2026, Dogfood), pre-loaded rubric reviews, duplicate detection edge-cases, and Hodge duel matrices.</p>
+<span class="demo-feature-note">Production: Clean-slate database with zero synthetic entries; organizers create events from scratch.</span>
+</div>
+</div>
+<div class="demo-feature-card">
+<div class="demo-feature-icon" aria-hidden="true">🔏</div>
+<div class="demo-feature-content">
+<h3>Verifiable Certificate Studio</h3>
+<p>Pre-minted Ed25519 cryptographic certificates with public keys for testing offline WebCrypto verification at <code>/verify</code>.</p>
+<span class="demo-feature-note">Production: Generated on first boot and securely sealed inside your persistent storage volume.</span>
+</div>
+</div>
+</div>
+</div>
+<div class="demo-modal-footer">
+<form method="post" action="/demo/dismiss" class="demo-modal-dismiss-form">
+<label for="demo-disclaimer-modal" class="demo-modal-dismiss-btn">Dismiss</label>
+<button type="submit" class="demo-modal-submit-btn">Got it, explore demo &rarr;</button>
+<a href="/guide#golden-path" class="demo-modal-guide-btn">⚡ 3-Min Golden Path speed-run &rarr;</a>
+</form>
+</div>
+</div>
+</div>`;
+}
+
 export type Breadcrumb = { readonly label: string; readonly href?: string };
 
 export type PageOptions = {
@@ -68,6 +127,8 @@ export type PageOptions = {
   readonly whoami?: string | null;
   /** Exposes disposable personas only when MANAK_DEMO is explicitly enabled. */
   readonly demoMode?: boolean;
+  /** Whether the evaluation prototype notice pop-up should be open by default. */
+  readonly showDemoDisclaimer?: boolean;
   /** A one-line note across the top, such as "Submissions close in 40 minutes". */
   readonly notice?: string;
   /**
@@ -142,7 +203,7 @@ ${
 <link rel="stylesheet" href="${esc(STYLESHEET_PATH)}?v=${STYLE_REVISION}">
 </head>
 <body class="${options.layout === "home" ? "home" : "workspace"}">
-<a class="skip" href="#main">Skip to content</a>
+${options.demoMode === true ? `${demoNoticeModal(options.showDemoDisclaimer === true)}\n` : ""}<a class="skip" href="#main">Skip to content</a>
 <header class="bar">
 <a class="mark" href="/" aria-label="Manak home"><span class="brand-symbol" aria-hidden="true">m</span>manak<span class="brand-period">.</span></a>
 <nav class="primary-nav" aria-label="Main navigation"><a href="/events"${activeNav === "events" ? ' aria-current="page"' : activeNav === "event" ? ' aria-current="location"' : ""}>Explore events</a>${options.whoami == null ? "" : `<a href="/mine"${activeNav === "mine" ? ' aria-current="page"' : ""}>My workspace</a>`}<a href="/guide"${activeNav === "guide" ? ' aria-current="page"' : ""}>Evaluation guide</a><a href="/guide#golden-path">⚡ Golden Path</a><a href="/about"${activeNav === "about" ? ' aria-current="page"' : ""}>The method</a></nav>
@@ -151,7 +212,7 @@ ${
       ? '<a href="/signin">Sign in</a>'
       : `<span>${esc(options.whoami)}</span> <form method="post" action="/signout" class="inline">` +
         '<button class="quiet" type="submit">Sign out</button></form>'
-  }${options.demoMode === true ? `<details class="fast-login">
+  }${options.demoMode === true ? `<label for="demo-disclaimer-modal" class="demo-info-trigger" title="Open demo and evaluation notice">⚡ Demo Notice</label><details class="fast-login">
 <summary class="fast-login-btn">Fast login</summary>
 <div class="fast-login-menu">
 <div class="fast-login-header">

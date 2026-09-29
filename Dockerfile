@@ -52,7 +52,7 @@ WORKDIR /app
 ENV MANAK_DATABASE=/data/manak.db \
     MANAK_HOST=0.0.0.0 \
     MANAK_PORT=8080
-RUN mkdir -p /data && chown node:node /data
+RUN mkdir -p /data && chown -R node:node /data /app
 RUN apk add --no-cache su-exec
 # Volumes are declared in compose.yaml and cloud orchestrators rather than the image layer
 

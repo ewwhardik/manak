@@ -83,6 +83,7 @@ import {
   findEvent,
   findEventBySlug,
   gatesFor,
+  certificateKeyDirectory,
   getOrCreateKeypair,
   grantRole,
   headHash,
@@ -284,6 +285,8 @@ export function makeApp(options: AppOptions): Serve {
     address: string,
     now: number,
   ): Promise<Response> => {
+    const requestCookies = parseCookies(request.headers.get("cookie"));
+    const hasSeenDisclaimer = requestCookies["manak_demo_disclaimer"] === "seen";
     if (target.pathname === "/metrics") {
       if (request.method !== "GET" && request.method !== "HEAD") {
         throw methodNotAllowed(request.method, ["GET"]);
@@ -373,7 +376,7 @@ export function makeApp(options: AppOptions): Serve {
       if (request.method !== "GET" && request.method !== "HEAD") {
         throw methodNotAllowed(request.method, ["GET"]);
       }
-      const pub = options.publicKey ?? getOrCreateKeypair(options.keyDir ?? "./data").publicKeyPem;
+      const pub = options.publicKey ?? getOrCreateKeypair(options.keyDir ?? certificateKeyDirectory()).publicKeyPem;
       return textResponse(pub);
     }
 
@@ -485,7 +488,12 @@ export function makeApp(options: AppOptions): Serve {
       const activeEvents = db.all<{ slug: string; name: string }>(
         "select slug, name from event where archived_at is null order by created_at asc",
       );
-      return html(guidePage({ whoami, demoMode: options.demoMode === true, events: activeEvents }), 200);
+      return html(guidePage({
+        whoami,
+        demoMode: options.demoMode === true,
+        showDemoDisclaimer: options.demoMode === true && !hasSeenDisclaimer,
+        events: activeEvents,
+      }), 200);
     }
 
     const liveMatch = /^\/(api\/)?events\/([^/]+)\/live\/?$/.exec(target.pathname);
@@ -670,6 +678,26 @@ export function makeApp(options: AppOptions): Serve {
       }), 200);
     }
 
+
+    if (target.pathname === "/demo/dismiss") {
+      if (options.demoMode !== true) throw notFound("route");
+      if (request.method !== "GET" && request.method !== "POST" && request.method !== "HEAD") {
+        throw methodNotAllowed(request.method, ["GET", "POST"]);
+      }
+      let toParam: string | null = url.searchParams.get("to");
+      if (request.method === "POST") {
+        try {
+          const body = await request.formData();
+          const bTo = body.get("to");
+          if (typeof bTo === "string" && bTo.startsWith("/")) toParam = bTo;
+        } catch {}
+      }
+      const targetUrl = (toParam && toParam.startsWith("/")) ? toParam : "/";
+      const headers = new Headers();
+      headers.set("location", targetUrl);
+      headers.set("set-cookie", "manak_demo_disclaimer=seen; Path=/; Max-Age=2592000; SameSite=Lax");
+      return new Response(null, { status: 303, headers });
+    }
 
     if (target.pathname === "/fast-login" || target.pathname === "/events/switch") {
       if (options.demoMode !== true) throw notFound("route");
@@ -980,6 +1008,7 @@ export function makeApp(options: AppOptions): Serve {
       input,
       whoami: trace.whoami,
       demoMode: options.demoMode === true,
+      showDemoDisclaimer: options.demoMode === true && !hasSeenDisclaimer,
       accountId,
       event,
       gates,

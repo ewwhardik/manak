@@ -348,7 +348,7 @@ export function mintEventCertificates(
   db: Db,
   eventSlug: string,
   now: number,
-  keyDir = "./data",
+  keyDir = certificateKeyDirectory(),
   issuerOrigin = "https://manak.local",
 ): IssueCertsReport {
   const origin = new URL(issuerOrigin);

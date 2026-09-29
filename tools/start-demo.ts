@@ -51,15 +51,15 @@ if (process.env.MANAK_DEMO === "true") {
     const { seedDogfoodFull, seedSampleHackFull } = await import("./seed-dogfood-full.ts");
     const dogfoodEvent = db.get<{ id: string }>("select id from event where slug = 'dogfood'");
     if (dogfoodEvent) {
-      const existingPub = db.get("select 1 from result_publication where event_id = :event", { event: dogfoodEvent.id });
-      if (!existingPub) {
+      const existingCert = db.get("select 1 from certificate_batch where event_id = :event", { event: dogfoodEvent.id });
+      if (!existingCert) {
         seedDogfoodFull(path);
       }
     }
     const sampleEvent = db.get<{ id: string }>("select id from event where slug = 'sample-hack-2026'");
     if (sampleEvent) {
-      const existingPub = db.get("select 1 from result_publication where event_id = :event", { event: sampleEvent.id });
-      if (!existingPub) {
+      const existingCert = db.get("select 1 from certificate_batch where event_id = :event", { event: sampleEvent.id });
+      if (!existingCert) {
         seedSampleHackFull(path);
       }
     }

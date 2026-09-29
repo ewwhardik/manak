@@ -25,6 +25,7 @@ export type ViewContext = {
   /** The signed-in account's display name, or null. */
   readonly whoami: string | null;
   readonly demoMode?: boolean;
+  readonly showDemoDisclaimer?: boolean;
   readonly accountId: string | null;
   readonly event: EventRow | null;
   readonly gates: EventGates | null;

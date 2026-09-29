@@ -133,11 +133,11 @@ before the socket opens.
 | `src/judging` | 7,587 | nothing | the arithmetic: normalization, reliability, per-criterion analysis, pairwise fitting, bootstrap intervals, judge calibration, assignment |
 | `src/db` | 7,004 | `node:*`, the engine's types | schema, migrations, repositories, ledger, limiter |
 | `src/api` | 10,424 | `src/db/index.ts` | the declarations, capability, schema, errors, OpenAPI |
-| `src/view` | 6,833 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
-| `src/http` | 2,323 | everything below | the dispatcher, the responses, the socket |
+| `src/view` | 6,929 | `src/db/index.ts`, `src/api` | every string of markup this product emits |
+| `src/http` | 2,352 | everything below | the dispatcher, the responses, the socket |
 | `src/mail` | 1,179 | `node:*`, one erased type | RFC 5322 composition, an SMTP client, the outbox |
 | `bin/manak.ts` | 555 | everything | the environment, migration, signals, the process |
-| `tools` | 6,618 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
+| `tools` | 6,629 | everything, including `src/db` directly | seed, archive, the three proof harnesses |
 
 `src/mail` is the one entry that is not part of the stack, and the shape of its row is the
 reason. It sits beside the layers rather than on top of them: it imports `node:*` and one

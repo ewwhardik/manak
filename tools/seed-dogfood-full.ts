@@ -1,4 +1,4 @@
-import { openDatabase, makeContext, systemClock, findEventBySlug, storePublication, persistEventCertificates } from "../src/db/index.ts";
+import { openDatabase, makeContext, systemClock, findEventBySlug, storePublication, persistEventCertificates, certificateKeyDirectory, latestPublication } from "../src/db/index.ts";
 import { liveShow } from "../src/api/commands/results.ts";
 
 export function seedDogfoodFull(dbPath = "./data/demo.db"): void {
@@ -52,7 +52,7 @@ export function seedDogfoodFull(dbPath = "./data/demo.db"): void {
     }
 
     // 4. Persist certificates
-    const certReport = persistEventCertificates(db, "dogfood", Date.now(), "./data", "http://localhost:8080");
+    const certReport = persistEventCertificates(db, "dogfood", Date.now(), certificateKeyDirectory(), "http://localhost:8080");
     process.stdout.write(`[dogfood] Issued certificates: ${certReport.totalIssued} (Winners: ${certReport.winners}, Participants: ${certReport.participants}, Judges: ${certReport.judges})\n`);
   } finally {
     db.close();
@@ -114,12 +114,20 @@ export function seedSampleHackFull(dbPath = "./data/demo.db"): void {
       roles: ["organizer"],
     }) as Record<string, unknown>;
 
-    const pub = storePublication(ctx, event.id, live, "Official Fixture Results", "Final Verified Standings");
-    process.stdout.write(`[sample-hack-2026] Stored publication revision ${pub.revision}\n`);
+    // 4. Store publication if not present
+    let pub = latestPublication(db, event.id);
+    if (!pub) {
+      pub = storePublication(ctx, event.id, live, "Official Fixture Results", "Final Verified Standings");
+      process.stdout.write(`[sample-hack-2026] Stored publication revision ${pub.revision}\n`);
+    }
 
-    // 5. Seed Grand Prize award
+    // 5. Seed Grand Prize award if not present
     const projects = live.projects as Array<{ project: string; title: string }>;
-    if (projects.length > 0) {
+    const existingAward = db.get("select 1 from award_decision where event_id = :e and award_key = :k", {
+      e: event.id,
+      k: "1st Place: Grand Prize",
+    });
+    if (!existingAward && projects.length > 0) {
       const p1 = projects[0]!;
       const organizer = db.get<{ id: string }>("select id from account where email = 'organizer@example.org'");
       if (organizer) {
@@ -143,8 +151,11 @@ export function seedSampleHackFull(dbPath = "./data/demo.db"): void {
     }
 
     // 6. Issue certificates while voting is off and results are public
-    const certReport = persistEventCertificates(db, "sample-hack-2026", Date.now(), "./data", "http://localhost:8080");
-    process.stdout.write(`[sample-hack-2026] Issued certificates: ${certReport.totalIssued}\n`);
+    const existingCerts = db.get("select 1 from certificate_batch where event_id = :e", { e: event.id });
+    if (!existingCerts) {
+      const certReport = persistEventCertificates(db, "sample-hack-2026", Date.now(), certificateKeyDirectory(), "http://localhost:8080");
+      process.stdout.write(`[sample-hack-2026] Issued certificates: ${certReport.totalIssued}\n`);
+    }
 
     // 7. Enable active community voting window for T3 verification
     db.run(
