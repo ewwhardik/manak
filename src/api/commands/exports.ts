@@ -18,4 +18,29 @@ export const download = defineCommand({
   }),
 });
 
-export const EXPORT_COMMANDS = [download];
+const DEDICATED_EXPORTS = [
+  ["registrations", "registrations"],
+  ["teams", "teams"],
+  ["projects", "projects"],
+  ["scores", "ballots"],
+  ["results", "results"],
+  ["audit", "audit"],
+] as const;
+
+/** Stable, discoverable CSV URLs for tools that do not use the generic stage API. */
+export const dedicatedDownloads = DEDICATED_EXPORTS.map(([kind, stage]) => defineCommand({
+  name: `exports.${kind}_csv`,
+  summary: `Download ${kind} as CSV.`,
+  method: "GET",
+  path: `/api/events/:event/export/${kind}.csv`,
+  capability: { audience: "organizer", scope: "event" },
+  input: { event: EVENT_REF },
+  returns: { kind: "csv" },
+  notes: "Organizer-only event data. Text cells are escaped against spreadsheet formulas. Use the JSONL archive for a lossless backup.",
+  handler: ({ ctx, event }) => ({
+    csv: exportCsv(ctx.db, (event as EventRow).id, stage),
+    filename: `${(event as EventRow).slug}-${kind}.csv`,
+  }),
+}));
+
+export const EXPORT_COMMANDS = [download, ...dedicatedDownloads];

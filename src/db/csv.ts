@@ -103,16 +103,19 @@ export function exportCsv(db: Db, eventId: string, stage: CsvStage): string {
         repoUrl: string | null;
         demoUrl: string | null;
         submittedAt: number | null;
+        duplicateOf: string | null;
+        duplicateDecision: string | null;
       }>(
         `select p.id, p.title, p.summary, p.tagline, p.description, p.thumbnail_url, p.video_url, p.image_urls, p.tech_tags, p.answers, t.name as teamName, p.track_key as trackKey,
-                p.status, p.repo_url as repoUrl, p.demo_url as demoUrl, p.submitted_at as submittedAt
+                p.status, p.repo_url as repoUrl, p.demo_url as demoUrl, p.submitted_at as submittedAt,
+                p.duplicate_of as duplicateOf, p.duplicate_decision as duplicateDecision
            from project p
            join team t on t.id = p.team_id
           where p.event_id = :event
           order by p.title`,
         { event: eventId },
       );
-      const lines = [formatCsvRow(["project_id", "title", "team", "track", "status", "repo_url", "demo_url", "submitted_at", "summary", "tagline", "description", "thumbnail_url", "video_url", "image_urls", "tech_tags", "answers"])];
+      const lines = [formatCsvRow(["project_id", "title", "team", "track", "status", "repo_url", "demo_url", "submitted_at", "duplicate_of", "duplicate_decision", "summary", "tagline", "description", "thumbnail_url", "video_url", "image_urls", "tech_tags", "answers"])];
       for (const p of projects) {
         lines.push(formatCsvRow([
           p.id,
@@ -123,6 +126,8 @@ export function exportCsv(db: Db, eventId: string, stage: CsvStage): string {
           p.repoUrl ?? "",
           p.demoUrl ?? "",
           p.submittedAt ? new Date(p.submittedAt).toISOString() : "",
+          p.duplicateOf ?? "",
+          p.duplicateDecision ?? "",
           p.summary,
           p.tagline,
           p.description,
@@ -211,7 +216,8 @@ export function exportCsv(db: Db, eventId: string, stage: CsvStage): string {
         return lines.join("\r\n");
       }
       const projectRows = db.all<{ id: string; title: string; trackKey: string | null }>(
-        `select id, title, track_key as trackKey from project where event_id = :event and status = 'submitted'`,
+        `select id, title, track_key as trackKey from project where event_id = :event and status = 'submitted'
+          and (duplicate_of is null or duplicate_decision = 'cleared')`,
         { event: eventId },
       );
       const lines = [formatCsvRow(["rank", "project_id", "project_title", "fitted_score", "raw_score", "error_margin", "tier"])];
